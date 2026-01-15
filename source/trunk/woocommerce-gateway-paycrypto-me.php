@@ -2,12 +2,13 @@
 /**
  * Plugin Name: PayCrypto.Me for WooCommerce
  * Plugin URI: https://github.com/paycrypto-me/woocommerce-gateway-paycrypto-me/
- * Description: PayCrypto.Me Payments for WooCommerce introduces a complete solution that allows your customers to pay with BTC, ETH, SOL, and many other cryptocurrencies in your WooCommerce store.
+ * Description: PayCrypto.Me Payments for WooCommerce offers a complete solution that allows your customers to pay using many cryptocurrencies in your store.
  * Version: 0.1.0
+ * Requires at least: 5.0
+ * Tested up to: 6.9
+ * Requires PHP: 7.4
  * Author: PayCrypto.Me
  * Author URI: https://paycrypto.me/
- * Developer: Lucas Rosa
- * Developer URI: https://github.com/lucas-rosa95
  * Text Domain: woocommerce-gateway-paycrypto-me
  * Domain Path: /languages/
  *

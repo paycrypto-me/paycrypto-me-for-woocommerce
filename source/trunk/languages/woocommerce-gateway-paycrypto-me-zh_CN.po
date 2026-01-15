@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: PayCrypto.Me for WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/woocommerce-gateway-"
 "paycrypto-me/issues\n"
-"POT-Creation-Date: 2026-01-12T22:42:43+00:00\n"
+"POT-Creation-Date: 2026-01-14T22:53:46+00:00\n"
 "PO-Revision-Date: 2026-01-12T22:42:43+00:00\n"
 "Last-Translator: PayCrypto.Me <support@paycrypto.me>\n"
 "Language-Team: PayCrypto.Me Team <support@paycrypto.me>\n"
@@ -29,10 +29,11 @@ msgstr "https://github.com/paycrypto-me/woocommerce-gateway-paycrypto-me/"
 #. Description of the plugin
 #: woocommerce-gateway-paycrypto-me.php
 msgid ""
-"PayCrypto.Me Payments for WooCommerce introduces a complete solution that "
-"allows your customers to pay with BTC, ETH, SOL, and many other "
-"cryptocurrencies in your WooCommerce store."
-msgstr "PayCrypto.Me Payments 为 WooCommerce 提供了一套完整的解决方案，允许您的客户使用 BTC、ETH、SOL 和许多其他加密货币在您的 WooCommerce 商店中付款。"
+"PayCrypto.Me Payments for WooCommerce offers a complete solution that allows "
+"your customers to pay using many cryptocurrencies in your store."
+msgstr ""
+"PayCrypto.Me Payments 适用于 WooCommerce，提供一个完整的解决方案，"
+"让您的客户能够在您的商店使用多种加密货币进行支付。"
 
 #. Author of the plugin
 #: woocommerce-gateway-paycrypto-me.php
@@ -76,7 +77,9 @@ msgctxt "Gateway description"
 msgid ""
 "PayCrypto.Me (Bitcoin) introduces a complete solution to receive your "
 "payments directly to your Bitcoin wallet (Non-custodial)."
-msgstr "PayCrypto.Me (比特币) 提供了一套完整的解决方案，可将您的付款直接接收到您的比特币钱包（非托管）。"
+msgstr ""
+"PayCrypto.Me (比特币) 提供了一套完整的解决方案，可将您的付款直接接收到您的比"
+"特币钱包（非托管）。"
 
 #: includes/class-wc-gateway-paycrypto-me.php:51
 #: includes/class-wc-gateway-paycrypto-me.php:196
@@ -219,7 +222,9 @@ msgid ""
 "Resetting the payment derivation index will lead to the reuse of addresses "
 "and loss of past data. Proceed with caution and ensure you understand the "
 "implications."
-msgstr "重置付款派生索引将导致地址重复使用和过去数据丢失。请谨慎操作并确保您了解其影响。"
+msgstr ""
+"重置付款派生索引将导致地址重复使用和过去数据丢失。请谨慎操作并确保您了解其影"
+"响。"
 
 #: includes/class-wc-gateway-paycrypto-me.php:263
 msgid "Support the development!"

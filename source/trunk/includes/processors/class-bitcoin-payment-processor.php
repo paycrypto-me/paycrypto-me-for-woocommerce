@@ -86,7 +86,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             $message = \sprintf(
                 __('Payment sent to %1$s, Order Reference #%2$s', 'woocommerce-gateway-paycrypto-me'),
                 $payment_address,
-                $order_reference
+                $order->get_order_number()
             );
 
             $payment_data['payment_uri'] = $this->bitcoin_address_service->build_bitcoin_payment_uri(

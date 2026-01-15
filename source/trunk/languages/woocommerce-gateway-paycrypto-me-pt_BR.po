@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: PayCrypto.Me for WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/woocommerce-gateway-"
 "paycrypto-me/issues\n"
-"POT-Creation-Date: 2026-01-12T22:42:43+00:00\n"
+"POT-Creation-Date: 2026-01-14T22:53:46+00:00\n"
 "PO-Revision-Date: 2026-01-12T22:42:43+00:00\n"
 "Last-Translator: PayCrypto.Me <support@paycrypto.me>\n"
 "Language-Team: PayCrypto.Me Team <support@paycrypto.me>\n"
@@ -29,10 +29,11 @@ msgstr "https://github.com/paycrypto-me/woocommerce-gateway-paycrypto-me/"
 #. Description of the plugin
 #: woocommerce-gateway-paycrypto-me.php
 msgid ""
-"PayCrypto.Me Payments for WooCommerce introduces a complete solution that "
-"allows your customers to pay with BTC, ETH, SOL, and many other "
-"cryptocurrencies in your WooCommerce store."
-msgstr "PayCrypto.Me Payments para WooCommerce apresenta uma solução completa que permite aos seus clientes pagar com BTC, ETH, SOL e muitas outras criptomoedas na sua loja WooCommerce."
+"PayCrypto.Me Payments for WooCommerce offers a complete solution that allows "
+"your customers to pay using many cryptocurrencies in your store."
+msgstr ""
+"PayCrypto.Me Payments for WooCommerce oferece uma solução completa que "
+"permite aos seus clientes pagar com diversas criptomoedas em sua loja."
 
 #. Author of the plugin
 #: woocommerce-gateway-paycrypto-me.php
@@ -50,12 +51,16 @@ msgstr "https://paycrypto.me/"
 msgid ""
 "Use directly your Bitcoin wallet to pay. Place the order to view the QR code "
 "and payment instructions."
-msgstr "Use diretamente sua carteira Bitcoin para pagar. Faça o pedido para visualizar o código QR e as instruções de pagamento."
+msgstr ""
+"Use diretamente sua carteira Bitcoin para pagar. Faça o pedido para "
+"visualizar o código QR e as instruções de pagamento."
 
 #: includes/class-payment-processor.php:102
 msgid ""
 "PayCrypto.Me payment initiated. Awaiting cryptocurrency payment confirmation."
-msgstr "Pagamento PayCrypto.Me iniciado. Aguardando confirmação do pagamento em criptomoeda."
+msgstr ""
+"Pagamento PayCrypto.Me iniciado. Aguardando confirmação do pagamento em "
+"criptomoeda."
 
 #: includes/class-payment-processor.php:104
 msgid "Awaiting cryptocurrency payment"
@@ -64,19 +69,25 @@ msgstr "Aguardando pagamento em criptomoeda"
 #: includes/class-payment-processor.php:140
 msgid ""
 "Selected payment method cannot be processed. Please try choosing another one."
-msgstr "O método de pagamento selecionado não pode ser processado. Por favor, tente escolher outro."
+msgstr ""
+"O método de pagamento selecionado não pode ser processado. Por favor, tente "
+"escolher outro."
 
 #: includes/class-payment-processor.php:152
 msgid ""
 "Selected payment method is not supported. Please try choosing another one."
-msgstr "O método de pagamento selecionado não é suportado. Por favor, tente escolher outro."
+msgstr ""
+"O método de pagamento selecionado não é suportado. Por favor, tente escolher "
+"outro."
 
 #: includes/class-wc-gateway-paycrypto-me.php:42
 msgctxt "Gateway description"
 msgid ""
 "PayCrypto.Me (Bitcoin) introduces a complete solution to receive your "
 "payments directly to your Bitcoin wallet (Non-custodial)."
-msgstr "PayCrypto.Me (Bitcoin) apresenta uma solução completa para receber seus pagamentos diretamente na sua carteira Bitcoin (não custodial)."
+msgstr ""
+"PayCrypto.Me (Bitcoin) apresenta uma solução completa para receber seus "
+"pagamentos diretamente na sua carteira Bitcoin (não custodial)."
 
 #: includes/class-wc-gateway-paycrypto-me.php:51
 #: includes/class-wc-gateway-paycrypto-me.php:196
@@ -146,7 +157,9 @@ msgstr "Descrição do método de pagamento exibida na página de checkout."
 msgid ""
 "Pay directly from your Bitcoin wallet. Place your order to view the QR code "
 "and payment instructions."
-msgstr "Pague diretamente da sua carteira Bitcoin. Faça seu pedido para visualizar o código QR e as instruções de pagamento."
+msgstr ""
+"Pague diretamente da sua carteira Bitcoin. Faça seu pedido para visualizar o "
+"código QR e as instruções de pagamento."
 
 #: includes/class-wc-gateway-paycrypto-me.php:206
 msgid "Network"
@@ -164,7 +177,9 @@ msgstr "Identificador da Rede"
 msgid ""
 "Tip: It is always preferable to use the wallet xPub rather than a wallet "
 "address for Bitcoin payments."
-msgstr "Dica: É sempre preferível usar a carteira xPub em vez de um endereço de carteira para pagamentos em Bitcoin."
+msgstr ""
+"Dica: É sempre preferível usar a carteira xPub em vez de um endereço de "
+"carteira para pagamentos em Bitcoin."
 
 #: includes/class-wc-gateway-paycrypto-me.php:223
 msgid "Payment Timeout (hours)"
@@ -173,7 +188,9 @@ msgstr "Tempo limite de pagamento (horas)"
 #: includes/class-wc-gateway-paycrypto-me.php:225
 msgid ""
 "Max time (in hours) to wait to confirm payment before the order expires."
-msgstr "Tempo máximo (em horas) para aguardar a confirmação do pagamento antes que o pedido expire."
+msgstr ""
+"Tempo máximo (em horas) para aguardar a confirmação do pagamento antes que o "
+"pedido expire."
 
 #: includes/class-wc-gateway-paycrypto-me.php:230
 msgid "Payment number of confirmations"
@@ -183,7 +200,9 @@ msgstr "Número de confirmações de pagamento"
 msgid ""
 "Tip: To ensure the Bitcoin payment has been made, recommended wait for 3 "
 "confirmations."
-msgstr "Dica: Para garantir que o pagamento em Bitcoin foi realizado, recomenda-se aguardar 3 confirmações."
+msgstr ""
+"Dica: Para garantir que o pagamento em Bitcoin foi realizado, recomenda-se "
+"aguardar 3 confirmações."
 
 #: includes/class-wc-gateway-paycrypto-me.php:237
 msgid "Hide for Non-Admin Users"
@@ -196,7 +215,9 @@ msgstr "Mostrar apenas para administradores."
 #: includes/class-wc-gateway-paycrypto-me.php:241
 msgid ""
 "If enabled, only administrators will see the payment method on Checkout page."
-msgstr "Se ativado, apenas administradores verão o método de pagamento na página de checkout."
+msgstr ""
+"Se ativado, apenas administradores verão o método de pagamento na página de "
+"checkout."
 
 #: includes/class-wc-gateway-paycrypto-me.php:244
 msgid "Debug"
@@ -219,7 +240,10 @@ msgid ""
 "Resetting the payment derivation index will lead to the reuse of addresses "
 "and loss of past data. Proceed with caution and ensure you understand the "
 "implications."
-msgstr "Redefinir o índice de derivação de pagamento levará ao reuso de endereços e à perda de dados anteriores. Proceda com cautela e certifique-se de entender as implicações."
+msgstr ""
+"Redefinir o índice de derivação de pagamento levará ao reuso de endereços e "
+"à perda de dados anteriores. Proceda com cautela e certifique-se de entender "
+"as implicações."
 
 #: includes/class-wc-gateway-paycrypto-me.php:263
 msgid "Support the development!"
