@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: PayCrypto.Me for WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/woocommerce-gateway-"
 "paycrypto-me/issues\n"
-"POT-Creation-Date: 2026-01-12T22:42:43+00:00\n"
+"POT-Creation-Date: 2026-01-14T22:53:46+00:00\n"
 "PO-Revision-Date: 2026-01-12T22:42:43+00:00\n"
 "Last-Translator: PayCrypto.Me <support@paycrypto.me>\n"
 "Language-Team: PayCrypto.Me Team <support@paycrypto.me>\n"
@@ -29,13 +29,12 @@ msgstr "https://github.com/paycrypto-me/woocommerce-gateway-paycrypto-me/"
 #. Description of the plugin
 #: woocommerce-gateway-paycrypto-me.php
 msgid ""
-"PayCrypto.Me Payments for WooCommerce introduces a complete solution that "
-"allows your customers to pay with BTC, ETH, SOL, and many other "
-"cryptocurrencies in your WooCommerce store."
+"PayCrypto.Me Payments for WooCommerce offers a complete solution that allows "
+"your customers to pay using many cryptocurrencies in your store."
 msgstr ""
-"PayCrypto.Me-Zahlungen für WooCommerce bieten eine umfassende Lösung, mit "
-"der Ihre Kunden mit BTC, ETH, SOL und vielen anderen Kryptowährungen in "
-"Ihrem WooCommerce-Shop bezahlen können."
+"PayCrypto.Me-Zahlungen für WooCommerce bieten eine vollständige Lösung, mit "
+"der Ihre Kunden in Ihrem Shop mit zahlreichen Kryptowährungen bezahlen "
+"können."
 
 #. Author of the plugin
 #: woocommerce-gateway-paycrypto-me.php

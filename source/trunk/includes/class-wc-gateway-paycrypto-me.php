@@ -98,6 +98,7 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         $network_config = $this->get_network_config($selected_network);
 
         if (empty($network_identifier)) {
+            // translators: %s is the field label being validated, e.g. "Wallet xPub".
             \WC_Admin_Settings::add_error(
                 sprintf(__('Please enter a valid %s.', 'woocommerce-gateway-paycrypto-me'), $network_config['field_label'])
             );
