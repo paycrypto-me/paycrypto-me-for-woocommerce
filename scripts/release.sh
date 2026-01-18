@@ -157,6 +157,8 @@ rsync -a --delete \
   --exclude='.git' \
   --exclude='.phpunit.result.cache' \
   --exclude='phpunit.xml.dist' \
+  --exclude='*~' \
+  --exclude='*.po~' \
   --exclude='*.map' \
   --exclude='webpack.config.js' \
   --exclude='package-lock.json' \
@@ -170,11 +172,16 @@ rm -f "$BUILD_DIR/$SLUG/webpack.config.js"
 # Remove phpunit artifacts if accidentally copied
 rm -f "$BUILD_DIR/$SLUG/.phpunit.result.cache" 
 rm -f "$BUILD_DIR/$SLUG/phpunit.xml.dist" 
+# Remove any backup files (e.g. PO backups ending with ~)
+find "$BUILD_DIR/$SLUG" -name '*~' -type f -print -delete || true
+find "$BUILD_DIR/$SLUG" -name '*.po~' -type f -print -delete || true
 
 if [[ $DO_ZIP -eq 1 ]]; then
   mkdir -p "$ROOT_DIR/releases"
-  echo "Creating zip: releases/${SLUG}-${VERSION}.zip"
-  (cd "$BUILD_DIR" && zip -r "$ROOT_DIR/releases/${SLUG}-${VERSION}.zip" "$SLUG") >/dev/null
+    echo "Creating zip: releases/${SLUG}-${VERSION}.zip"
+    # Remove any existing zip to avoid keeping stale entries
+    rm -f "$ROOT_DIR/releases/${SLUG}-${VERSION}.zip" || true
+    (cd "$BUILD_DIR" && zip -r "$ROOT_DIR/releases/${SLUG}-${VERSION}.zip" "$SLUG") >/dev/null
   echo "Zip created: $ROOT_DIR/releases/${SLUG}-${VERSION}.zip"
 fi
 
