@@ -155,6 +155,8 @@ rsync -a --delete \
   --exclude='node_modules' \
   --exclude='tests' \
   --exclude='.git' \
+  --exclude='.phpunit.result.cache' \
+  --exclude='phpunit.xml.dist' \
   --exclude='*.map' \
   --exclude='webpack.config.js' \
   --exclude='package-lock.json' \
@@ -165,6 +167,9 @@ rsync -a --delete \
 rm -rf "$BUILD_DIR/$SLUG/node_modules" 
 rm -f "$BUILD_DIR/$SLUG/package-lock.json" 
 rm -f "$BUILD_DIR/$SLUG/webpack.config.js" 
+# Remove phpunit artifacts if accidentally copied
+rm -f "$BUILD_DIR/$SLUG/.phpunit.result.cache" 
+rm -f "$BUILD_DIR/$SLUG/phpunit.xml.dist" 
 
 if [[ $DO_ZIP -eq 1 ]]; then
   mkdir -p "$ROOT_DIR/releases"
