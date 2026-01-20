@@ -138,16 +138,7 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 'field_type' => 'text',
                 'field_label' => __('Testnet Wallet xPub', 'paycrypto-me-for-woocommerce'),
                 'field_placeholder' => 'e.g., tpub6, upub6, vpub6...',
-            ),
-            // 'lightning' => array(
-            //     'name' => 'Lightning Network',
-            //     'address_prefix' => array('lnbc', 'lntb', 'lnbcrt'),
-            //     'xpub_prefix' => array(),
-            //     'testnet' => false,
-            //     'field_type' => 'email',
-            //     'field_label' => __('Lightning Address', 'paycrypto-me-for-woocommerce'),
-            //     'field_placeholder' => 'e.g., payments@yourstore.com',
-            // ),
+            )
         );
     }
 
@@ -324,7 +315,6 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         $paycrypto_me_crypto_network_label = match ($paycrypto_me_crypto_network) {
             'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),
             'testnet' => 'Testnet',
-            'lightning' => 'Lightning',
             default => $paycrypto_me_crypto_network,
         };
 
@@ -497,20 +487,14 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
 
     private function validate_network_identifier($network_type, $identifier)
     {
-        if ($network_type === 'lightning' && is_email($identifier)) {
+        $network = $network_type === 'testnet' ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin();
+
+        if ($this->validate_xpub_address($network_type, $identifier)) {
             return true;
         }
 
-        if ($network_type !== 'lightning') {
-            $network = $network_type === 'testnet' ? NetworkFactory::bitcoinTestnet() : NetworkFactory::bitcoin();
-
-            if ($this->validate_xpub_address($network_type, $identifier)) {
-                return true;
-            }
-
-            if ($this->bitcoin_address_service->validate_bitcoin_address($identifier, $network)) {
-                return true;
-            }
+        if ($this->bitcoin_address_service->validate_bitcoin_address($identifier, $network)) {
+            return true;
         }
 
         $this->register_paycrypto_me_log(
@@ -523,18 +507,10 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
 
     private function mask_identifier_for_log($network_type, $identifier)
     {
-        if ($network_type === 'lightning') {
-            $parts = explode('@', $identifier);
-            if (\count($parts) === 2) {
-                return $parts[0] . '@' . substr($parts[1], 0, 1) . (strpos($parts[1], '.') !== false ?
-                    '***.' . substr(strrchr($parts[1], '.'), 1) :
-                    '***');
-            }
-        } else {
-            if (\strlen($identifier) > 10) {
-                return substr($identifier, 0, 6) . '...' . substr($identifier, -4);
-            }
+        if (\strlen($identifier) > 10) {
+            return substr($identifier, 0, 6) . '...' . substr($identifier, -4);
         }
+
         return $identifier;
     }
 }
