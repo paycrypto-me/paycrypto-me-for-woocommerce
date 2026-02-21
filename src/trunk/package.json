@@ -4,8 +4,8 @@
   "description": "PayCrypto.Me payment gateway for WooCommerce with Blocks support",
   "main": "assets/js/frontend/paycrypto-me-script.js",
   "scripts": {
-    "build": "wp-scripts build src/paycrypto-me-script.js --output-path=assets/js/frontend/",
-    "dev": "wp-scripts start src/paycrypto-me-script.js --output-path=assets/js/frontend/",
+    "build": "wp-scripts build includes/blocks/js/paycrypto-me-blocks.js --output-path=assets/blocks/",
+    "dev": "wp-scripts start includes/blocks/js/paycrypto-me-blocks.js --output-path=assets/blocks/",
     "lint:js": "wp-scripts lint-js src/",
     "format:js": "wp-scripts format-js src/",
     "translate": "chmod +x ./scripts/build-translations.sh && ./scripts/build-translations.sh",

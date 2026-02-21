@@ -73,6 +73,7 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
                 'no' === $hide_for_non_admin_users
             ) {
                 $gateways[] = __NAMESPACE__ . '\WC_Gateway_PayCryptoMe';
+                $gateways[] = __NAMESPACE__ . '\WC_Gateway_PayCryptoMe_Lightning';
             }
 
             return $gateways;
@@ -83,7 +84,9 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
         protected function includes()
         {
             if (class_exists('WC_Payment_Gateway')) {
+                include_once plugin_dir_path(__FILE__) . 'includes/abstract-class-wc-gateway-paycrypto-me.php';
                 include_once plugin_dir_path(__FILE__) . 'includes/class-wc-gateway-paycrypto-me.php';
+                include_once plugin_dir_path(__FILE__) . 'includes/class-wc-gateway-paycrypto-me-lightning.php';
             }
         }
 

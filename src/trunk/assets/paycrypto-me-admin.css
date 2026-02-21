@@ -84,3 +84,31 @@
         margin-top: 8px;
     }
 }
+
+/* BTCPay Lightning fields */
+.paycrypto-btcpay-row {
+    display: table-row;
+}
+
+.paycrypto-btcpay-row.hidden {
+    display: none !important;
+}
+
+.paycrypto-btcpay-field {
+    display: inline-block;
+    margin-right: 12px;
+}
+
+/* lnd REST Lightning fields */
+.paycrypto-lnd-row {
+    display: table-row;
+}
+
+.paycrypto-lnd-row.hidden {
+    display: none !important;
+}
+
+.paycrypto-lnd-field {
+    display: inline-block;
+    margin-right: 12px;
+}

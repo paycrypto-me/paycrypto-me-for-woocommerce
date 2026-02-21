@@ -16,7 +16,7 @@ namespace PayCryptoMe\WooCommerce;
 
 use BitWasp\Bitcoin\Network\NetworkFactory;
 
-class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
+class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
 {
     protected $hide_for_non_admin_users;
     protected $configured_networks;
@@ -26,27 +26,14 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     private BitcoinAddressService $bitcoin_address_service;
     private QrCodeService $qr_code_service;
     private PayCryptoMeDBStatementsService $db_statements_service;
-    private $support_btc_address = 'bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw';
-    private $support_btc_payment_address = 'PM8TJdrkRoSqkCWmJwUMojQCG1rEXsuCTQ4GG7Gub7SSMYxaBx7pngJjhV8GUeXbaJujy8oq5ybpazVpNdotFftDX7f7UceYodNGmffUUiS5NZFu4wq4';
 
     public function __construct()
     {
         $this->id = 'paycrypto_me';
 
-        $this->has_fields = true;
-
-        $this->supports = ['products', 'pre-orders'];
-
         $this->icon = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
-        $this->method_title = 'PayCrypto.Me (Bitcoin)';
-        $this->method_description = _x('PayCrypto.Me (Bitcoin) introduces a complete solution to receive your payments directly to your Bitcoin wallet (Non-custodial).', 'Gateway description', 'paycrypto-me-for-woocommerce');
-
-        $this->qr_code_service = new QrCodeService();
-        $this->bitcoin_address_service = new BitcoinAddressService();
-        $this->db_statements_service = new PayCryptoMeDBStatementsService();
-
-        $this->init_form_fields();
-        $this->init_settings();
+        $this->method_title = __('Bitcoin Payments', 'paycrypto-me-for-woocommerce') . ' (' . __('On-Chain', 'paycrypto-me-for-woocommerce') . ')';
+        $this->method_description = __('Accept Bitcoin payments Non-custodial via On-Chain', 'paycrypto-me-for-woocommerce') . ' (' . __('Provided by PayCrypto.Me', 'paycrypto-me-for-woocommerce') . ').';
 
         $this->title = $this->get_option('title') ?: __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce');
         $this->description = $this->get_option('description') ?: __('Use directly your Bitcoin wallet to pay. Place the order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
@@ -57,15 +44,11 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         $this->payment_timeout_hours = $this->get_option('payment_timeout_hours', '1');
         $this->payment_number_confirmations = $this->get_option('payment_number_confirmations', '2');
 
-        add_action('woocommerce_admin_order_data_after_order_details', array($this, 'render_admin_order_details_section'));
-        add_action('woocommerce_order_details_before_order_table', array($this, 'render_checkout_order_details_section'));
-        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_checkout_styles'));
+        $this->qr_code_service = new QrCodeService();
+        $this->bitcoin_address_service = new BitcoinAddressService();
+        $this->db_statements_service = new PayCryptoMeDBStatementsService();
 
-        do_action('paycryptome_for_woocommerce_gateway_loaded', $this);
-        add_action('admin_enqueue_scripts', array($this, 'admin_enqueue_scripts'));
-
-        add_action('wp_ajax_paycryptome_reset_derivation_index', array($this, 'ajax_reset_derivation_index'));
+        parent::__construct();
     }
 
     public function ajax_reset_derivation_index()
@@ -86,32 +69,32 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     public function process_admin_options()
     {
         if (isset($_POST['paycrypto_me_nonce'])) {
-            $nonce = isset( $_POST['paycrypto_me_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['paycrypto_me_nonce'] ) ) : '';
-            if ( ! wp_verify_nonce( $nonce, 'paycrypto_me_settings' ) ) {
-                wp_die( esc_html__( 'Security check failed', 'paycrypto-me-for-woocommerce' ) );
+            $nonce = isset($_POST['paycrypto_me_nonce']) ? sanitize_text_field(wp_unslash($_POST['paycrypto_me_nonce'])) : '';
+            if (!wp_verify_nonce($nonce, 'paycrypto_me_settings')) {
+                wp_die(esc_html__('Security check failed', 'paycrypto-me-for-woocommerce'));
             }
         } else {
-            $wpnonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
-            if ( ! wp_verify_nonce( $wpnonce, 'woocommerce-settings' ) ) {
-                wp_die( esc_html__( 'Security check failed', 'paycrypto-me-for-woocommerce' ) );
+            $wpnonce = isset($_POST['_wpnonce']) ? sanitize_text_field(wp_unslash($_POST['_wpnonce'])) : '';
+            if (!wp_verify_nonce($wpnonce, 'woocommerce-settings')) {
+                wp_die(esc_html__('Security check failed', 'paycrypto-me-for-woocommerce'));
             }
         }
 
-        $selected_network = isset( $_POST['woocommerce_paycrypto_me_selected_network'] ) ? sanitize_text_field( wp_unslash( $_POST['woocommerce_paycrypto_me_selected_network'] ) ) : null;
-        $network_identifier = isset( $_POST['woocommerce_paycrypto_me_network_identifier'] ) ? sanitize_text_field( wp_unslash( $_POST['woocommerce_paycrypto_me_network_identifier'] ) ) : '';
+        $selected_network = isset($_POST['woocommerce_paycrypto_me_selected_network']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_selected_network'])) : null;
+        $network_identifier = isset($_POST['woocommerce_paycrypto_me_network_identifier']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_network_identifier'])) : '';
         $network_config = $this->get_network_config($selected_network);
 
         if (empty($network_identifier)) {
             /* translators: %s is the field label being validated, e.g. "Wallet xPub". */
-            $format = esc_html__( 'Please enter a valid %s.', 'paycrypto-me-for-woocommerce' );
-            \WC_Admin_Settings::add_error( sprintf( $format, esc_html( $network_config['field_label'] ) ) );
+            $format = esc_html__('Please enter a valid %s.', 'paycrypto-me-for-woocommerce');
+            \WC_Admin_Settings::add_error(sprintf($format, esc_html($network_config['field_label'])));
             return false;
         }
 
         if (!$this->validate_network_identifier($selected_network, $network_identifier)) {
             /* translators: %s is the field label being validated, e.g. "Wallet xPub". */
-            $format = esc_html__( 'The %s provided is not valid for the selected network.', 'paycrypto-me-for-woocommerce' );
-            \WC_Admin_Settings::add_error( sprintf( $format, esc_html( $network_config['field_label'] ) ) );
+            $format = esc_html__('The %s provided is not valid for the selected network.', 'paycrypto-me-for-woocommerce');
+            \WC_Admin_Settings::add_error(sprintf($format, esc_html($network_config['field_label'])));
             return false;
         }
 
@@ -147,65 +130,9 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         return ['BTC']; //@NOTE: all networks using same crypto.
     }
 
-    public function check_cryptocurrency_support($currency, $network = null)
+    protected function init_form_fields_items()
     {
-        $normalized_currency = strtoupper($currency);
-        $available_cryptos = $this->get_available_cryptocurrencies($network);
-        return \in_array($normalized_currency, $available_cryptos, true);
-    }
-
-    public function get_configured_networks()
-    {
-        return $this->configured_networks;
-    }
-
-    public function get_network_config($network_type = null)
-    {
-        $available_networks = $this->get_available_networks();
-        if ($network_type && isset($available_networks[$network_type])) {
-            return $available_networks[$network_type];
-        }
-
-        return $available_networks['mainnet'];
-    }
-
-    public function init_form_fields()
-    {
-        $available_networks = $this->get_available_networks();
-        $network_options = array();
-        foreach ($available_networks as $key => $network) {
-            $network_options[$key] = $network['name'];
-        }
-
-        $this->form_fields = array(
-            'enabled' => array(
-                'title' => __('Enable/Disable', 'paycrypto-me-for-woocommerce'),
-                'label' => __('Enable PayCrypto.Me.', 'paycrypto-me-for-woocommerce'),
-                'type' => 'checkbox',
-                'default' => 'yes',
-            ),
-            'title' => array(
-                'title' => __('Title', 'paycrypto-me-for-woocommerce'),
-                'type' => 'text',
-                'description' => __('Payment method name displayed on Checkout page.', 'paycrypto-me-for-woocommerce'),
-                'default' => __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce'),
-            ),
-            'description' => array(
-                'title' => __('Description', 'paycrypto-me-for-woocommerce'),
-                'type' => 'textarea',
-                'description' => __('Payment method description displayed on Checkout page.', 'paycrypto-me-for-woocommerce'),
-                'default' => __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce'),
-            ),
-
-            'selected_network' => array(
-                'title' => __('Network', 'paycrypto-me-for-woocommerce'),
-                'type' => 'select',
-                'options' => $network_options,
-                'description' => __('Select the network for payments.', 'paycrypto-me-for-woocommerce'),
-                'default' => 'mainnet',
-                'required' => true,
-            ),
-
+        return [
             'network_identifier' => array(
                 'title' => __('Network Identifier', 'paycrypto-me-for-woocommerce'),
                 'type' => 'text',
@@ -228,20 +155,6 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 'custom_attributes' => array('min' => '1', 'step' => '1', 'max' => '6'),
                 'default' => '3'
             ),
-            'hide_for_non_admin_users' => array(
-                'title' => __('Hide for Non-Admin Users', 'paycrypto-me-for-woocommerce'),
-                'label' => __('Show only for administrators.', 'paycrypto-me-for-woocommerce'),
-                'type' => 'checkbox',
-                'default' => 'no',
-                'description' => __('If enabled, only administrators will see the payment method on Checkout page.', 'paycrypto-me-for-woocommerce'),
-            ),
-            'debug_log' => array(
-                'title' => __('Debug', 'paycrypto-me-for-woocommerce'),
-                'label' => __('Enable debugging messages', 'paycrypto-me-for-woocommerce'),
-                'type' => 'checkbox',
-                'default' => 'yes',
-                'description' => __('Debug logs will be saved to WooCommerce > Status > Logs.', 'paycrypto-me-for-woocommerce'),
-            ),
             'paycrypto_danger_area' => array(
                 'type' => 'title',
                 'title' => __('Danger Area', 'paycrypto-me-for-woocommerce'),
@@ -253,23 +166,7 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 </div>
                 ',
             ),
-            'paycrypto_me_donate' => array(
-                'type' => 'title',
-                'title' => __('Support the development!', 'paycrypto-me-for-woocommerce'),
-                'description' => '<div class="paycrypto-support-box">
-                    <div>
-                        <img src="' . WC_PayCryptoMe::plugin_url() . '/assets/wallet_address_qrcode.png">
-                    </div>
-                    <div>
-                        <strong>Enjoying the plugin?</strong> Send some BTC to support:
-                        <div style="display: flex; align-items: center; margin-top: 8px;">
-                            <span id="btc-address-admin" class="support-content">' . esc_html($this->support_btc_address) . '</span>
-                            <button type="button" id="copy-btc-admin" class="support-btn">Copy</button>
-                        </div>
-                    </div>
-                </div>',
-            ),
-        );
+        ];
     }
 
     public function payment_fields()
@@ -348,47 +245,14 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         $html = str_replace('</table>', $nonce_field . '</table>', $html);
 
         if ($echo) {
-            echo wp_kses_post( $html );
+            echo wp_kses_post($html);
         }
 
         return $html;
     }
 
-    public function admin_enqueue_scripts()
+    protected function admin_enqueue_scripts_content($screen)
     {
-        $screen = get_current_screen();
-
-        // We only read the admin `section` GET parameter to decide which scripts/styles
-        // to enqueue for the settings page. This is not processing form submission
-        // data; the actual settings processing is protected by nonces in
-        // `process_admin_options()`. Marking as intentionally safe for static checks.
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- admin-only context, sanitized input, settings submission is nonce-verified elsewhere.
-        $section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
-        if ($screen && $screen->id === 'woocommerce_page_wc-settings' && $section === $this->id) {
-            wp_enqueue_style(
-                'paycrypto-me-admin',
-                WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-admin.css',
-                array(),
-                filemtime(WC_PayCryptoMe::plugin_abspath() . 'assets/paycrypto-me-admin.css')
-            );
-            wp_enqueue_script(
-                'paycrypto-me-admin',
-                WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-admin.js',
-                array(),
-                filemtime(WC_PayCryptoMe::plugin_abspath() . 'assets/paycrypto-me-admin.js'),
-                true
-            );
-            wp_localize_script(
-                'paycrypto-me-admin',
-                'PayCryptoMeAdminData',
-                array(
-                    'networks' => $this->get_available_networks(),
-                    'ajax_url' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('paycrypto_me_nonce'),
-                )
-            );
-        }
-
         if ($screen && $screen->id === 'woocommerce_page_wc-orders' || $screen->id === 'shop_order') {
             wp_enqueue_style(
                 'paycrypto-me-admin-order-details',
@@ -396,76 +260,6 @@ class WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 array(),
                 filemtime(WC_PayCryptoMe::plugin_abspath() . 'assets/css/frontend/paycrypto-me-order-details.css')
             );
-        }
-
-    }
-
-    public function is_available()
-    {
-        if ('yes' !== $this->enabled) {
-            return false;
-        }
-        if ('yes' === $this->hide_for_non_admin_users && !current_user_can('manage_options')) {
-            return false;
-        }
-
-        if (empty($this->get_option('selected_network'))) {
-            return false;
-        }
-
-        if (empty($this->get_option('network_identifier'))) {
-            return false;
-        }
-
-        return true;
-    }
-
-    public function process_pre_order_payment($order)
-    {
-        return PaymentProcessor::instance()->process_payment($order->get_id(), $this);
-    }
-
-    public function process_payment($order_id)
-    {
-        return PaymentProcessor::instance()->process_payment($order_id, $this);
-    }
-
-    public function enqueue_checkout_styles()
-    {
-        if (is_checkout() || is_wc_endpoint_url('order-pay')) {
-            $css_file = WC_PayCryptoMe::plugin_url() . '/assets/css/frontend/paycrypto-me-styles.css';
-            $css_path = WC_PayCryptoMe::plugin_abspath() . 'assets/css/frontend/paycrypto-me-styles.css';
-
-            if (file_exists($css_path)) {
-                wp_enqueue_style(
-                    'paycrypto-me-checkout',
-                    $css_file,
-                    array(),
-                    filemtime($css_path)
-                );
-            }
-        }
-
-        if (is_order_received_page() || is_account_page()) {
-            $css_file = WC_PayCryptoMe::plugin_url() . '/assets/css/frontend/paycrypto-me-order-details.css';
-            $css_path = WC_PayCryptoMe::plugin_abspath() . 'assets/css/frontend/paycrypto-me-order-details.css';
-
-            if (file_exists($css_path)) {
-                wp_enqueue_style(
-                    'paycrypto-me-order-details',
-                    $css_file,
-                    array(),
-                    filemtime($css_path)
-                );
-            }
-        }
-    }
-
-    public function register_paycrypto_me_log($message, $level = 'info')
-    {
-        if ($this->debug_log === 'yes') {
-            $safe_message = wp_strip_all_tags( (string) $message );
-            \PayCryptoMe\WooCommerce\WC_PayCryptoMe::log( $safe_message, $level );
         }
     }
 
