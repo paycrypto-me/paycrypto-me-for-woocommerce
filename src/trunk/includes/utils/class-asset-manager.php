@@ -40,7 +40,6 @@ class AssetManager
         $version = isset($asset['version']) ? $asset['version'] : WC_PayCryptoMe::VERSION;
         $script_deps = isset($asset['dependencies']) ? $asset['dependencies'] : [];
 
-        // Script expected filename produced by webpack: {$slug}-blocks.js
         $script_file = "{$slug}-blocks.js";
         $script_path = self::get_plugin_abspath() . "/assets/blocks/{$script_file}";
         if (file_exists($script_path)) {
@@ -55,15 +54,12 @@ class AssetManager
             $handles[] = $handle;
         }
 
-        // Style file candidates
-        // Style expected filename produced by webpack: {$slug}-blocks-style.css
-        $style_file = "{$slug}-blocks-style.css";
+        $style_file = "{$slug}-blocks.css";
         $style_path = self::get_plugin_abspath() . "/assets/blocks/{$style_file}";
         if (file_exists($style_path)) {
             $style_handle = $slug . '-blocks-style';
             $style_url = self::get_plugin_url() . "/assets/blocks/{$style_file}" . ($version ? "?v={$version}" : '');
             wp_register_style($style_handle, $style_url, [], $version);
-            $handles[] = $style_handle;
         }
 
         return $handles;
@@ -72,14 +68,10 @@ class AssetManager
     public static function get_block_handles($slug)
     {
         $handles = [];
+
         $script_handle = $slug . '-blocks';
         if (wp_script_is($script_handle, 'registered') || wp_script_is($script_handle, 'enqueued')) {
             $handles[] = $script_handle;
-        }
-
-        $style_handle = $slug . '-blocks-style';
-        if (wp_style_is($style_handle, 'registered') || wp_style_is($style_handle, 'enqueued')) {
-            $handles[] = $style_handle;
         }
 
         return $handles;
