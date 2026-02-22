@@ -26,6 +26,13 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->method_description = __('Accept Bitcoin payments self-hosted via Lightning Network', 'paycrypto-me-for-woocommerce') . ' (' . __('Provided by PayCrypto.Me', 'paycrypto-me-for-woocommerce') . ').';
         $this->has_fields = false;
 
+        $this->icon = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->title = $this->get_option('title') ?: __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce');
+        $this->description = $this->get_option('description') ?: __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
+        $this->enabled = $this->get_option('enabled', 'yes');
+        $this->hide_for_non_admin_users = $this->get_option('hide_for_non_admin_users', 'no');
+        $this->debug_log = $this->get_option('debug_log', 'yes');
+
         parent::__construct();
 
         add_filter('woocommerce_generate_node_type_html', [$this, 'generate_node_type_html'], 10, 4);
@@ -411,6 +418,17 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         }
 
         wp_send_json_error(array('message' => $message));
+    }
+
+    public function is_available()
+    {
+        if (!parent::is_available()) {
+            return false;
+        }
+
+        //TODO: we could add some basic specific checks here
+
+        return true;
     }
 
     private function _sanitize_text_val($v)

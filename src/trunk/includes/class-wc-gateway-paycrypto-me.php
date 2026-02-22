@@ -183,6 +183,23 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         );
     }
 
+    public function is_available()
+    {
+        if (!parent::is_available()) {
+            return false;
+        }
+
+        if (empty($this->get_option('selected_network'))) {
+            return false;
+        }
+
+        if (empty($this->get_option('network_identifier'))) {
+            return false;
+        }
+
+        return true;
+    }
+
     public function render_admin_order_details_section($order)
     {
         echo '<style>';

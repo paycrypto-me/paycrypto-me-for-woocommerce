@@ -191,14 +191,6 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
             return false;
         }
 
-        if (empty($this->get_option('selected_network'))) {
-            return false;
-        }
-
-        if (empty($this->get_option('network_identifier'))) {
-            return false;
-        }
-
         return true;
     }
 
