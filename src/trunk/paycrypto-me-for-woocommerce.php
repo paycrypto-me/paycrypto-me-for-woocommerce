@@ -101,6 +101,7 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
         {
             if (class_exists('\Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
                 include_once plugin_dir_path(__FILE__) . 'includes/blocks/class-wc-gateway-paycrypto-me-blocks.php';
+                include_once plugin_dir_path(__FILE__) . 'includes/blocks/class-wc-gateway-paycrypto-me-lightning-blocks.php';
             }
         }
         public static function log($message, $level = 'info')
