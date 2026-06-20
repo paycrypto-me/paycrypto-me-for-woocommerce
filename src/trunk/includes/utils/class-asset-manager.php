@@ -44,7 +44,7 @@ class AssetManager
         $script_path = self::get_plugin_abspath() . "/assets/blocks/{$script_file}";
         if (file_exists($script_path)) {
             $handle = $slug . '-blocks';
-            $url = self::get_plugin_url() . "/assets/blocks/{$script_file}" . ($version ? "?v={$version}" : '');
+            $url = self::get_plugin_url() . "/assets/blocks/{$script_file}";
             wp_register_script($handle, $url, $script_deps, $version, true);
 
             if (function_exists('wp_set_script_translations')) {
@@ -58,8 +58,9 @@ class AssetManager
         $style_path = self::get_plugin_abspath() . "/assets/blocks/{$style_file}";
         if (file_exists($style_path)) {
             $style_handle = $slug . '-blocks-style';
-            $style_url = self::get_plugin_url() . "/assets/blocks/{$style_file}" . ($version ? "?v={$version}" : '');
+            $style_url = self::get_plugin_url() . "/assets/blocks/{$style_file}";
             wp_register_style($style_handle, $style_url, [], $version);
+            $handles[] = $style_handle;
         }
 
         return $handles;
@@ -72,6 +73,23 @@ class AssetManager
         $script_handle = $slug . '-blocks';
         if (wp_script_is($script_handle, 'registered') || wp_script_is($script_handle, 'enqueued')) {
             $handles[] = $script_handle;
+        }
+
+        // Do not return style handles here. WooCommerce expects this method to
+        // return script handles only; returning style handles causes the
+        // returned handles to be treated as script dependencies and leads to
+        // warnings about missing script registrations.
+
+        return $handles;
+    }
+
+    public static function get_block_style_handles($slug)
+    {
+        $handles = [];
+
+        $style_handle = $slug . '-blocks-style';
+        if (wp_style_is($style_handle, 'registered') || wp_style_is($style_handle, 'enqueued')) {
+            $handles[] = $style_handle;
         }
 
         return $handles;

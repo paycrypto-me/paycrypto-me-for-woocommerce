@@ -26,12 +26,17 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->method_description = __('Accept Bitcoin payments self-hosted via Lightning Network', 'paycrypto-me-for-woocommerce') . ' (' . __('Provided by PayCrypto.Me', 'paycrypto-me-for-woocommerce') . ').';
         $this->has_fields = false;
 
-        $this->icon = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->icon         = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->express_icon = WC_PayCryptoMe::plugin_url() . '/assets/lightning-network-icon.png';
         $this->title = $this->get_option('title') ?: __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce');
         $this->description = $this->get_option('description') ?: __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
         $this->enabled = $this->get_option('enabled', 'yes');
         $this->hide_for_non_admin_users = $this->get_option('hide_for_non_admin_users', 'no');
         $this->debug_log = $this->get_option('debug_log', 'yes');
+        $this->payment_timeout_hours = absint($this->get_option('payment_timeout_hours', 24));
+        $this->payment_number_confirmations = absint($this->get_option('payment_number_confirmations', 0));
+        $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
+        $this->express_payment_text = $this->get_option('express_payment_text', '') ?: __('Buy with', 'paycrypto-me-for-woocommerce');
 
         parent::__construct();
 
@@ -306,9 +311,9 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
         check_ajax_referer('paycrypto_btcpay_test', 'security');
 
-        $url = isset($_POST['btcpay_url']) ? esc_url_raw(wp_unslash($_POST['btcpay_url'])) : '';
-        $api = isset($_POST['btcpay_api_key']) ? sanitize_text_field(wp_unslash($_POST['btcpay_api_key'])) : '';
-        $store = isset($_POST['btcpay_store_id']) ? sanitize_text_field(wp_unslash($_POST['btcpay_store_id'])) : '';
+        $url = esc_url_raw(wp_unslash($this->get_option('btcpay_url', '')));
+        $api = esc_attr($this->get_option('btcpay_api_key', ''));
+        $store = esc_attr($this->get_option('btcpay_store_id', ''));
 
         if (empty($url)) {
             wp_send_json_error(array('message' => __('BTCPay URL is required for test.', 'paycrypto-me-for-woocommerce')));
@@ -322,7 +327,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
         $args = array(
             'timeout' => 15,
-            'headers' => array('Accept' => 'application/json'),
+            'headers' => array('Accept' => 'application/json', 'Content-Type' => 'application/json'),
         );
         if ($api !== '') {
             $args['headers']['Authorization'] = 'token ' . $api;

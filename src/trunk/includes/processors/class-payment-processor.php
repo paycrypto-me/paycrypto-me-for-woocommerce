@@ -142,14 +142,19 @@ class PaymentProcessor
             }
         }
 
-        if (empty($post['paycrypto_me_crypto_currency'])) {
-            throw new PayCryptoMePaymentException(
-                'Crypto currency wasn\'t received via payment.',
-                esc_html__('Selected payment method cannot be processed. Please try choosing another one.', 'paycrypto-me-for-woocommerce')
-            );
+        if (!empty($post['paycrypto_me_crypto_currency'])) {
+            $selected_crypto = strtoupper(sanitize_text_field($post['paycrypto_me_crypto_currency']));
+        } else {
+            // Express payment flows may not POST this field; fall back to the gateway default.
+            $fallback = $gateway->get_available_cryptocurrencies()[0] ?? '';
+            if (empty($fallback)) {
+                throw new PayCryptoMePaymentException(
+                    'Crypto currency wasn\'t received via payment.',
+                    esc_html__('Selected payment method cannot be processed. Please try choosing another one.', 'paycrypto-me-for-woocommerce')
+                );
+            }
+            $selected_crypto = strtoupper($fallback);
         }
-
-        $selected_crypto = strtoupper(sanitize_text_field($post['paycrypto_me_crypto_currency']));
 
         if (!$gateway->check_cryptocurrency_support($selected_crypto, $gateway->get_option('selected_network'))) {
             throw new PayCryptoMePaymentException(
@@ -198,11 +203,13 @@ class PaymentProcessor
                 ) );
         }
 
-        if ($order->get_payment_method() !== $gateway->id) {
+        // Accept the gateway's own ID or the express block variant (gateway_id . '_express').
+        $order_payment_method = $order->get_payment_method();
+        if ($order_payment_method !== $gateway->id && $order_payment_method !== $gateway->id . '_express') {
             throw new \InvalidArgumentException(
                     \sprintf(
                         'Payment method (%s) of order #%s is incompatible to payment gateway (%s).',
-                        esc_html( (string) $order->get_payment_method() ),
+                        esc_html( (string) $order_payment_method ),
                         esc_html( (string) $order->get_id() ),
                         esc_html( (string) $gateway->id )
                     ) );

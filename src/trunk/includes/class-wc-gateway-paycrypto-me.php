@@ -31,7 +31,8 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
     {
         $this->id = 'paycrypto_me';
 
-        $this->icon = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->icon         = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->express_icon = WC_PayCryptoMe::plugin_url() . '/assets/bitcoin-icon.png';
         $this->method_title = __('Bitcoin Payments', 'paycrypto-me-for-woocommerce') . ' (' . __('On-Chain', 'paycrypto-me-for-woocommerce') . ')';
         $this->method_description = __('Accept Bitcoin payments Non-custodial via On-Chain', 'paycrypto-me-for-woocommerce') . ' (' . __('Provided by PayCrypto.Me', 'paycrypto-me-for-woocommerce') . ').';
 
@@ -41,8 +42,10 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         $this->hide_for_non_admin_users = $this->get_option('hide_for_non_admin_users', 'no');
         $this->debug_log = $this->get_option('debug_log', 'yes');
         $this->configured_networks = $this->get_option('configured_networks', array());
-        $this->payment_timeout_hours = $this->get_option('payment_timeout_hours', '1');
-        $this->payment_number_confirmations = $this->get_option('payment_number_confirmations', '2');
+        $this->payment_timeout_hours = absint($this->get_option('payment_timeout_hours', 1));
+        $this->payment_number_confirmations = absint($this->get_option('payment_number_confirmations', 2));
+        $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
+        $this->express_payment_text = $this->get_option('express_payment_text', '') ?: __('Buy with', 'paycrypto-me-for-woocommerce');
 
         $this->qr_code_service = new QrCodeService();
         $this->bitcoin_address_service = new BitcoinAddressService();

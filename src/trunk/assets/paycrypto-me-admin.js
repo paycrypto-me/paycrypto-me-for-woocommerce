@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     lightning_fields_renderer();
 
+    express_payment_description_renderer();
 });
 
 function selected_network_renderer() {
@@ -132,10 +133,7 @@ function lightning_fields_renderer() {
             btn.textContent = 'Testing...';
             var postData = {
                 action: 'paycrypto_test_btcpay_connection',
-                security: data.btcpayNonce,
-                btcpay_url: document.querySelector('[name="' + data.btcpayUrlName + '"]') ? document.querySelector('[name="' + data.btcpayUrlName + '"]').value : '',
-                btcpay_api_key: document.querySelector('[name="' + data.btcpayApiName + '"]') ? document.querySelector('[name="' + data.btcpayApiName + '"]').value : '',
-                btcpay_store_id: document.querySelector('[name="' + data.btcpayStoreName + '"]') ? document.querySelector('[name="' + data.btcpayStoreName + '"]').value : ''
+                security: data.btcpayNonce
             };
 
             var xhr = new XMLHttpRequest();
@@ -209,4 +207,34 @@ function lightning_fields_renderer() {
             xhr.send(params);
         });
     }
+}
+
+function express_payment_description_renderer() {
+    const expressPaymentEnabled = document.getElementsByName('woocommerce_paycrypto_me_lightning_enable_express_payment');
+
+    if (!expressPaymentEnabled || expressPaymentEnabled.length === 0) return;
+
+    const expressPaymentDescription = document.querySelector('[data-express_payment-text]');
+
+    if (!expressPaymentDescription) return;
+
+    const expressPaymentDescriptionTr = expressPaymentDescription.closest('tr');
+    expressPaymentDescriptionTr.classList.add('hidden');
+
+    const toggleExpressPaymentDescription = function (hidden) {
+        if (hidden) {
+            expressPaymentDescription.value = '';
+            expressPaymentDescriptionTr.classList.add('hidden');
+        } else {
+            expressPaymentDescriptionTr.classList.remove('hidden');
+        }
+    }
+
+    expressPaymentEnabled.forEach(function (el) {
+        el.addEventListener('change', function () {
+            toggleExpressPaymentDescription(!this.checked);
+        });
+    });
+
+    toggleExpressPaymentDescription(!expressPaymentEnabled[0].checked);
 }

@@ -11,6 +11,7 @@ module.exports = {
         ],
         'paycrypto_me_lightning-blocks': [
             path.resolve(process.cwd(), 'includes/blocks/js/paycrypto_me_lightning-blocks.js'),
+            path.resolve(process.cwd(), 'includes/blocks/scss/paycrypto_me_lightning-blocks.scss'),
         ],
     },
     output: {

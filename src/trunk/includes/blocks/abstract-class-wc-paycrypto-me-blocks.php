@@ -35,6 +35,12 @@ abstract class WC_PayCryptoMe_Blocks extends AbstractPaymentMethodType
         return \PayCryptoMe\WooCommerce\AssetManager::get_block_handles($this->name);
     }
 
+    public function get_payment_method_style_handles()
+    {
+        \PayCryptoMe\WooCommerce\AssetManager::register_block_assets($this->name);
+        return \PayCryptoMe\WooCommerce\AssetManager::get_block_style_handles($this->name);
+    }
+
     public function get_payment_method_data()
     {
         return $this->gateway ? $this->gateway->get_payment_method_data() : [];
