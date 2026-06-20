@@ -21,6 +21,11 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     protected $debug_log;
     protected $payment_timeout_hours;
     protected $payment_number_confirmations;
+    protected $enable_express_payment;
+    protected $express_payment_text;
+    protected $show_express_icon;
+    protected $express_icon_position;
+    protected $express_icon;
     protected $support_btc_address = 'bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw';
     protected $support_btc_payment_address = 'PM8TJdrkRoSqkCWmJwUMojQCG1rEXsuCTQ4GG7Gub7SSMYxaBx7pngJjhV8GUeXbaJujy8oq5ybpazVpNdotFftDX7f7UceYodNGmffUUiS5NZFu4wq4';
 
@@ -32,6 +37,11 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
 
         $this->init_form_fields();
         $this->init_settings();
+
+        $this->show_express_icon     = $this->get_option('show_express_icon', 'yes') === 'yes';
+        $this->express_icon_position = $this->get_option('express_icon_position', 'left');
+
+        add_filter('woocommerce_generate_icon_position_html', [$this, 'generate_icon_position_html'], 10, 4);
 
         add_action('woocommerce_admin_order_data_after_order_details', array($this, 'render_admin_order_details_section'));
         add_action('woocommerce_order_details_before_order_table', array($this, 'render_checkout_order_details_section'));
@@ -127,7 +137,7 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         $this->form_fields = array_merge(
             [
                 'enabled' => array(
-                    'title' => __('Enable/Disable', 'paycrypto-me-for-woocommerce'),
+                    'title' => __('Enable Method', 'paycrypto-me-for-woocommerce'),
                     'label' => __('Enable', 'paycrypto-me-for-woocommerce') . ' ' . $this->method_title,
                     'type' => 'checkbox',
                     'default' => 'yes',
@@ -143,6 +153,43 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                     'type' => 'textarea',
                     'description' => __('Payment method description displayed on Checkout page.', 'paycrypto-me-for-woocommerce'),
                     'default' => __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce'),
+                ),
+                'express_payment_section' => array(
+                    'type' => 'title',
+                    'title' => __('Express Payment (One-Click)', 'paycrypto-me-for-woocommerce'),
+                    'description' => __('Enable Express Payment to pay with one click. When enabled, customers are redirected straight to the payment QR code.', 'paycrypto-me-for-woocommerce'),
+                ),
+                'enable_express_payment' => array(
+                    'label' => __('Enable Express Payment', 'paycrypto-me-for-woocommerce'),
+                    'type' => 'checkbox',
+                    'default' => 'no',
+                ),
+                'express_payment_text' => array(
+                    'type' => 'text',
+                    'title' => __('Express Button Label', 'paycrypto-me-for-woocommerce'),
+                    'placeholder' => __('Buy with', 'paycrypto-me-for-woocommerce'),
+                    'description' => __('Text displayed on the Express Payment button. If empty, the default label will be used \'Buy with\'', 'paycrypto-me-for-woocommerce'),
+                    'default' => '',
+                    'custom_attributes' => array(
+                        'data-express_payment-text' => '',
+                    ),
+                ),
+                'show_express_icon' => array(
+                    'title' => __('Express Button Icon', 'paycrypto-me-for-woocommerce'),
+                    'label' => __('Show icon on Express Payment button', 'paycrypto-me-for-woocommerce'),
+                    'type' => 'checkbox',
+                    'default' => 'yes',
+                    'description' => __('When enabled, the payment network icon is displayed alongside the button label.', 'paycrypto-me-for-woocommerce'),
+                ),
+                'express_icon_position' => array(
+                    'title' => __('Icon Position', 'paycrypto-me-for-woocommerce'),
+                    'type' => 'icon_position',
+                    'default' => 'left',
+                    'description' => __('Controls where the icon appears relative to the button label. e.g. "₿ Pay with" (left) or "Pay with ₿" (right).', 'paycrypto-me-for-woocommerce'),
+                    'options' => array(
+                        'left'  => __('Left — icon before label', 'paycrypto-me-for-woocommerce'),
+                        'right' => __('Right — icon after label', 'paycrypto-me-for-woocommerce'),
+                    ),
                 ),
             ],
             $selected_network_item,
@@ -218,6 +265,25 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                     filemtime($css_path)
                 );
             }
+            // Enqueue block styles only on checkout to avoid layout break elsewhere.
+            $block_css = WC_PayCryptoMe::plugin_abspath() . 'assets/blocks/paycrypto_me-blocks.css';
+            if (file_exists($block_css)) {
+                wp_enqueue_style(
+                    'paycrypto_me-blocks-style',
+                    WC_PayCryptoMe::plugin_url() . '/assets/blocks/paycrypto_me-blocks.css',
+                    array(),
+                    filemtime($block_css)
+                );
+            }
+            $lightning_css = WC_PayCryptoMe::plugin_abspath() . 'assets/blocks/paycrypto_me_lightning-blocks.css';
+            if (file_exists($lightning_css)) {
+                wp_enqueue_style(
+                    'paycrypto_me_lightning-blocks-style',
+                    WC_PayCryptoMe::plugin_url() . '/assets/blocks/paycrypto_me_lightning-blocks.css',
+                    array(),
+                    filemtime($lightning_css)
+                );
+            }
         }
 
         if (is_order_received_page() || is_account_page()) {
@@ -243,16 +309,55 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         }
     }
 
+    public function generate_icon_position_html(...$args)
+    {
+        if (count($args) === 2 && is_array($args[1])) {
+            $data = $args[1];
+        } elseif (count($args) >= 3 && is_array($args[2])) {
+            $data = $args[2];
+        } else {
+            $data = array();
+        }
+
+        $data = wp_parse_args($data, array('title' => '', 'description' => '', 'options' => array(), 'default' => 'left'));
+
+        $field_key = $this->get_field_key('express_icon_position');
+        $value     = $this->get_option('express_icon_position', $data['default']);
+
+        $html  = '<tr valign="top">';
+        $html .= '<th scope="row" class="titledesc"><label>' . esc_html($data['title']) . '</label></th>';
+        $html .= '<td class="forminp"><fieldset style="display:flex; align-items:center; gap:12px;"><legend class="screen-reader-text"><span>' . esc_html($data['title']) . '</span></legend>';
+
+        foreach ($data['options'] as $option_value => $option_label) {
+            $html .= '<label><input type="radio" name="' . esc_attr($field_key) . '" value="' . esc_attr($option_value) . '" ' . checked($value, $option_value, false) . '> ' . esc_html($option_label) . '</label> ';
+        }
+
+        $html .= '</fieldset>';
+
+        if (!empty($data['description'])) {
+            $html .= '<p class="description">' . wp_kses_post($data['description']) . '</p>';
+        }
+
+        $html .= '</td></tr>';
+
+        return $html;
+    }
+
     public function get_payment_method_data()
     {
         return [
-            'icon' => $this->icon ?? '',
-            'gateway_id' => $this->id ?? '',
-            'debug_log' => $this->debug_log ?? 'no',
-            'title' => $this->title ?: 'PayCrypto.Me',
-            'description' => $this->description ?? '',
-            'supports' => $this->supports ?? ['products'],
-            'crypto_currency' => $this->get_available_cryptocurrencies()[0] ?? '',
+            'icon'                 => $this->icon ?? '',
+            'express_icon'         => $this->express_icon ?? '',
+            'show_express_icon'    => $this->show_express_icon ?? true,
+            'express_icon_position' => $this->express_icon_position ?? 'left',
+            'gateway_id'          => $this->id ?? '',
+            'debug_log'           => $this->debug_log ?? 'no',
+            'title'               => $this->title ?: 'PayCrypto.Me',
+            'description'         => $this->description ?? '',
+            'supports'            => $this->supports ?? ['products'],
+            'express_payment_text' => $this->express_payment_text ?? '',
+            'enable_express_payment' => $this->enable_express_payment ?? false,
+            'crypto_currency'     => $this->get_available_cryptocurrencies()[0] ?? '',
         ];
     }
 }

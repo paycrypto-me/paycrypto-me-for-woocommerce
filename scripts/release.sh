@@ -2,24 +2,57 @@
 set -euo pipefail
 
 # Release helper for PayCrypto.Me plugin
-# Usage: ./scripts/release.sh -v VERSION -s SLUG [--no-build] [--no-tests] [--no-zip] [--git] [--svn]
+# Usage: ./scripts/release.sh -v VERSION -s SLUG [--no-build] [--no-tests] [--no-zip] [--git] [--svn] [--no-docker] [--dry-run]
 
+# === COLOR OUTPUT ===
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+log()    { echo -e "${GREEN}[INFO]${NC} $*"; }
+warn()   { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error()  { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+header() { echo -e "\n${BLUE}${BOLD}=== $* ===${NC}"; }
+step()   { echo -e "${CYAN}  →${NC} $*"; }
+
+# === DOCKER CONFIGURATION ===
+DOCKER_SERVICE="wordpress"
+CONTAINER_PLUGIN_DIR="/var/www/html/wp-content/plugins/paycrypto-me-for-woocommerce"
+
+docker_running() {
+    docker compose ps --status running 2>/dev/null | grep -q "$DOCKER_SERVICE"
+}
+
+docker_exec() {
+    docker compose exec -w "$CONTAINER_PLUGIN_DIR" "$DOCKER_SERVICE" bash -c "$1"
+}
+
+# === HELP ===
 show_help() {
   cat <<EOF
 Usage: $0 -v VERSION -s SLUG [options]
 
+Required:
+  -v VERSION      Release version (e.g. 1.2.0)
+  -s SLUG         Plugin slug / folder name
+
 Options:
-  -v VERSION    Release version (required)
-  -s SLUG       Plugin slug / folder name (required)
-  --no-build    Skip npm build
-  --no-tests    Skip phpunit tests
-  --no-zip      Skip creating the zip
-  --git         Commit changes and create git tag (push not automatic)
-  --svn         Prepare SVN trunk/tags (requires SVN credentials)
-  -h|--help     Show this help
+  --no-build      Skip npm build
+  --no-tests      Skip phpunit tests
+  --no-zip        Skip creating the zip
+  --git           Commit version bumps and create git tag
+  --svn           Prepare SVN trunk/tags (requires SVN credentials)
+  --no-docker     Run build/test commands on host instead of Docker container
+  --dry-run       Print steps without executing them
+  -h|--help       Show this help
 EOF
 }
 
+# === ARGUMENT PARSING ===
 if [[ ${#@} -eq 0 ]]; then
   show_help
   exit 1
@@ -32,208 +65,331 @@ DO_TESTS=1
 DO_ZIP=1
 DO_GIT=0
 DO_SVN=0
+USE_DOCKER=1
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -v) VERSION="$2"; shift 2;;
-    -s) SLUG="$2"; shift 2;;
-    --no-build) DO_BUILD=0; shift;;
-    --no-tests) DO_TESTS=0; shift;;
-    --no-zip) DO_ZIP=0; shift;;
-    --git) DO_GIT=1; shift;;
-    --svn) DO_SVN=1; shift;;
-    -h|--help) show_help; exit 0;;
-    *) echo "Unknown option: $1"; show_help; exit 1;;
+    -v)          VERSION="$2"; shift 2;;
+    -s)          SLUG="$2"; shift 2;;
+    --no-build)  DO_BUILD=0; shift;;
+    --no-tests)  DO_TESTS=0; shift;;
+    --no-zip)    DO_ZIP=0; shift;;
+    --git)       DO_GIT=1; shift;;
+    --svn)       DO_SVN=1; shift;;
+    --no-docker) USE_DOCKER=0; shift;;
+    --dry-run)   DRY_RUN=1; shift;;
+    -h|--help)   show_help; exit 0;;
+    *) error "Unknown option: $1"; show_help; exit 1;;
   esac
 done
 
 if [[ -z "$VERSION" || -z "$SLUG" ]]; then
-  echo "ERROR: VERSION and SLUG are required." >&2
+  error "VERSION and SLUG are required."
   show_help
   exit 1
 fi
 
+# === SEMVER VALIDATION ===
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  error "VERSION must be a valid semver string (e.g. 1.2.3). Got: $VERSION"
+  exit 1
+fi
+
+# === DRY RUN WRAPPER ===
+# Wraps commands so they are printed but not executed in --dry-run mode.
+run() {
+  if [[ $DRY_RUN -eq 1 ]]; then
+    step "[dry-run] $*"
+  else
+    "$@"
+  fi
+}
+
+run_shell() {
+  local desc="$1"; shift
+  if [[ $DRY_RUN -eq 1 ]]; then
+    step "[dry-run] $desc"
+  else
+    eval "$desc"
+  fi
+}
+
+# === PATH SETUP ===
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-# Support repositories using either `src/trunk` (this repo) or `source/trunk` (other layouts).
+
 if [[ -d "$ROOT_DIR/src/trunk" ]]; then
   TRUNK="$ROOT_DIR/src/trunk"
 elif [[ -d "$ROOT_DIR/source/trunk" ]]; then
   TRUNK="$ROOT_DIR/source/trunk"
 else
-  # fallback to original path (will likely fail later with descriptive error)
   TRUNK="$ROOT_DIR/source/trunk"
 fi
 
-echo "Using trunk path: $TRUNK"
-
-echo "Preparing release $SLUG v$VERSION"
-
-if [[ $DO_BUILD -eq 1 ]]; then
-  if [[ -f "$TRUNK/package.json" ]]; then
-    echo "Running npm ci && npm run build in $TRUNK"
-    (cd "$TRUNK" && npm ci && npm run build)
-  else
-    echo "No package.json in $TRUNK, skipping build"
-  fi
-fi
-
-if [[ $DO_TESTS -eq 1 ]]; then
-  if [[ -x "$TRUNK/vendor/bin/phpunit" ]]; then
-    echo "Running phpunit"
-    (cd "$TRUNK" && ./vendor/bin/phpunit --configuration phpunit.xml.dist)
-  else
-    echo "phpunit not available in $TRUNK/vendor/bin, skipping tests"
-  fi
-fi
-
-# Update version in plugin header and readme
 PLUGIN_FILE="$TRUNK/paycrypto-me-for-woocommerce.php"
 README_FILE="$TRUNK/readme.txt"
 
-if [[ -f "$PLUGIN_FILE" ]]; then
-  echo "Updating Version: header in $PLUGIN_FILE"
-  # Replace the line that contains the Version header inside the plugin file comment block.
-  # Match lines like: " * Version: ..." and replace the value only.
-  sed -E -i.bak "s/^(\\s*\\*\\s*Version:[[:space:]]*).*/\\1$VERSION/" "$PLUGIN_FILE" || true
+log "Trunk: $TRUNK"
+log "Preparing release ${BOLD}$SLUG v$VERSION${NC}"
+[[ $DRY_RUN -eq 1 ]] && warn "Dry-run mode active — no changes will be made."
+
+# === PRE-FLIGHT CHECKS ===
+header "Pre-flight checks"
+
+# Check git working tree
+if git -C "$ROOT_DIR" diff --quiet HEAD 2>/dev/null; then
+  log "Git working tree is clean."
+else
+  warn "Uncommitted changes detected. Proceeding anyway, but consider committing first."
 fi
 
-if [[ -f "$README_FILE" ]]; then
-  echo "Updating Stable tag in $README_FILE"
-  sed -E -i.bak "s/^(Stable tag:[[:space:]]*).*/\1$VERSION/" "$README_FILE" || true
+# Check Docker
+if [[ $USE_DOCKER -eq 1 ]]; then
+  if docker_running; then
+    log "Docker service '$DOCKER_SERVICE' is running."
+  else
+    if [[ $DO_BUILD -eq 1 || $DO_TESTS -eq 1 ]]; then
+      error "Docker service '$DOCKER_SERVICE' is not running. Start with: docker compose up -d"
+      error "Or pass --no-docker to run build/tests on the host (requires local Node.js, PHP, Composer)."
+      exit 1
+    else
+      warn "Docker not running, but --no-build and --no-tests are set — continuing."
+      USE_DOCKER=0
+    fi
+  fi
 fi
 
-# Clean up sed backup files created by -i.bak
-if [[ -f "$PLUGIN_FILE.bak" ]]; then
-  rm -f "$PLUGIN_FILE.bak" || true
-fi
-if [[ -f "$README_FILE.bak" ]]; then
-  rm -f "$README_FILE.bak" || true
+# === BUILD ===
+if [[ $DO_BUILD -eq 1 ]]; then
+  header "npm build"
+  if [[ -f "$TRUNK/package.json" ]]; then
+    if [[ $USE_DOCKER -eq 1 ]]; then
+      log "Running npm ci && npm run build inside Docker container..."
+      if [[ $DRY_RUN -eq 0 ]]; then
+        docker_exec "npm ci && npm run build"
+      else
+        step "[dry-run] docker_exec: npm ci && npm run build"
+      fi
+    else
+      log "Running npm ci && npm run build on host..."
+      run bash -c "cd '$TRUNK' && npm ci && npm run build"
+    fi
+  else
+    warn "No package.json in $TRUNK — skipping build."
+  fi
 fi
 
-# Update composer.json and package.json by replacing the "version" line in-place
-# Use a line-based sed replacement to preserve existing whitespace and formatting
+# === TESTS ===
+if [[ $DO_TESTS -eq 1 ]]; then
+  header "PHPUnit"
+  if [[ $USE_DOCKER -eq 1 ]]; then
+    log "Running PHPUnit inside Docker container..."
+    if [[ $DRY_RUN -eq 0 ]]; then
+      docker_exec "./vendor/bin/phpunit --configuration phpunit.xml.dist"
+    else
+      step "[dry-run] docker_exec: ./vendor/bin/phpunit --configuration phpunit.xml.dist"
+    fi
+  else
+    if [[ -x "$TRUNK/vendor/bin/phpunit" ]]; then
+      log "Running PHPUnit on host..."
+      run bash -c "cd '$TRUNK' && ./vendor/bin/phpunit --configuration phpunit.xml.dist"
+    else
+      warn "phpunit not found in $TRUNK/vendor/bin — skipping tests."
+    fi
+  fi
+fi
+
+# === VERSION BUMPS ===
+header "Version bumps → $VERSION"
+
+bump_sed() {
+  local file="$1" pattern="$2" label="$3"
+  if [[ -f "$file" ]]; then
+    log "Updating $label in $file"
+    if [[ $DRY_RUN -eq 0 ]]; then
+      sed -E -i.bak "$pattern" "$file" || true
+      rm -f "$file.bak"
+    else
+      step "[dry-run] sed: $label → $VERSION"
+    fi
+  fi
+}
+
+# Plugin header: " * Version: X.Y.Z"
+bump_sed "$PLUGIN_FILE" \
+  "s/^(\\s*\\*\\s*Version:[[:space:]]*).*/\\1$VERSION/" \
+  "Version: header"
+
+# PHP class constant: public const string VERSION = 'X.Y.Z';
+bump_sed "$PLUGIN_FILE" \
+  "s/^(\\s*public\\s+const\\s+string\\s+VERSION\\s*=\\s*')[^']+(';)/\\1$VERSION\\2/" \
+  "VERSION class constant"
+
+# readme.txt: Stable tag
+bump_sed "$README_FILE" \
+  "s/^(Stable tag:[[:space:]]*).*/\\1$VERSION/" \
+  "Stable tag"
+
+# composer.json and package.json: "version": "X.Y.Z"
 for f in "$TRUNK/composer.json" "$TRUNK/package.json"; do
   if [[ -f "$f" ]]; then
-    echo "Updating version in $f (preserve formatting)"
-    # Replace the value of the top-level "version" property on its line only.
-    sed -E -i.bak 's/^([[:space:]]*"version"[[:space:]]*:[[:space:]]*")[^"]+("[[:space:]]*,?)/\1'"$VERSION"'\2/' "$f" || true
-    rm -f "$f.bak" || true
+    log "Updating version in $(basename "$f")"
+    if [[ $DRY_RUN -eq 0 ]]; then
+      sed -E -i.bak 's/^([[:space:]]*"version"[[:space:]]*:[[:space:]]*")[^"]+("[[:space:]]*,?)/\1'"$VERSION"'\2/' "$f" || true
+      rm -f "$f.bak"
+    else
+      step "[dry-run] sed: version → $VERSION in $(basename "$f")"
+    fi
   fi
 done
 
-# Update JS source header @version if present
-JS_FILE="$TRUNK/src/paycrypto-me-script.js"
-if [[ -f "$JS_FILE" ]]; then
-  echo "Updating @version in $JS_FILE"
-  # Replace the @version line in the leading comment block
-  sed -E -i.bak "s/^([[:space:]]*\*[[:space:]]*@version[[:space:]]+).*/\\1$VERSION/" "$JS_FILE" || true
-  rm -f "$JS_FILE.bak" || true
+# === BUILD DIR ===
+header "Creating release build"
+
+BUILD_DIR=$(mktemp -d -t "${SLUG}-release-XXXX")
+# Cleanup build dir on exit (success or failure)
+trap 'log "Cleaning up build dir $BUILD_DIR"; rm -rf "$BUILD_DIR"' EXIT
+
+log "Build dir: $BUILD_DIR"
+
+log "Syncing files (excluding vendor, node_modules, dev files)..."
+if [[ $DRY_RUN -eq 0 ]]; then
+  rsync -a --delete \
+    --exclude='vendor/' \
+    --exclude='node_modules' \
+    --exclude='tests' \
+    --exclude='.git' \
+    --exclude='.phpunit.result.cache' \
+    --exclude='phpunit.xml.dist' \
+    --exclude='*~' \
+    --exclude='*.po~' \
+    --exclude='*.map' \
+    --exclude='webpack.config.js' \
+    --exclude='package-lock.json' \
+    --exclude='composer.lock' \
+    "$TRUNK/" "$BUILD_DIR/$SLUG/"
+else
+  step "[dry-run] rsync $TRUNK/ → $BUILD_DIR/$SLUG/ (without vendor/)"
 fi
 
-# Update PHP class constant VERSION inside the main plugin file if present
-if [[ -f "$PLUGIN_FILE" ]]; then
-  echo "Updating WC_PayCryptoMe::VERSION constant in $PLUGIN_FILE"
-  sed -E -i.bak "s/^(\s*public\s+const\s+string\s+VERSION\s*=\s*')[^']+('\s*;)/\\1$VERSION\\2/" "$PLUGIN_FILE" || true
-  rm -f "$PLUGIN_FILE.bak" || true
+# === COMPOSER PRODUCTION INSTALL ===
+header "Composer production install"
+log "Running: composer install --no-dev --optimize-autoloader --prefer-dist"
+
+if [[ $DRY_RUN -eq 0 ]]; then
+  if [[ $USE_DOCKER -eq 1 ]]; then
+    docker compose run --rm \
+      -v "$BUILD_DIR/$SLUG:/release-build" \
+      "$DOCKER_SERVICE" bash -c \
+      "cd /release-build && composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction 2>&1"
+  else
+    if command -v composer &>/dev/null; then
+      (cd "$BUILD_DIR/$SLUG" && composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction)
+    else
+      error "composer not found on host and --no-docker was set. Cannot install production dependencies."
+      exit 1
+    fi
+  fi
+else
+  step "[dry-run] docker compose run: composer install --no-dev --optimize-autoloader in build dir"
 fi
 
-BUILD_DIR=$(mktemp -d -t ${SLUG}-release-XXXX)
-echo "Creating build dir $BUILD_DIR"
+# === VENDOR CLEANUP (residual files) ===
+if [[ -d "$BUILD_DIR/$SLUG/vendor" && $DRY_RUN -eq 0 ]]; then
+  header "Vendor cleanup"
+  log "Removing VCS metadata, tests, heavy assets..."
 
-echo "Copying files to build directory (excluding dev files)"
-rsync -a --delete \
-  --exclude='node_modules' \
-  --exclude='tests' \
-  --exclude='.git' \
-  --exclude='.phpunit.result.cache' \
-  --exclude='phpunit.xml.dist' \
-  --exclude='*~' \
-  --exclude='*.po~' \
-  --exclude='*.map' \
-  --exclude='webpack.config.js' \
-  --exclude='package-lock.json' \
-  --exclude='composer.lock' \
-  "$TRUNK/" "$BUILD_DIR/$SLUG/"
-
-# Remove dev files from copied tree
-rm -rf "$BUILD_DIR/$SLUG/node_modules" 
-rm -f "$BUILD_DIR/$SLUG/package-lock.json" 
-rm -f "$BUILD_DIR/$SLUG/webpack.config.js" 
-# Remove phpunit artifacts if accidentally copied
-rm -f "$BUILD_DIR/$SLUG/.phpunit.result.cache" 
-rm -f "$BUILD_DIR/$SLUG/phpunit.xml.dist" 
-# Remove any backup files (e.g. PO backups ending with ~)
-find "$BUILD_DIR/$SLUG" -name '*~' -type f -print -delete || true
-find "$BUILD_DIR/$SLUG" -name '*.po~' -type f -print -delete || true
-
-# Clean vendor directory: remove VCS metadata, phpunit files and tests directories
-if [[ -d "$BUILD_DIR/$SLUG/vendor" ]]; then
-  echo "Cleaning vendor: removing VCS metadata, phpunit files and tests directories"
-  # Remove .git directories and other VCS files
   find "$BUILD_DIR/$SLUG/vendor" -type d -name '.git' -prune -exec rm -rf {} + || true
-  find "$BUILD_DIR/$SLUG/vendor" -type f -name '.git*' -delete || true
-  find "$BUILD_DIR/$SLUG/vendor" -type f -name '.gitignore' -delete || true
-  # Remove phpunit configuration/related files
+  find "$BUILD_DIR/$SLUG/vendor" -type f \( -name '.git*' -o -name '.gitignore' \) -delete || true
   find "$BUILD_DIR/$SLUG/vendor" -type f -iname 'phpunit.xml*' -delete || true
-  # Remove common CI/config files
   find "$BUILD_DIR/$SLUG/vendor" -type f -iname '.travis.yml' -delete || true
   find "$BUILD_DIR/$SLUG/vendor" -type d -name '.github' -prune -exec rm -rf {} + || true
-  # Remove tests folders inside vendor packages
   find "$BUILD_DIR/$SLUG/vendor" -type d \( -iname 'tests' -o -iname 'test' -o -iname 'Tests' \) -prune -exec rm -rf {} + || true
-  # Remove heavy font files and unrelated images from endroid QR code assets
-  if [[ -d "$BUILD_DIR/$SLUG/vendor/endroid/qr-code/assets" ]]; then
-    echo "Removing heavy fonts and unrelated images from endroid/qr-code/assets"
-    find "$BUILD_DIR/$SLUG/vendor/endroid/qr-code/assets" -type f \( -iname '*.ttf' -o -iname '*.otf' -o -iname 'blackfire.png' \) -print -delete || true
-  fi
-  # Remove example/exampleS directories from vendor packages
   find "$BUILD_DIR/$SLUG/vendor" -type d \( -iname 'examples' -o -iname 'example' -o -iname 'Examples' \) -prune -exec rm -rf {} + || true
-fi
-
-# Further prune common non-runtime files from vendor to reduce package size
-if [[ -d "$BUILD_DIR/$SLUG/vendor" ]]; then
-  echo "Pruning documentation, build and binary files from vendor"
-  # Remove license files, markdown docs, CI configs, shell scripts, XML, neon, yaml
-  find "$BUILD_DIR/$SLUG/vendor" -type f \( -iname 'license' -o -iname 'license.*' -o -iname '*.md' -o -iname '*.markdown' -o -iname '*.yml' -o -iname '*.yaml' -o -iname '*.sh' -o -iname '*.neon' -o -iname '*.xml' -o -iname 'Makefile' \) -delete || true
-  # Remove bin directories from vendor packages
   find "$BUILD_DIR/$SLUG/vendor" -type d -name 'bin' -prune -exec rm -rf {} + || true
+  find "$BUILD_DIR/$SLUG/vendor" -type f \( \
+    -iname 'license' -o -iname 'license.*' -o \
+    -iname '*.md' -o -iname '*.markdown' -o \
+    -iname '*.yml' -o -iname '*.yaml' -o \
+    -iname '*.sh' -o -iname '*.neon' -o \
+    -iname 'Makefile' \
+  \) -delete || true
+
+  # Remove heavy fonts and unrelated images from endroid/qr-code
+  if [[ -d "$BUILD_DIR/$SLUG/vendor/endroid/qr-code/assets" ]]; then
+    log "Removing heavy fonts from endroid/qr-code/assets..."
+    find "$BUILD_DIR/$SLUG/vendor/endroid/qr-code/assets" \
+      -type f \( -iname '*.ttf' -o -iname '*.otf' -o -iname 'blackfire.png' \) \
+      -print -delete || true
+  fi
+
+  # Remove root-level non-distributable files
+  rm -f "$BUILD_DIR/$SLUG/LICENSE" || true
+  rm -rf "$BUILD_DIR/$SLUG/examples" || true
+
+  # Remove leftover backup and temp files
+  find "$BUILD_DIR/$SLUG" -name '*~' -type f -delete || true
+  find "$BUILD_DIR/$SLUG" -name '*.po~' -type f -delete || true
+
+  log "Vendor cleanup complete."
 fi
 
-# Remove root-level non-distributable files/dirs from package
-rm -f "$BUILD_DIR/$SLUG/LICENSE" || true
-rm -rf "$BUILD_DIR/$SLUG/examples" || true
-
+# === ZIP ===
 if [[ $DO_ZIP -eq 1 ]]; then
+  header "Creating zip"
   mkdir -p "$ROOT_DIR/releases"
-    echo "Creating zip: releases/${SLUG}-${VERSION}.zip"
-    # Remove any existing zip to avoid keeping stale entries
-    rm -f "$ROOT_DIR/releases/${SLUG}-${VERSION}.zip" || true
-    (cd "$BUILD_DIR" && zip -r "$ROOT_DIR/releases/${SLUG}-${VERSION}.zip" "$SLUG") >/dev/null
-  echo "Zip created: $ROOT_DIR/releases/${SLUG}-${VERSION}.zip"
+  ZIP_PATH="$ROOT_DIR/releases/${SLUG}-${VERSION}.zip"
+  rm -f "$ZIP_PATH" || true
+  log "Zipping → releases/${SLUG}-${VERSION}.zip"
+  if [[ $DRY_RUN -eq 0 ]]; then
+    (cd "$BUILD_DIR" && zip -r "$ZIP_PATH" "$SLUG") >/dev/null
+    log "Zip created: $ZIP_PATH"
+    log "Size: $(du -sh "$ZIP_PATH" | cut -f1)"
+  else
+    step "[dry-run] zip $ZIP_PATH"
+  fi
 fi
 
+# === GIT ===
 if [[ $DO_GIT -eq 1 ]]; then
-  echo "Committing release changes and tagging v$VERSION"
-  (cd "$ROOT_DIR" && git add -A && git commit -m "Release v$VERSION" || echo "No changes to commit" )
-  (cd "$ROOT_DIR" && git tag -a "v$VERSION" -m "Release v$VERSION" || echo "Tag exists or failed")
-  echo "Created git tag v$VERSION. Push manually with: git push origin --tags"
+  header "Git: commit + tag v$VERSION"
+  if [[ $DRY_RUN -eq 0 ]]; then
+    (cd "$ROOT_DIR" && git add \
+      "$PLUGIN_FILE" \
+      "$README_FILE" \
+      "$TRUNK/composer.json" \
+      "$TRUNK/package.json" \
+    && git commit -m "chore: bump version to $VERSION" || log "No changes to commit")
+    (cd "$ROOT_DIR" && git tag -a "v$VERSION" -m "Release v$VERSION" \
+      && log "Tag v$VERSION created. Push manually: git push origin v$VERSION" \
+      || warn "Tag v$VERSION already exists or failed.")
+  else
+    step "[dry-run] git add (version files) && git commit -m 'chore: bump version to $VERSION'"
+    step "[dry-run] git tag -a v$VERSION"
+  fi
 fi
 
+# === SVN ===
 if [[ $DO_SVN -eq 1 ]]; then
-  echo "Preparing SVN export (you must have SVN configured)."
-  echo "This will create a checkout directory './svn-checkout' and copy trunk into it."
+  header "SVN export"
   svn_dir="$BUILD_DIR/svn-checkout"
   svn_url="https://plugins.svn.wordpress.org/${SLUG}"
-  echo "Checking out $svn_url"
-  svn checkout "$svn_url" "$svn_dir" || true
-  echo "Copying files to svn trunk"
-  rm -rf "$svn_dir/trunk/*" || true
-  rsync -a "$BUILD_DIR/$SLUG/" "$svn_dir/trunk/"
-  echo "You can now svn add --force and svn commit from $svn_dir"
+  log "Checking out $svn_url"
+  if [[ $DRY_RUN -eq 0 ]]; then
+    svn checkout "$svn_url" "$svn_dir" || true
+    log "Clearing SVN trunk..."
+    find "$svn_dir/trunk" -mindepth 1 -delete || true
+    log "Copying files to SVN trunk..."
+    rsync -a "$BUILD_DIR/$SLUG/" "$svn_dir/trunk/"
+    log "SVN checkout at: $svn_dir"
+    log "Run: cd $svn_dir && svn add --force . && svn commit -m 'Release $VERSION'"
+  else
+    step "[dry-run] svn checkout + rsync to $svn_dir/trunk/"
+  fi
 fi
 
-echo "Cleaning up build dir"
-rm -rf "$BUILD_DIR"
-
-echo "Release process finished for ${SLUG} v${VERSION}"
+header "Done"
+log "Release ${BOLD}$SLUG v$VERSION${NC} finished successfully."
+[[ $DO_ZIP -eq 1 && $DRY_RUN -eq 0 ]] && log "Package: $ROOT_DIR/releases/${SLUG}-${VERSION}.zip"
 
 exit 0

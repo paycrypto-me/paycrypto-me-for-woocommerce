@@ -1,50 +1,40 @@
-/**
- * Lightweight PayCrypto.Me Blocks integration
- * Minimal, tree-shakeable and optimized for the Lightning variant.
- */
-import { registerPaymentMethod } from '@woocommerce/blocks-registry';
+import { registerPaymentMethod, registerExpressPaymentMethod } from '@woocommerce/blocks-registry';
 import { getSetting } from '@woocommerce/settings';
 import { decodeEntities } from '@wordpress/html-entities';
 import { __ } from '@wordpress/i18n';
 import { createElement } from '@wordpress/element';
-import { useEffect } from 'react';
+import { isCheckoutPage, createPaymentComponents } from './paycrypto-blocks-shared.js';
 
 const settings = getSetting('paycrypto_me_lightning_data', {});
-console.log(settings);
+const label = decodeEntities(settings.title) || __('Pay with Bitcoin Lightning', 'paycrypto-me-for-woocommerce');
 
-const labelText = decodeEntities(settings.title || __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce'));
-const description = settings.description ? decodeEntities(settings.description) : '';
-
-const Content = ({ eventRegistration, emitResponse }) => {
-	useEffect(() => {
-		const unsubscribe = eventRegistration.onPaymentSetup(async () => ({
-			type: emitResponse.responseTypes.SUCCESS,
-			meta: { paymentMethodData: { paycrypto_me_crypto_currency: settings.crypto_currency } },
-		}));
-
-		return () => {
-			if (typeof unsubscribe === 'function') {
-				unsubscribe();
-			}
-		};
-	}, [eventRegistration, emitResponse, settings.crypto_currency]);
-
-	if (!description) {
-		return null;
-	}
-
-	return createElement('div', {
-		className: 'wc-paycrypto-me-description',
-		dangerouslySetInnerHTML: { __html: description },
-	});
-};
+const { Content, ExpressContent } = createPaymentComponents(settings, label);
 
 registerPaymentMethod({
-	name: 'paycrypto_me_lightning',
-	label: labelText,
-	content: createElement(Content),
-	edit: createElement(Content),
-	canMakePayment: () => true,
-	ariaLabel: labelText,
-	supports: { features: settings.supports || ['products'] },
+    name: 'paycrypto_me_lightning',
+    label,
+    content: createElement(Content),
+    edit: createElement(Content),
+    canMakePayment: () => true,
+    ariaLabel: label,
+    supports: { features: settings.supports || ['products'], style: ['height', 'borderRadius'] },
 });
+
+if (settings.enable_express_payment && isCheckoutPage) {
+    registerExpressPaymentMethod({
+        name: 'paycrypto_me_lightning_express',
+        title: label,
+        description: decodeEntities(settings.description || ''),
+        content: createElement(ExpressContent),
+        edit: createElement(ExpressContent),
+        canMakePayment: () => settings.enable_express_payment,
+        paymentMethodId: 'paycrypto_me_lightning',
+        gatewayId: settings.gateway_id || 'paycrypto_me_lightning',
+        supports: { features: settings.supports || ['products'], style: ['height', 'borderRadius'] },
+    });
+}
+
+if (process.env.NODE_ENV === 'development') {
+    console.log('PayCrypto.Me Lightning payment method registered');
+    console.log('PayCrypto.Me Lightning settings:', settings);
+}

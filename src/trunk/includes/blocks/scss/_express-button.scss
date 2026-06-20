@@ -1,0 +1,58 @@
+.wc-paycrypto-me-express-button {
+    // Full-width to fill the WooCommerce express payment slot.
+    // WooCommerce wraps each express button in a flex container — width: 100% is expected.
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 0 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+
+    background: #000000;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px; // default; overridden at runtime by buttonAttributes.borderRadius
+    height: 48px;       // default; overridden at runtime by buttonAttributes.height
+    min-height: 44px;
+
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+
+    transition: opacity 0.2s ease;
+
+    &:hover {
+        opacity: 0.88;
+    }
+
+    &:active {
+        opacity: 0.75;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+    }
+
+    &:disabled,
+    &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    &__icon,
+    img {
+        flex-shrink: 0;
+        height: 20px;
+        width: auto;
+        display: block;
+        object-fit: contain;
+    }
+}
