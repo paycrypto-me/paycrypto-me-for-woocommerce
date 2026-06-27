@@ -27,6 +27,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
 }
 
 register_activation_hook(__FILE__, [PayCryptoMeBitcoinGatewayActivate::class, 'activate']);
+register_activation_hook(__FILE__, [PayCryptoMeLightningGatewayActivate::class, 'activate']);
 
 if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
     class WC_PayCryptoMe

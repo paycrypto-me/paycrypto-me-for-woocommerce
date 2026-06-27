@@ -1,0 +1,69 @@
+<?php
+/**
+ * PayCrypto.Me Gateway for WooCommerce
+ *
+ * @package     WooCommerce\PayCryptoMe
+ * @class       AbstractLightningProcessor
+ * @author      PayCrypto.Me
+ * @copyright   2025 PayCrypto.Me
+ * @license     GNU General Public License v3.0
+ */
+
+namespace PayCryptoMe\WooCommerce;
+
+\defined('ABSPATH') || exit;
+
+abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
+{
+    protected LightningInvoiceServiceContract         $service;
+    protected PayCryptoMeLightningDBStatementsService $db;
+
+    abstract protected function invoice_args_filter(): string;
+    abstract protected function node_type(): string;
+    abstract protected function base_invoice_args(\WC_Order $order): array;
+
+    final public function process(\WC_Order $order, array $payment_data): array
+    {
+        $args = apply_filters(
+            $this->invoice_args_filter(),
+            array_merge($this->base_invoice_args($order), [
+                'order_id' => (string) $order->get_id(),
+                'memo'     => apply_filters('paycryptome_lightning_invoice_memo', '', $order, $this->gateway),
+                'expiry'   => apply_filters(
+                    'paycryptome_lightning_invoice_expiry',
+                    absint($this->gateway->get_option('invoice_expiry', 3600)),
+                    $order,
+                    $this->gateway
+                ),
+            ]),
+            $order,
+            $this->gateway
+        );
+
+        $payment_data['crypto_network'] = 'lightning';
+
+        $response        = $this->service->create_invoice($args);
+        $expiry_seconds  = (int) ($args['expiry'] ?? 3600);
+        $expires_at      = gmdate('Y-m-d H:i:s', time() + $expiry_seconds);
+
+        $this->db->insert_invoice(
+            $order->get_id(),
+            $this->node_type(),
+            $response->invoice_id,
+            $response->payment_request,
+            $expires_at,
+            isset($args['amount_sats']) ? (int) $args['amount_sats'] : null
+        );
+
+        // Align WC payment expiry with the actual Lightning invoice expiry.
+        $payment_data['payment_expires_at'] = (string) ceil($expiry_seconds / 3600);
+
+        $payment_data['payment_request']      = $response->payment_request;
+        $payment_data['lightning_invoice_id'] = $response->invoice_id;
+
+        // Uniform URI for QR code generation — both gateways expose payment_uri.
+        $payment_data['payment_uri'] = 'lightning:' . $response->payment_request;
+
+        return apply_filters('paycryptome_lightning_payment_data', $payment_data, $response, $order, $this->gateway);
+    }
+}

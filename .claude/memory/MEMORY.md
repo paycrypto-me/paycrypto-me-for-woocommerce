@@ -4,6 +4,6 @@
 
 - [project-overview](project-overview.md) — O que é o plugin, seus dois gateways (On-Chain e Lightning), stack PHP/JS, estrutura de diretórios
 - [architecture](architecture.md) — Hierarquia de classes, fluxo de pagamento, serviços, tabelas DB, blocos Gutenberg e hooks públicos
-- [project-wip](project-wip.md) — Lightning Network incompleto (factory, invoice, webhook REST), novos ícones e blocos em desenvolvimento
+- [project-wip](project-wip.md) — Lightning core implementado (M1–M5, 40 testes); webhook REST e conversão fiat→sats ainda pendentes
 - [dev-workflow](dev-workflow.md) — Build JS (`npm run build`), PHPUnit, traduções, release, Docker, dependências Composer forked
 - [user-lucas](user-lucas.md) — Lucas Rosa, dev PHP/WP experiente, criador do plugin, comunicação em pt-BR

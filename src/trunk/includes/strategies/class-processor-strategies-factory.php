@@ -18,8 +18,10 @@ class ProcessorStrategiesFactory
     public static function create(\WC_Payment_Gateway $gateway): GatewayProcessorContract
     {
         switch ($gateway->id) {
-            case 'paycrypto_me': //TODO: paycrypto_me_bitcoin
+            case 'paycrypto_me':
                 return BitcoinProcessorStrategiesFactory::create($gateway);
+            case 'paycrypto_me_lightning':
+                return LightningProcessorStrategiesFactory::create($gateway);
             default:
                 throw new \InvalidArgumentException(\sprintf("There isn't any processor strategy for gateway ID: %s", esc_html( (string) $gateway->id )));
         }

@@ -78,11 +78,11 @@ class PaymentProcessor
         $order_id = $order->get_id();
 
         $meta_data = [
-            'crypto_currency' => $payment_data['crypto_currency'] ?? 'N-A',
-            'crypto_amount' => $payment_data['crypto_amount'] ?? 'N-A',
-            'fiat_currency' => $payment_data['fiat_currency'] ?? 'N-A',
-            'fiat_amount' => $payment_data['fiat_amount'] ?? 'N-A',
-            'payment_address' => $payment_data['payment_address'] ?? 'N-A',
+            'crypto_currency'  => $payment_data['crypto_currency'] ?? 'N-A',
+            'crypto_amount'    => $payment_data['crypto_amount'] ?? 'N-A',
+            'fiat_currency'    => $payment_data['fiat_currency'] ?? 'N-A',
+            'fiat_amount'      => $payment_data['fiat_amount'] ?? 'N-A',
+            'payment_address'  => $payment_data['payment_address'] ?? $payment_data['payment_request'] ?? 'N-A',
         ];
 
         $gateway->register_paycrypto_me_log(
@@ -128,9 +128,7 @@ class PaymentProcessor
 
         $fiat_currency = $order->get_currency();
         $payment_amount = $modified_total ?? $order->get_total();
-        $payment_network = $gateway->get_option('selected_network');
         $payment_expires_at = $gateway->get_option('payment_timeout_hours');
-        $payment_numbers_confirmations = $gateway->get_option('payment_number_confirmations');
 
         // Ensure POST data is unslashed before processing
         $post = wp_unslash( $_POST );
@@ -156,7 +154,7 @@ class PaymentProcessor
             $selected_crypto = strtoupper($fallback);
         }
 
-        if (!$gateway->check_cryptocurrency_support($selected_crypto, $gateway->get_option('selected_network'))) {
+        if (!$gateway->check_cryptocurrency_support($selected_crypto, null)) {
             throw new PayCryptoMePaymentException(
                 \sprintf(
                     'Selected payment method (%s) is not supported for payment.',
@@ -167,14 +165,12 @@ class PaymentProcessor
         }
 
         $payment_data = apply_filters('paycryptome_payment_data', [
-            'crypto_amount' => null, //TODO: Calculate crypto amount based on fiat amount and current exchange rate
-            'fiat_amount' => $payment_amount,
-            'fiat_currency' => $fiat_currency,
+            'crypto_amount'      => null, //TODO: Calculate crypto amount based on fiat amount and current exchange rate
+            'fiat_amount'        => $payment_amount,
+            'fiat_currency'      => $fiat_currency,
             'payment_expires_at' => $payment_expires_at,
-            'payment_number_confirmations' => $payment_numbers_confirmations,
         ], $order->get_id());
 
-        $payment_data['crypto_network'] = $payment_network;
         $payment_data['crypto_currency'] = $selected_crypto;
 
         return $payment_data;

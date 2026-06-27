@@ -425,13 +425,65 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         wp_send_json_error(array('message' => $message));
     }
 
+    public function render_admin_order_details_section($order)
+    {
+        echo '<style>.paycrypto-me-order-details { clear: both } .paycrypto-me-order-details h3 { margin: 0 0 10px 0 !important; padding-top: 10px !important; }</style>';
+        $this->render_checkout_order_details_section($order);
+    }
+
+    public function render_checkout_order_details_section($order)
+    {
+        $payment_request = $order->get_meta('_paycrypto_me_payment_request');
+
+        if (!$payment_request) {
+            return;
+        }
+
+        $payment_uri = $order->get_meta('_paycrypto_me_payment_uri');
+        $logo_path   = WC_PayCryptoMe::plugin_abspath() . 'assets/paycrypto-me-icon.png';
+
+        $payment_display_data = [
+            'payment_identifier' => $payment_request,
+            'payment_uri'        => $payment_uri,
+            'payment_qr_code'    => (new QrCodeService())->generate_qr_code_data_uri($payment_uri, $logo_path),
+            'fiat_amount'        => $order->get_meta('_paycrypto_me_fiat_amount'),
+            'fiat_currency'      => $order->get_meta('_paycrypto_me_fiat_currency'),
+            'crypto_amount'      => null,
+            'crypto_currency'    => 'BTC',
+            'network_label'      => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
+            'crypto_network'     => 'lightning',
+            'expires_at'         => $order->get_meta('_paycrypto_me_payment_expires_at'),
+        ];
+
+        wc_get_template(
+            'order-details/paycrypto-me-order-details.php',
+            compact('payment_display_data'),
+            '',
+            WC_PayCryptoMe::plugin_abspath() . 'templates/'
+        );
+    }
+
     public function is_available()
     {
         if (!parent::is_available()) {
             return false;
         }
 
-        //TODO: we could add some basic specific checks here
+        $node_type = $this->get_option('node_type', 'btcpay');
+
+        if ($node_type === 'lnd_rest') {
+            if (empty($this->get_option('lnd_rest_url')) || empty($this->get_option('lnd_macaroon_hex'))) {
+                return false;
+            }
+        } else {
+            if (
+                empty($this->get_option('btcpay_url'))
+                || empty($this->get_option('btcpay_api_key'))
+                || empty($this->get_option('btcpay_store_id'))
+            ) {
+                return false;
+            }
+        }
 
         return true;
     }
