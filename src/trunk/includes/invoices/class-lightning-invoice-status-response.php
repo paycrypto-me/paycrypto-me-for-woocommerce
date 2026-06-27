@@ -3,7 +3,7 @@
  * PayCrypto.Me Gateway for WooCommerce
  *
  * @package     WooCommerce\PayCryptoMe
- * @class       BitcoinProcessorStrategiesFactory
+ * @class       LightningInvoiceStatusResponse
  * @author      PayCrypto.Me
  * @copyright   2025 PayCrypto.Me
  * @license     GNU General Public License v3.0
@@ -13,10 +13,10 @@ namespace PayCryptoMe\WooCommerce;
 
 \defined('ABSPATH') || exit;
 
-class BitcoinProcessorStrategiesFactory
+class LightningInvoiceStatusResponse
 {
-    public static function create(\WC_Payment_Gateway $gateway): GatewayProcessorContract
-    {
-        return new BitcoinPaymentProcessor($gateway);
-    }
+    public function __construct(
+        public readonly bool   $paid,
+        public readonly string $status,
+    ) {}
 }

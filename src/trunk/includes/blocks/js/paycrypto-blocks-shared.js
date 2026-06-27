@@ -69,7 +69,7 @@ export function createPaymentComponents(settings, label) {
     // Dedicated component for the express payment button slot.
     // WooCommerce Blocks does not pass eventRegistration.onPaymentSetup to express content
     // components in all versions — this component handles both cases explicitly.
-    const ExpressContent = ({ eventRegistration, emitResponse, onClick, buttonAttributes }) => {
+    const ExpressContent = ({ eventRegistration, emitResponse, onClick, onClose, buttonAttributes }) => {
         // Run once on mount. Reading eventRegistration/emitResponse inside the closure avoids
         // adding them as deps — in the express context they may be new objects each render,
         // which would cause an infinite re-registration loop.
@@ -81,6 +81,20 @@ export function createPaymentComponents(settings, label) {
                 type: successType,
                 meta: { paymentMethodData: { paycrypto_me_crypto_currency: settings.crypto_currency } },
             }));
+            return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
+        }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+        // When checkout fails, WC Blocks keeps the express payment session open waiting for
+        // onClose(). Without it the Blocks store never resets active payment method, fires a
+        // recalculate request with payment_method="" and leaves the page stuck in loading.
+        useEffect(() => {
+            const onCheckoutFail = eventRegistration?.onCheckoutFail;
+            if (typeof onCheckoutFail !== 'function') return undefined;
+            const failType = emitResponse?.responseTypes?.FAIL || 'failure';
+            const unsubscribe = onCheckoutFail(() => {
+                if (typeof onClose === 'function') onClose();
+                return { type: failType };
+            });
             return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
         }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

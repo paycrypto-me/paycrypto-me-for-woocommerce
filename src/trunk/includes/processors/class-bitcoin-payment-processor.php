@@ -28,6 +28,9 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
 
     public function process(\WC_Order $order, array $payment_data): array
     {
+        $payment_data['payment_number_confirmations'] = (int) abs((int) $this->gateway->get_option('payment_number_confirmations', 0));
+        $payment_data['crypto_network']               = (string) $this->gateway->get_option('selected_network', 'mainnet');
+
         $xPub = $this->gateway->get_option('network_identifier');
         $network = $this->gateway->get_option('selected_network');
 
