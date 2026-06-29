@@ -284,5 +284,5 @@ msgid "Payment address copied to clipboard."
 msgstr "Dirección de pago copiada al portapapeles."
 
 #: templates/order-details/paycrypto-me-order-details.php:63
-msgid "open your wallet app"
+msgid "Open Wallet App"
 msgstr "abra su aplicación de monedero"

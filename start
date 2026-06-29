@@ -1,63 +1,87 @@
 #!/bin/bash
 set -e
 
-# Nome do serviço WordPress no docker-compose
 WP_SERVICE="wordpress"
-
-# Caminho padrão do WordPress no container
 WP_PATH="/var/www/html"
 
 wp_up() {
-  docker compose -f ./docker-compose.yml up -d --force-recreate  
+  docker compose -f ./docker-compose.yml up -d --force-recreate
 }
 
 dc_exec() {
-  docker compose -f ./docker-compose.yml exec -T $WP_SERVICE "$@"
+  docker compose -f ./docker-compose.yml exec -T "$WP_SERVICE" "$@"
 }
 
-# Função para rodar WP-CLI dentro do container
 wp_exec() {
-  docker compose -f ./docker-compose.yml exec -T $WP_SERVICE wp "$@" --path=$WP_PATH --allow-root
+  docker compose -f ./docker-compose.yml exec -T "$WP_SERVICE" wp "$@" --path="$WP_PATH" --allow-root
 }
 
 echo "🚀 Iniciando o setup do PayCrypto.Me WooCommerce..."
 wp_up
 
-echo "⏳ Verificando se o WordPress já está instalado..."
-if ! wp_exec core is-installed >/dev/null 2>&1; then
+# Aguarda o entrypoint do container terminar de copiar os arquivos do WP para o volume
+echo "⏳ Aguardando arquivos do WordPress..."
+until dc_exec test -f "$WP_PATH/wp-includes/version.php" 2>/dev/null; do
+  echo "  arquivos ainda não prontos, aguardando 3s..."
+  sleep 3
+done
+
+# Aguarda o MySQL aceitar conexões TCP (porta abre só quando está pronto para autenticar)
+echo "⏳ Aguardando banco de dados..."
+until dc_exec bash -c "echo > /dev/tcp/wp_db/3306" 2>/dev/null; do
+  echo "  banco ainda não disponível, aguardando 3s..."
+  sleep 3
+done
+
+echo "⏳ Verificando se o WordPress está instalado..."
+if wp_exec core is-installed 2>/dev/null; then
+  echo "✅ WordPress já instalado."
+else
   echo "⚙️ Instalando WordPress..."
-  until wp_exec core install \
+  wp_exec core install \
     --url="http://localhost:8080" \
     --title="PayCrypto.Me" \
     --admin_user="admin" \
     --admin_password="admin123" \
     --admin_email="admin@example.com" \
-    --skip-email \
-    --allow-root \
-    --path=/var/www/html; do
-    echo "⏳ não instalado, aguardando 5s..."
-    sleep 5
-  done
-else
-  echo "✅ WordPress já instalado."
+    --skip-email
 fi
 
-echo "📦 Instalando e ativando WooCommerce..."
-wp_exec plugin install woocommerce --activate
+echo "📦 Verificando WooCommerce..."
+if wp_exec plugin is-installed woocommerce 2>/dev/null; then
+  echo "✅ WooCommerce já instalado."
+  wp_exec plugin activate woocommerce 2>/dev/null || true
+else
+  echo "  baixando WooCommerce (requer acesso à internet)..."
+  if ! wp_exec plugin install woocommerce --activate; then
+    echo "⚠️  Falha ao baixar WooCommerce. Verifique a conexão de rede do container."
+    echo "   Alternativa: baixe o zip manualmente e rode:"
+    echo "     docker cp woocommerce.zip \$(docker compose ps -q wordpress):/tmp/"
+    echo "     ./start  # depois de copiar o zip, rode novamente"
+  fi
+fi
 
-echo "🎨 Instalando e ativando tema Storefront..."
-wp_exec theme install storefront --activate
+echo "🎨 Verificando tema Storefront..."
+if wp_exec theme is-installed storefront 2>/dev/null; then
+  echo "✅ Storefront já instalado."
+  wp_exec theme activate storefront 2>/dev/null || true
+else
+  echo "  baixando Storefront (requer acesso à internet)..."
+  wp_exec theme install storefront --activate || \
+    echo "⚠️  Falha ao instalar Storefront. Instale manualmente se necessário."
+fi
 
-echo "⚙️ Adicionando DISABLE_WP_CRON..."
+echo "⚙️ Configurando wp-config.php..."
 wp_exec config set DISABLE_WP_CRON true --raw
-
-# ⚙️ Ativar WP_DEBUG_LOG (salva logs em wp-content/debug.log)
-echo "⚙️ Ativando DEBUG_LOGS..."
-
 wp_exec config set WP_DEBUG true --raw
 wp_exec config set WP_DEBUG_LOG true --raw
-wp_exec config set PHP_DISPLAY_ERRORS 1 --raw
 wp_exec config set WP_DEBUG_DISPLAY true --raw
-wp_exec config set PHP_ERROR_REPORTING -1 --raw
 
+echo "⚙️ Ativando plugin PayCrypto.Me..."
+wp_exec plugin activate paycrypto-me-for-woocommerce 2>/dev/null || \
+  echo "⚠️  Plugin não encontrado — verifique o mount em ./src/trunk"
+
+echo ""
 echo "✅ Setup completo!"
+echo "🌐 http://localhost:8080"
+echo "🔐 http://localhost:8080/wp-admin  (admin / admin123)"

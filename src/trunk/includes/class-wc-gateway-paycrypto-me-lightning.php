@@ -440,19 +440,27 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         }
 
         $payment_uri = $order->get_meta('_paycrypto_me_payment_uri');
-        $logo_path   = WC_PayCryptoMe::plugin_abspath() . 'assets/paycrypto-me-icon.png';
+        $logo_path   = WC_PayCryptoMe::plugin_abspath() . 'assets/lightning-network-icon.png';
+
+        $expires_hours        = (int) $order->get_meta('_paycrypto_me_payment_expires_at');
+        $order_date           = $order->get_date_created();
+        $expires_at_formatted = ($expires_hours > 0 && $order_date)
+            ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $order_date->getTimestamp() + $expires_hours * HOUR_IN_SECONDS)
+            : null;
 
         $payment_display_data = [
-            'payment_identifier' => $payment_request,
-            'payment_uri'        => $payment_uri,
-            'payment_qr_code'    => (new QrCodeService())->generate_qr_code_data_uri($payment_uri, $logo_path),
-            'fiat_amount'        => $order->get_meta('_paycrypto_me_fiat_amount'),
-            'fiat_currency'      => $order->get_meta('_paycrypto_me_fiat_currency'),
-            'crypto_amount'      => null,
-            'crypto_currency'    => 'BTC',
-            'network_label'      => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
-            'crypto_network'     => 'lightning',
-            'expires_at'         => $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'payment_identifier'    => $payment_request,
+            'payment_uri'           => $payment_uri,
+            'payment_qr_code'       => (new QrCodeService())->generate_qr_code_data_uri($payment_uri, $logo_path),
+            'fiat_amount'           => $order->get_meta('_paycrypto_me_fiat_amount'),
+            'fiat_currency'         => $order->get_meta('_paycrypto_me_fiat_currency'),
+            'crypto_amount'         => null,
+            'crypto_currency'       => 'BTC',
+            'network_label'         => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
+            'crypto_network'        => 'lightning',
+            'expires_at'            => $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'expires_at_formatted'  => $expires_at_formatted,
+            'confirmations_required' => 0,
         ];
 
         wc_get_template(
@@ -493,10 +501,18 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         return is_null($v) ? '' : sanitize_text_field(wp_unslash($v));
     }
 
+    private function _is_lnd_rest_selected()
+    {
+        $post_data = $this->get_post_data();
+        $node_type_key = $this->get_field_key('node_type');
+        $node_type = isset($post_data[$node_type_key]) ? sanitize_text_field(wp_unslash($post_data[$node_type_key])) : 'btcpay';
+        return $node_type === 'lnd_rest';
+    }
+
     public function validate_btcpay_url_field($key, $value)
     {
-        if (is_null($value) || $value === '') {
-            return '';
+        if ($this->_is_lnd_rest_selected() || is_null($value) || $value === '') {
+            return is_null($value) ? '' : esc_url_raw(trim(stripslashes($value)));
         }
         $val = trim(stripslashes($value));
         $url = esc_url_raw($val);
@@ -514,7 +530,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     public function validate_btcpay_api_key_field($key, $value)
     {
         $val = $this->_sanitize_text_val($value);
-        if ($val !== '' && strlen($val) < 20) {
+        if (!$this->_is_lnd_rest_selected() && $val !== '' && strlen($val) < 20) {
             \WC_Admin_Settings::add_error(esc_html__('BTCPay API key must be at least 20 characters.', 'paycrypto-me-for-woocommerce'));
             return '';
         }
@@ -529,7 +545,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     public function validate_btcpay_webhook_secret_field($key, $value)
     {
         $val = $this->_sanitize_text_val($value);
-        if ($val !== '' && strlen($val) < 16) {
+        if (!$this->_is_lnd_rest_selected() && $val !== '' && strlen($val) < 16) {
             \WC_Admin_Settings::add_error(esc_html__('BTCPay webhook secret is shorter than the recommended 16 characters.', 'paycrypto-me-for-woocommerce'));
         }
         return $val;
@@ -537,8 +553,8 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
     public function validate_lnd_rest_url_field($key, $value)
     {
-        if (is_null($value) || $value === '') {
-            return '';
+        if (!$this->_is_lnd_rest_selected() || is_null($value) || $value === '') {
+            return is_null($value) ? '' : esc_url_raw(trim(stripslashes($value)));
         }
         $val = trim(stripslashes($value));
         $url = esc_url_raw($val);
@@ -556,8 +572,8 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     public function validate_lnd_macaroon_hex_field($key, $value)
     {
         $val = $this->_sanitize_text_val($value);
-        $val = preg_replace('/\s+/', '', $val); // Remove whitespace
-        if ($val !== '') {
+        $val = preg_replace('/\s+/', '', $val);
+        if ($this->_is_lnd_rest_selected() && $val !== '') {
             if (strlen($val) < 100) {
                 \WC_Admin_Settings::add_error(esc_html__('lnd Macaroon must be at least 100 characters.', 'paycrypto-me-for-woocommerce'));
                 return '';
@@ -573,10 +589,9 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     public function validate_lnd_certificate_field($key, $value)
     {
         $val = wp_kses_post(wp_unslash($value));
-        if ($val === '') {
-            return ''; // Certificate is optional
+        if (!$this->_is_lnd_rest_selected() || $val === '') {
+            return $val;
         }
-        // Validate basic PEM format
         if (strpos($val, '-----BEGIN CERTIFICATE-----') === false || strpos($val, '-----END CERTIFICATE-----') === false) {
             \WC_Admin_Settings::add_error(esc_html__('Invalid certificate format. Must be valid PEM format starting with -----BEGIN CERTIFICATE-----.', 'paycrypto-me-for-woocommerce'));
             return '';

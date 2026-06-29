@@ -268,5 +268,5 @@ msgid "Payment address copied to clipboard."
 msgstr "付款地址已复制到剪贴板。"
 
 #: templates/order-details/paycrypto-me-order-details.php:63
-msgid "open your wallet app"
+msgid "Open Wallet App"
 msgstr "打开您的钱包应用"

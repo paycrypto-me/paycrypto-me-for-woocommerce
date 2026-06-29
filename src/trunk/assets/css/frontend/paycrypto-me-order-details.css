@@ -3,7 +3,40 @@
 }
 
 .paycrypto-me-order-details h3 {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
+}
+
+.paycrypto-me-order-details__status-row {
+    margin-bottom: 12px;
+}
+
+.paycrypto-me-order-details__status-badge {
+    align-items: center;
+    background: #fef3c7;
+    border-radius: 1.5rem;
+    color: #92400e;
+    display: inline-flex;
+    font-family: sans-serif;
+    font-size: .7rem;
+    font-weight: 700;
+    gap: 6px;
+    letter-spacing: .02em;
+    padding: 5px 10px;
+    user-select: none;
+}
+
+.paycrypto-me-order-details__status-dot {
+    animation: paycrypto-me-pulse 1.6s ease-in-out infinite;
+    background: #f59e0b;
+    border-radius: 50%;
+    flex-shrink: 0;
+    height: 7px;
+    width: 7px;
+}
+
+@keyframes paycrypto-me-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .25; }
 }
 
 .paycrypto-me-order-details__container {
@@ -20,6 +53,7 @@
 .paycrypto-me-network-switch {
     align-items: center;
     display: inline-flex;
+    gap: 6px;
     position: relative;
 }
 
@@ -43,6 +77,11 @@
     user-select: none;
 }
 
+.paycrypto-me-network-switch label.paycrypto-me-crypto-label {
+    background: #1d1d1f;
+    color: #fff;
+}
+
 .paycrypto-me-network-switch label.paycrypto-me-network-testnet-label {
     background: #5fd15c;
     color: #fff;
@@ -50,6 +89,11 @@
 
 .paycrypto-me-network-switch label.paycrypto-me-network-mainnet-label {
     background: #f7931a;
+    color: #fff;
+}
+
+.paycrypto-me-network-switch label.paycrypto-me-network-lightning-label {
+    background: #7c3aed;
     color: #fff;
 }
 
@@ -94,6 +138,35 @@
     word-break: keep-all;
 }
 
+.paycrypto-me-order-details__expires {
+    color: #92400e;
+    font-weight: 600;
+}
+
+.paycrypto-me-order-details__confirmations-hint {
+    color: #6b7280;
+    font-size: .75rem;
+    margin: -2px auto 0;
+    max-width: 340px;
+    text-align: center;
+    width: 100%;
+}
+
+.paycrypto-me-copy-feedback {
+    display: none;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+.paycrypto-me--copied .paycrypto-me-copy-icon {
+    display: none;
+}
+
+.paycrypto-me--copied .paycrypto-me-copy-feedback {
+    display: inline;
+}
+
 .paycrypto-me-order-details__copy-address-button {
     background: none !important;
     border: none !important;
@@ -112,6 +185,7 @@
 .paycrypto-me-order-details__button {
     align-items: center;
     border: none !important;
+    border-radius: .5rem;
     box-sizing: border-box;
     cursor: pointer;
     display: inline-flex;
@@ -122,6 +196,7 @@
     max-width: 340px;
     min-height: 50px;
     outline: none !important;
+    padding: 12px 28px;
     text-align: center;
     text-decoration: none;
     width: 100%;
@@ -134,4 +209,34 @@
     max-width: none;
     text-decoration: none !important;
     width: auto;
+}
+
+.paycrypto-me-order-details--mainnet .paycrypto-me-order-details__open-wallet-button {
+    border-color: #f7931a !important;
+    color: #f7931a;
+}
+
+.paycrypto-me-order-details--mainnet .paycrypto-me-order-details__open-wallet-button:hover {
+    background-color: #f7931a;
+    color: #fff;
+}
+
+.paycrypto-me-order-details--testnet .paycrypto-me-order-details__open-wallet-button {
+    border-color: #5fd15c !important;
+    color: #5fd15c;
+}
+
+.paycrypto-me-order-details--testnet .paycrypto-me-order-details__open-wallet-button:hover {
+    background-color: #5fd15c;
+    color: #fff;
+}
+
+.paycrypto-me-order-details--lightning .paycrypto-me-order-details__open-wallet-button {
+    border-color: #7c3aed !important;
+    color: #7c3aed;
+}
+
+.paycrypto-me-order-details--lightning .paycrypto-me-order-details__open-wallet-button:hover {
+    background-color: #7c3aed;
+    color: #fff;
 }
