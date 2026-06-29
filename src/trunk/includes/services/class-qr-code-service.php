@@ -13,6 +13,7 @@ namespace PayCryptoMe\WooCommerce;
 
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelHigh;
 use Endroid\QrCode\ErrorCorrectionLevel\ErrorCorrectionLevelLow;
 use Endroid\QrCode\Writer\PngWriter;
 
@@ -30,10 +31,10 @@ class QrCodeService
 
         if ($logo_src) {
             $result = $result->logoPath($logo_src)
-                ->logoResizeToWidth(60);
+                ->logoResizeToWidth(48);
         }
 
-        $result = $result->errorCorrectionLevel(new ErrorCorrectionLevelLow())
+        $result = $result->errorCorrectionLevel($logo_src ? new ErrorCorrectionLevelHigh() : new ErrorCorrectionLevelLow())
             ->encoding(new Encoding('UTF-8'))
             ->size(225)
             ->margin(0)

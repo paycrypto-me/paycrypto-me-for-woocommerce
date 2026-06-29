@@ -223,7 +223,7 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
 
         $payment_uri    = $order->get_meta('_paycrypto_me_payment_uri');
         $crypto_network = $order->get_meta('_paycrypto_me_crypto_network');
-        $logo_path      = WC_PayCryptoMe::plugin_abspath() . 'assets/paycrypto-me-icon.png';
+        $logo_path      = WC_PayCryptoMe::plugin_abspath() . 'assets/bitcoin-icon.png';
 
         $network_label = match ($crypto_network) {
             'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),
@@ -231,17 +231,25 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             default   => $crypto_network,
         };
 
+        $expires_hours        = (int) $order->get_meta('_paycrypto_me_payment_expires_at');
+        $order_date           = $order->get_date_created();
+        $expires_at_formatted = ($expires_hours > 0 && $order_date)
+            ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $order_date->getTimestamp() + $expires_hours * HOUR_IN_SECONDS)
+            : null;
+
         $payment_display_data = [
-            'payment_identifier' => $payment_address,
-            'payment_uri'        => $payment_uri,
-            'payment_qr_code'    => $this->qr_code_service->generate_qr_code_data_uri($payment_uri, $logo_path),
-            'fiat_amount'        => $order->get_meta('_paycrypto_me_fiat_amount'),
-            'fiat_currency'      => $order->get_meta('_paycrypto_me_fiat_currency'),
-            'crypto_amount'      => $order->get_meta('_paycrypto_me_crypto_amount'),
-            'crypto_currency'    => $order->get_meta('_paycrypto_me_crypto_currency'),
-            'network_label'      => $network_label,
-            'crypto_network'     => $crypto_network,
-            'expires_at'         => $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'payment_identifier'    => $payment_address,
+            'payment_uri'           => $payment_uri,
+            'payment_qr_code'       => $this->qr_code_service->generate_qr_code_data_uri($payment_uri, $logo_path),
+            'fiat_amount'           => $order->get_meta('_paycrypto_me_fiat_amount'),
+            'fiat_currency'         => $order->get_meta('_paycrypto_me_fiat_currency'),
+            'crypto_amount'         => $order->get_meta('_paycrypto_me_crypto_amount'),
+            'crypto_currency'       => $order->get_meta('_paycrypto_me_crypto_currency'),
+            'network_label'         => $network_label,
+            'crypto_network'        => $crypto_network,
+            'expires_at'            => $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'expires_at_formatted'  => $expires_at_formatted,
+            'confirmations_required' => (int) $order->get_meta('_paycrypto_me_payment_number_confirmations'),
         ];
 
         wc_get_template(
