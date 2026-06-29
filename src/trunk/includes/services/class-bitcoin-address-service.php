@@ -57,7 +57,7 @@ class BitcoinAddressService
      * @param string|null $forceType Optional force address type (p2pkh|p2sh-p2wpkh|p2wpkh)
      * @return string
      */
-    public function generate_address_from_xPub(string $xPub, int $index, NetworkInterface $network, ?string $forceType = null): string
+    public function generate_address_from_xPub(string $xPub, int $index, NetworkInterface $network, ?string $forceType = null, ?callable $logger = null): string
     {
         if ($index < 0) {
             throw new \InvalidArgumentException('Derivation index must be a non-negative integer.');
@@ -95,13 +95,15 @@ class BitcoinAddressService
                 $meta = $this->get_prefix_meta($currentPrefix);
                 $type = $meta['type'];
             } catch (\InvalidArgumentException $e) {
-                \PayCryptoMe\WooCommerce\WC_PayCryptoMe::log(
-                    \sprintf(
-                        'Unsupported extended public key prefix: %s. Falling back to bech32 address generation.',
-                        esc_html( wp_strip_all_tags( (string) $currentPrefix ) )
-                    ),
-                    'warning'
-                );
+                if ($logger !== null) {
+                    $logger(
+                        \sprintf(
+                            'Unsupported extended public key prefix: %s. Falling back to bech32 address generation.',
+                            esc_html( wp_strip_all_tags( (string) $currentPrefix ) )
+                        ),
+                        'warning'
+                    );
+                }
                 $type = 'p2wpkh';
             }
         }

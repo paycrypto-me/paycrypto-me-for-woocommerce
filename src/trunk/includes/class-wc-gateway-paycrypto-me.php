@@ -62,7 +62,13 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
 
         check_ajax_referer('paycrypto_me_nonce', 'security');
 
-        $this->db_statements_service->reset_derivation_indexes();
+        $reset = $this->db_statements_service->reset_derivation_indexes();
+
+        if ($reset === false) {
+            $this->register_paycrypto_me_log('Failed to reset derivation indexes via admin panel.', 'error');
+            wp_send_json_error(__('Reset failed. Check WooCommerce logs for details.', 'paycrypto-me-for-woocommerce'), 500);
+            return;
+        }
 
         $this->register_paycrypto_me_log('Derivation indexes have been reset via admin panel.', 'warning');
 
@@ -300,6 +306,10 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
                 return $ok;
             }
         } catch (\Throwable $th) {
+            $this->register_paycrypto_me_log(
+                \sprintf('xpub validation threw: %s', esc_html( wp_strip_all_tags( $th->getMessage() ) )),
+                'info'
+            );
         }
 
         return false;
