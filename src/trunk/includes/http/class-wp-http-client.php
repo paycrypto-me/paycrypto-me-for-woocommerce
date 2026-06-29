@@ -18,12 +18,26 @@ class WpHttpClient implements HttpClientContract
     public function post(string $url, array $args): array
     {
         $response = wp_remote_post($url, $args);
-        return \is_wp_error($response) ? [] : $response;
+        if (\is_wp_error($response)) {
+            WC_PayCryptoMe::log(
+                \sprintf('HTTP POST error to %s: %s', esc_url_raw($url), esc_html($response->get_error_message())),
+                'error'
+            );
+            return [];
+        }
+        return $response;
     }
 
     public function get(string $url, array $args): array
     {
         $response = wp_remote_get($url, $args);
-        return \is_wp_error($response) ? [] : $response;
+        if (\is_wp_error($response)) {
+            WC_PayCryptoMe::log(
+                \sprintf('HTTP GET error to %s: %s', esc_url_raw($url), esc_html($response->get_error_message())),
+                'error'
+            );
+            return [];
+        }
+        return $response;
     }
 }

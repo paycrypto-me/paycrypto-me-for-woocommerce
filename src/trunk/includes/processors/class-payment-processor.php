@@ -77,12 +77,17 @@ class PaymentProcessor
     {
         $order_id = $order->get_id();
 
+        $raw_addr = $payment_data['payment_address'] ?? $payment_data['payment_request'] ?? 'N-A';
+        $masked_addr = \strlen((string) $raw_addr) > 10
+            ? substr((string) $raw_addr, 0, 6) . '...' . substr((string) $raw_addr, -4)
+            : (string) $raw_addr;
+
         $meta_data = [
             'crypto_currency'  => $payment_data['crypto_currency'] ?? 'N-A',
             'crypto_amount'    => $payment_data['crypto_amount'] ?? 'N-A',
             'fiat_currency'    => $payment_data['fiat_currency'] ?? 'N-A',
             'fiat_amount'      => $payment_data['fiat_amount'] ?? 'N-A',
-            'payment_address'  => $payment_data['payment_address'] ?? $payment_data['payment_request'] ?? 'N-A',
+            'payment_address'  => $masked_addr,
         ];
 
         $gateway->register_paycrypto_me_log(

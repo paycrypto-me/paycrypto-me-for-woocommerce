@@ -96,7 +96,16 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
 
                 $derivation_index = (int) $this->db->reserve_derivation_index_for_wallet((int) $wallet_xpub_id);
 
-                $payment_address = $this->bitcoin_address_service->generate_address_from_xPub($xPub, $derivation_index, $bitcoin_network);
+                $gateway = $this->gateway;
+                $payment_address = $this->bitcoin_address_service->generate_address_from_xPub(
+                    $xPub,
+                    $derivation_index,
+                    $bitcoin_network,
+                    null,
+                    static function (string $msg, string $level) use ($gateway): void {
+                        $gateway->register_paycrypto_me_log($msg, $level);
+                    }
+                );
 
                 $inserted = $this->db->insert_address((int) $order->get_id(), $derivation_index, $payment_address, $wallet_xpub_id);
 
@@ -104,6 +113,9 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
                     $this->gateway->register_paycrypto_me_log(
                         \sprintf('Failed to persist generated address for order #%s', $order->get_id()),
                         'error'
+                    );
+                    throw new PayCryptoMeException(
+                        \sprintf('Failed to persist generated address for order #%s', $order->get_id())
                     );
                 }
             }
