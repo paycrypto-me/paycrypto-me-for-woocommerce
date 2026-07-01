@@ -15,6 +15,9 @@ namespace PayCryptoMe\WooCommerce;
 
 abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
 {
+    private const RESOLVE_MAX_ATTEMPTS = 2;
+    private const RESOLVE_DELAY_MS     = 750;
+
     protected LightningInvoiceServiceContract         $service;
     protected PayCryptoMeLightningDBStatementsService $db;
 
@@ -42,7 +45,12 @@ abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
 
         $payment_data['crypto_network'] = 'lightning';
 
-        $response        = $this->service->create_invoice($args);
+        $response = $this->service->create_invoice($args);
+
+        if ($response->payment_request === '') {
+            $response = $this->resolve_payment_request($response, $order);
+        }
+
         $expiry_seconds  = (int) ($args['expiry'] ?? 3600);
         $expires_at      = gmdate('Y-m-d H:i:s', time() + $expiry_seconds);
 
@@ -65,5 +73,49 @@ abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
         $payment_data['payment_uri'] = 'lightning:' . $response->payment_request;
 
         return apply_filters('paycryptome_lightning_payment_data', $payment_data, $response, $order, $this->gateway);
+    }
+
+    private function resolve_payment_request(LightningInvoiceResponse $response, \WC_Order $order): LightningInvoiceResponse
+    {
+        for ($attempt = 1; $attempt <= self::RESOLVE_MAX_ATTEMPTS; $attempt++) {
+            if ($attempt > 1) {
+                usleep(self::RESOLVE_DELAY_MS * 1000);
+            }
+
+            $payment_request = $this->service->resolve_payment_request($response->invoice_id);
+
+            if ($payment_request !== '') {
+                if ($attempt > 1) {
+                    $this->gateway->register_paycrypto_me_log(
+                        \sprintf(
+                            'Lightning payment_request resolved for invoice %s after %d attempt(s) (node_type=%s, order=%d)',
+                            $response->invoice_id,
+                            $attempt,
+                            $this->node_type(),
+                            $order->get_id()
+                        ),
+                        'info'
+                    );
+                }
+
+                return new LightningInvoiceResponse(
+                    $response->invoice_id,
+                    $payment_request,
+                    $response->status,
+                    $response->checkout_link
+                );
+            }
+        }
+
+        throw new PayCryptoMePaymentException(
+            \sprintf(
+                'Lightning payment_request not resolved for invoice %s after %d attempts (node_type=%s, order=%d)',
+                $response->invoice_id,
+                self::RESOLVE_MAX_ATTEMPTS,
+                $this->node_type(),
+                $order->get_id()
+            ),
+            __('Your Lightning invoice is taking longer than expected to generate. Please try again in a moment.', 'paycrypto-me-for-woocommerce')
+        );
     }
 }

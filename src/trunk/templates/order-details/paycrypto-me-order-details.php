@@ -10,13 +10,6 @@ if ($payment_display_data['payment_identifier']): ?>
     <section class="wc-block-order-confirmation-billing-address paycrypto-me-order-details paycrypto-me-order-details--<?php echo esc_attr($payment_display_data['crypto_network']); ?>">
         <h3><?php esc_html_e('Payment Details', 'paycrypto-me-for-woocommerce'); ?></h3>
 
-        <div class="paycrypto-me-order-details__status-row">
-            <span class="paycrypto-me-order-details__status-badge">
-                <span class="paycrypto-me-order-details__status-dot"></span>
-                <?php esc_html_e('Awaiting Payment', 'paycrypto-me-for-woocommerce'); ?>
-            </span>
-        </div>
-
         <div class="paycrypto-me-order-details__container">
             <div class="paycrypto-me-order-details__wrapper">
                 <small><?php esc_html_e('Fiat Amount:', 'paycrypto-me-for-woocommerce'); ?></small>
@@ -28,6 +21,21 @@ if ($payment_display_data['payment_identifier']): ?>
                     <small><?php echo esc_html( number_format_i18n( (float) $payment_display_data['crypto_amount'], 8 ) . ' ' . $payment_display_data['crypto_currency'] ); ?></small>
                 </div>
             <?php endif; ?>
+            <?php if (!empty($payment_display_data['expires_at_formatted'])): ?>
+                <div class="paycrypto-me-order-details__wrapper">
+                    <small><?php esc_html_e('Expires at:', 'paycrypto-me-for-woocommerce'); ?></small>
+                    <small class="paycrypto-me-order-details__expires"><?php echo esc_html($payment_display_data['expires_at_formatted']); ?></small>
+                </div>
+            <?php endif; ?>
+            <div class="paycrypto-me-order-details__wrapper">
+                <small><?php esc_html_e('Status:', 'paycrypto-me-for-woocommerce'); ?></small>
+                <div class="paycrypto-me-network-switch">
+                    <span class="paycrypto-me-order-details__status-badge">
+                        <span class="paycrypto-me-order-details__status-dot"></span>
+                        <?php esc_html_e('Awaiting Payment', 'paycrypto-me-for-woocommerce'); ?>
+                    </span>
+                </div>
+            </div>
             <div class="paycrypto-me-order-details__wrapper">
                 <small><?php esc_html_e('Crypto Network:', 'paycrypto-me-for-woocommerce'); ?></small>
                 <div class="paycrypto-me-network-switch">
@@ -39,12 +47,6 @@ if ($payment_display_data['payment_identifier']): ?>
                     </label>
                 </div>
             </div>
-            <?php if (!empty($payment_display_data['expires_at_formatted'])): ?>
-                <div class="paycrypto-me-order-details__wrapper">
-                    <small><?php esc_html_e('Expires at:', 'paycrypto-me-for-woocommerce'); ?></small>
-                    <small class="paycrypto-me-order-details__expires"><?php echo esc_html($payment_display_data['expires_at_formatted']); ?></small>
-                </div>
-            <?php endif; ?>
             <div
                 class="paycrypto-me-order-details__wrapper paycrypto-me-order-details__wrapper--qr-code"
                 style="margin-top: 8px; justify-content: center; line-height: 1;">
@@ -82,7 +84,7 @@ if ($payment_display_data['payment_identifier']): ?>
 
             <a class="woocommerce-button wp-element-button paycrypto-me-order-details__button paycrypto-me-order-details__open-wallet-button"
                 href="<?php echo esc_attr( $payment_display_data['payment_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
-                <?php esc_html_e('Open Wallet App', 'paycrypto-me-for-woocommerce'); ?>
+                <?php esc_html_e('Pay Now', 'paycrypto-me-for-woocommerce'); ?>
             </a>
         </div>
 

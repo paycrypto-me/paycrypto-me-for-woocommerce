@@ -136,6 +136,15 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
                 'default' => '',
                 'class' => 'paycrypto-btcpay-field',
             ],
+            'btcpay_payment_method_id' => [
+                'title' => __('BTCPay Lightning Payment Method ID (advanced)', 'paycrypto-me-for-woocommerce'),
+                'type' => 'text',
+                'description' => __('Only change this if your BTCPay Server version reports a different Lightning payment method identifier than the default. Leave as "BTC-LN" unless instructed otherwise.', 'paycrypto-me-for-woocommerce'),
+                'placeholder' => 'BTC-LN',
+                'default' => 'BTC-LN',
+                'class' => 'paycrypto-btcpay-field',
+                'desc_tip' => true,
+            ],
             'btcpay_test_connection' => [
                 'title' => __('BTCPay Connection Test', 'paycrypto-me-for-woocommerce'),
                 'type' => 'btcpay_test_button',
@@ -335,6 +344,10 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
         $resp = wp_remote_get($endpoint, $args);
         if (is_wp_error($resp)) {
+            $this->register_paycrypto_me_log(
+                \sprintf('BTCPay connection test failed: %s', esc_html($resp->get_error_message())),
+                'error'
+            );
             wp_send_json_error(array('message' => $resp->get_error_message()));
         }
 
@@ -344,6 +357,11 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         if ($code >= 200 && $code < 300) {
             wp_send_json_success(array('message' => sprintf(__('Connection OK (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code)));
         }
+
+        $this->register_paycrypto_me_log(
+            \sprintf('BTCPay connection test failed: status=%d body=%s', $code, esc_html(substr((string) $body, 0, 500))),
+            'error'
+        );
 
         $message = sprintf(__('Request failed (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
         if (!empty($body)) {
@@ -401,6 +419,10 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         }
 
         if (is_wp_error($resp)) {
+            $this->register_paycrypto_me_log(
+                \sprintf('lnd REST connection test failed: %s', esc_html($resp->get_error_message())),
+                'error'
+            );
             wp_send_json_error(array('message' => $resp->get_error_message()));
         }
 
@@ -416,6 +438,11 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
             }
             wp_send_json_success(array('message' => $message));
         }
+
+        $this->register_paycrypto_me_log(
+            \sprintf('lnd REST connection test failed: status=%d body=%s', $code, esc_html(substr((string) $body, 0, 500))),
+            'error'
+        );
 
         $message = sprintf(__('Request failed (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
         if (!empty($body)) {
@@ -540,6 +567,12 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     public function validate_btcpay_store_id_field($key, $value)
     {
         return $this->_sanitize_text_val($value);
+    }
+
+    public function validate_btcpay_payment_method_id_field($key, $value)
+    {
+        $val = $this->_sanitize_text_val($value);
+        return $val !== '' ? $val : 'BTC-LN';
     }
 
     public function validate_btcpay_webhook_secret_field($key, $value)
