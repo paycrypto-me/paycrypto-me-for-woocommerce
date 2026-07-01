@@ -66,6 +66,12 @@ class LndRestInvoiceService implements LightningInvoiceServiceContract
         return new LightningInvoiceResponse($invoice_id, $payment_request, 'OPEN');
     }
 
+    public function resolve_payment_request(string $invoice_id): string
+    {
+        // lnd's create_invoice() always returns payment_request synchronously; nothing to resolve.
+        return '';
+    }
+
     public function get_invoice_status(string $invoice_id): LightningInvoiceStatusResponse
     {
         $lnd_url     = rtrim($this->gateway->get_option('lnd_rest_url'), '/');
@@ -113,7 +119,7 @@ class LndRestInvoiceService implements LightningInvoiceServiceContract
 
         if ($status_code >= 400 || $body === '') {
             throw new PayCryptoMePaymentException(
-                "lnd REST HTTP error: status={$status_code}",
+                \sprintf('lnd REST HTTP error: status=%d body=%s', $status_code, substr($body, 0, 500)),
                 __('Payment via Lightning node failed. Please try again.', 'paycrypto-me-for-woocommerce')
             );
         }

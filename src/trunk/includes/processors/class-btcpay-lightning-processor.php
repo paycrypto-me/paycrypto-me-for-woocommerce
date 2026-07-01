@@ -22,7 +22,15 @@ class BtcpayLightningProcessor extends AbstractLightningProcessor
         $this->db      = new PayCryptoMeLightningDBStatementsService();
     }
 
-    protected function invoice_args_filter(): string              { return 'paycryptome_lightning_btcpay_invoice_args'; }
-    protected function node_type(): string                        { return 'btcpay'; }
-    protected function base_invoice_args(\WC_Order $order): array { return ['amount' => '0']; }
+    protected function invoice_args_filter(): string { return 'paycryptome_lightning_btcpay_invoice_args'; }
+    protected function node_type(): string           { return 'btcpay'; }
+
+    protected function base_invoice_args(\WC_Order $order): array
+    {
+        // BTCPay converts fiat -> BTC/sats itself using its own configured rate provider.
+        return [
+            'amount'   => (string) $order->get_total(),
+            'currency' => $order->get_currency(),
+        ];
+    }
 }

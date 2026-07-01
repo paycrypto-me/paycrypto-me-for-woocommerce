@@ -288,5 +288,5 @@ msgid "Payment address copied to clipboard."
 msgstr "Zahlungsadresse in die Zwischenablage kopiert."
 
 #: templates/order-details/paycrypto-me-order-details.php:63
-msgid "Open Wallet App"
+msgid "Pay Now"
 msgstr "öffnen Sie Ihre Wallet-App"

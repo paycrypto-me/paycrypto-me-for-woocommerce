@@ -301,14 +301,16 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             ? NetworkFactory::bitcoinTestnet()
             : NetworkFactory::bitcoin();
 
+        $logger = fn($message, $level) => $this->register_paycrypto_me_log($message, $level);
+
         try {
-            if ($ok = $this->bitcoin_address_service->validate_extended_pubkey($identifier, $network)) {
+            if ($ok = $this->bitcoin_address_service->validate_extended_pubkey($identifier, $network, $logger)) {
                 return $ok;
             }
         } catch (\Throwable $th) {
             $this->register_paycrypto_me_log(
                 \sprintf('xpub validation threw: %s', esc_html( wp_strip_all_tags( $th->getMessage() ) )),
-                'info'
+                'error'
             );
         }
 
@@ -323,7 +325,9 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             return true;
         }
 
-        if ($this->bitcoin_address_service->validate_bitcoin_address($identifier, $network)) {
+        $logger = fn($message, $level) => $this->register_paycrypto_me_log($message, $level);
+
+        if ($this->bitcoin_address_service->validate_bitcoin_address($identifier, $network, $logger)) {
             return true;
         }
 

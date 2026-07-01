@@ -28,15 +28,15 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
         $url  = "{$btcpay_url}/api/v1/stores/{$store_id}/invoices";
         $body = [
-            'amount'   => '0',
-            'currency' => 'BTC',
+            'amount'   => (string) ($args['amount'] ?? '0'),
+            'currency' => (string) ($args['currency'] ?? 'BTC'),
             'metadata' => [
                 'orderId'  => (string) ($args['order_id'] ?? ''),
                 'itemDesc' => (string) ($args['memo'] ?? ''),
             ],
             'checkout' => [
-                'speedPolicy'       => 'MediumSpeed',
-                'paymentMethods'    => ['BTC-LightningNetwork'],
+                'speedPolicy'       => $this->get_speed_policy(),
+                'paymentMethods'    => [$this->get_payment_method_id()],
                 'expirationMinutes' => (int) floor((int) abs((int) ($args['expiry'] ?? 3600)) / 60),
             ],
         ];
@@ -51,12 +51,11 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
         $data = $this->parse_response($response);
 
-        $invoice_id      = (string) ($data['id'] ?? '');
-        $checkout_link   = $data['checkoutLink'] ?? null;
-        $status          = (string) ($data['status'] ?? '');
-        $payment_request = $this->fetch_bolt11($btcpay_url, $store_id, $api_key, $invoice_id);
+        $invoice_id    = (string) ($data['id'] ?? '');
+        $checkout_link = $data['checkoutLink'] ?? null;
+        $status        = (string) ($data['status'] ?? '');
 
-        return new LightningInvoiceResponse($invoice_id, $payment_request, $status, $checkout_link);
+        return new LightningInvoiceResponse($invoice_id, '', $status, $checkout_link);
     }
 
     public function get_invoice_status(string $invoice_id): LightningInvoiceStatusResponse
@@ -79,8 +78,12 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
         return new LightningInvoiceStatusResponse($status === 'Settled', $status);
     }
 
-    private function fetch_bolt11(string $btcpay_url, string $store_id, string $api_key, string $invoice_id): string
+    public function resolve_payment_request(string $invoice_id): string
     {
+        $btcpay_url = rtrim($this->gateway->get_option('btcpay_url'), '/');
+        $store_id   = $this->gateway->get_option('btcpay_store_id');
+        $api_key    = $this->gateway->get_option('btcpay_api_key');
+
         $url = "{$btcpay_url}/api/v1/stores/{$store_id}/invoices/{$invoice_id}/payment-methods";
 
         $response = $this->http->get($url, [
@@ -91,13 +94,51 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
         $methods = $this->parse_response($response);
 
+        $payment_method_id = $this->get_payment_method_id();
+
         foreach ($methods as $method) {
-            if (($method['paymentMethod'] ?? '') === 'BTC-LightningNetwork') {
-                return (string) ($method['destination'] ?? '');
+            if (($method['paymentMethodId'] ?? '') === $payment_method_id) {
+                $destination = (string) ($method['destination'] ?? '');
+
+                if ($destination === '') {
+                    $this->gateway->register_paycrypto_me_log(
+                        \sprintf('BTCPay invoice %s: %s method present but destination is still empty.', $invoice_id, $payment_method_id),
+                        'warning'
+                    );
+                }
+
+                return $destination;
             }
         }
 
+        $this->gateway->register_paycrypto_me_log(
+            \sprintf(
+                'BTCPay invoice %s: no %s payment method found (%d method(s) returned).',
+                $invoice_id,
+                $payment_method_id,
+                count($methods)
+            ),
+            'warning'
+        );
+
         return '';
+    }
+
+    /**
+     * paymentMethodId used both to request the Lightning method at invoice creation and to
+     * match it when resolving the bolt11 — same source, so the two can never drift apart.
+     */
+    private function get_payment_method_id(): string
+    {
+        return (string) apply_filters(
+            'paycryptome_lightning_btcpay_payment_method_id',
+            $this->gateway->get_option('btcpay_payment_method_id', 'BTC-LN')
+        );
+    }
+
+    private function get_speed_policy(): string
+    {
+        return (string) apply_filters('paycryptome_lightning_btcpay_speed_policy', 'MediumSpeed');
     }
 
     /**
@@ -110,7 +151,7 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
         if ($status_code >= 400 || $body === '') {
             throw new PayCryptoMePaymentException(
-                "BTCPay HTTP error: status={$status_code}",
+                \sprintf('BTCPay HTTP error: status=%d body=%s', $status_code, substr($body, 0, 500)),
                 __('Payment via BTCPay Server failed. Please try again.', 'paycrypto-me-for-woocommerce')
             );
         }

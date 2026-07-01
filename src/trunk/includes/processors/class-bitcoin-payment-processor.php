@@ -67,7 +67,9 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             return $payment_data;
         }
 
-        if (!$this->bitcoin_address_service->validate_extended_pubkey($xPub, $bitcoin_network)) {
+        $xpub_logger = fn($message, $level) => $this->gateway->register_paycrypto_me_log($message, $level);
+
+        if (!$this->bitcoin_address_service->validate_extended_pubkey($xPub, $bitcoin_network, $xpub_logger)) {
             throw new PayCryptoMeException(
                 \sprintf(
                     'Invalid Bitcoin extended public key configured: %s. Please provide a valid.',
@@ -141,7 +143,8 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             $clean = wp_strip_all_tags( $e->getMessage() );
             throw new PayCryptoMeException(
                 \sprintf('Bitcoin Payment Processor: %s', esc_html( $clean )),
-                0
+                0,
+                $e
             );
         }
 

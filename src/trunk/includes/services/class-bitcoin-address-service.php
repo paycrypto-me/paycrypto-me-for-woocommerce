@@ -181,7 +181,7 @@ class BitcoinAddressService
         return $converted;
     }
 
-    public function validate_bitcoin_address(string $address, NetworkInterface $network): bool
+    public function validate_bitcoin_address(string $address, NetworkInterface $network, ?callable $logger = null): bool
     {
         try {
             $addressCreator = new AddressCreator();
@@ -189,11 +189,17 @@ class BitcoinAddressService
 
             return true;
         } catch (\Exception $e) {
+            if ($logger !== null) {
+                $logger(
+                    \sprintf('Bitcoin address validation failed: %s', esc_html( wp_strip_all_tags( $e->getMessage() ) )),
+                    'debug'
+                );
+            }
             return false;
         }
     }
 
-    public function validate_extended_pubkey(string $xPub, NetworkInterface $network): bool
+    public function validate_extended_pubkey(string $xPub, NetworkInterface $network, ?callable $logger = null): bool
     {
 
         try {
@@ -204,6 +210,12 @@ class BitcoinAddressService
 
             return true;
         } catch (\Exception $e) {
+            if ($logger !== null) {
+                $logger(
+                    \sprintf('Extended pubkey validation failed: %s', esc_html( wp_strip_all_tags( $e->getMessage() ) )),
+                    'debug'
+                );
+            }
             return false;
         }
     }
