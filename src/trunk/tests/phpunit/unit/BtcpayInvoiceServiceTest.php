@@ -8,11 +8,11 @@ namespace {
 
 use PHPUnit\Framework\TestCase;
 use PayCryptoMe\WooCommerce\BtcpayInvoiceService;
-use PayCryptoMe\WooCommerce\HttpClientContract;
 use PayCryptoMe\WooCommerce\PayCryptoMePaymentException;
 
-// wp_json_encode/WC_Payment_Gateway fallbacks live in tests/_support/wp-helpers.php
-// (loaded by bootstrap.php before any test file).
+// wp_json_encode/WC_Payment_Gateway fallbacks live in tests/_support/wp-helpers.php;
+// FakeHttpClient/http_ok()/http_error() live in tests/_support/fake-http-client.php
+// (both loaded by bootstrap.php before any test file).
 
 class BtcpayInvoiceServiceTest extends TestCase
 {
@@ -34,35 +34,13 @@ class BtcpayInvoiceServiceTest extends TestCase
         ]);
     }
 
-    private function json_response(int $code, $body): array
-    {
-        return [
-            'response' => ['code' => $code, 'message' => 'OK'],
-            'body'     => json_encode($body),
-        ];
-    }
-
     public function test_create_invoice_returns_correct_response(): void
     {
-        $invoice_response = [
+        $http = FakeHttpClient::respondingToPost(http_ok([
             'id'           => 'inv_abc',
             'status'       => 'New',
             'checkoutLink' => 'https://btcpay.example.com/i/inv_abc',
-        ];
-
-        $http = new class($invoice_response) implements HttpClientContract {
-            public function __construct(private array $invoice) {}
-
-            public function post(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode($this->invoice),
-                ];
-            }
-
-            public function get(string $url, array $args): array { return []; }
-        };
+        ]));
 
         $service  = new BtcpayInvoiceService($http, $this->default_gateway());
         $response = $service->create_invoice(['order_id' => 1, 'memo' => 'Order #1', 'expiry' => 3600]);
@@ -77,40 +55,18 @@ class BtcpayInvoiceServiceTest extends TestCase
 
     public function test_create_invoice_sends_order_amount_and_currency(): void
     {
-        $http = new class implements HttpClientContract {
-            public ?array $captured_body = null;
-            public function post(string $url, array $args): array
-            {
-                $this->captured_body = json_decode($args['body'], true);
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode(['id' => 'inv_abc', 'status' => 'New']),
-                ];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
+        $http = FakeHttpClient::respondingToPost(http_ok(['id' => 'inv_abc', 'status' => 'New']));
 
         $service = new BtcpayInvoiceService($http, $this->default_gateway());
         $service->create_invoice(['order_id' => 1, 'memo' => 'Order #1', 'expiry' => 3600, 'amount' => '99.99', 'currency' => 'BRL']);
 
-        $this->assertSame('99.99', $http->captured_body['amount']);
-        $this->assertSame('BRL', $http->captured_body['currency']);
+        $this->assertSame('99.99', $http->lastPostBody()['amount']);
+        $this->assertSame('BRL', $http->lastPostBody()['currency']);
     }
 
     public function test_create_invoice_uses_custom_payment_method_id_and_speed_policy_from_gateway_option(): void
     {
-        $http = new class implements HttpClientContract {
-            public ?array $captured_body = null;
-            public function post(string $url, array $args): array
-            {
-                $this->captured_body = json_decode($args['body'], true);
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode(['id' => 'inv_abc', 'status' => 'New']),
-                ];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
+        $http = FakeHttpClient::respondingToPost(http_ok(['id' => 'inv_abc', 'status' => 'New']));
 
         $gateway = $this->make_gateway([
             'btcpay_url'                => 'https://btcpay.example.com',
@@ -122,23 +78,14 @@ class BtcpayInvoiceServiceTest extends TestCase
         (new BtcpayInvoiceService($http, $gateway))
             ->create_invoice(['order_id' => 1, 'memo' => 'Order #1', 'expiry' => 3600]);
 
-        $this->assertSame(['BTC-LN-CUSTOM'], $http->captured_body['checkout']['paymentMethods']);
+        $this->assertSame(['BTC-LN-CUSTOM'], $http->lastPostBody()['checkout']['paymentMethods']);
     }
 
     public function test_resolve_payment_request_matches_custom_payment_method_id_from_gateway_option(): void
     {
-        $payment_methods_response = [
+        $http = FakeHttpClient::respondingToGet(http_ok([
             ['paymentMethodId' => 'BTC-LN-CUSTOM', 'destination' => 'lnbc1customdestination'],
-        ];
-
-        $http = new class($payment_methods_response) implements HttpClientContract {
-            public function __construct(private array $methods) {}
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return ['response' => ['code' => 200, 'message' => 'OK'], 'body' => json_encode($this->methods)];
-            }
-        };
+        ]));
 
         $gateway = $this->make_gateway([
             'btcpay_url'               => 'https://btcpay.example.com',
@@ -154,23 +101,10 @@ class BtcpayInvoiceServiceTest extends TestCase
 
     public function test_resolve_payment_request_returns_bolt11_when_ready(): void
     {
-        $payment_methods_response = [
+        $http = FakeHttpClient::respondingToGet(http_ok([
             ['paymentMethodId' => 'BTC-LN',   'destination' => 'lnbc1234abcd'],
             ['paymentMethodId' => 'BTC-CHAIN', 'destination' => 'bc1qtest'],
-        ];
-
-        $http = new class($payment_methods_response) implements HttpClientContract {
-            public function __construct(private array $methods) {}
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return $this->json_ok($this->methods);
-            }
-            private function json_ok($body): array
-            {
-                return ['response' => ['code' => 200, 'message' => 'OK'], 'body' => json_encode($body)];
-            }
-        };
+        ]));
 
         $service         = new BtcpayInvoiceService($http, $this->default_gateway());
         $payment_request = $service->resolve_payment_request('inv_abc');
@@ -180,18 +114,9 @@ class BtcpayInvoiceServiceTest extends TestCase
 
     public function test_resolve_payment_request_returns_empty_string_when_not_ready(): void
     {
-        $payment_methods_response = [
+        $http = FakeHttpClient::respondingToGet(http_ok([
             ['paymentMethodId' => 'BTC-LN', 'destination' => ''],
-        ];
-
-        $http = new class($payment_methods_response) implements HttpClientContract {
-            public function __construct(private array $methods) {}
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return ['response' => ['code' => 200, 'message' => 'OK'], 'body' => json_encode($this->methods)];
-            }
-        };
+        ]));
 
         $service         = new BtcpayInvoiceService($http, $this->default_gateway());
         $payment_request = $service->resolve_payment_request('inv_abc');
@@ -201,49 +126,16 @@ class BtcpayInvoiceServiceTest extends TestCase
 
     public function test_resolve_payment_request_throws_on_http_error(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return ['response' => ['code' => 500, 'message' => 'Server Error'], 'body' => json_encode(['error' => 'boom'])];
-            }
-        };
+        $http = FakeHttpClient::respondingToGet(http_error(500, 'Server Error', json_encode(['error' => 'boom'])));
 
         $this->expectException(PayCryptoMePaymentException::class);
         (new BtcpayInvoiceService($http, $this->default_gateway()))
             ->resolve_payment_request('inv_abc');
     }
 
-    public function test_create_invoice_throws_on_http_401(): void
-    {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 401, 'message' => 'Unauthorized'],
-                    'body'     => json_encode(['error' => 'Unauthorized']),
-                ];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
-
-        $this->expectException(PayCryptoMePaymentException::class);
-        (new BtcpayInvoiceService($http, $this->default_gateway()))
-            ->create_invoice(['order_id' => 1, 'memo' => 'test', 'expiry' => 3600]);
-    }
-
     public function test_get_invoice_status_settled_returns_paid_true(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode(['status' => 'Settled']),
-                ];
-            }
-        };
+        $http = FakeHttpClient::respondingToGet(http_ok(['status' => 'Settled']));
 
         $result = (new BtcpayInvoiceService($http, $this->default_gateway()))
             ->get_invoice_status('inv_abc');
@@ -254,22 +146,73 @@ class BtcpayInvoiceServiceTest extends TestCase
 
     public function test_get_invoice_status_new_returns_paid_false(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode(['status' => 'New']),
-                ];
-            }
-        };
+        $http = FakeHttpClient::respondingToGet(http_ok(['status' => 'New']));
 
         $result = (new BtcpayInvoiceService($http, $this->default_gateway()))
             ->get_invoice_status('inv_abc');
 
         $this->assertFalse($result->paid);
         $this->assertSame('New', $result->status);
+    }
+
+    // --- HTTP error matrix -------------------------------------------------------------
+    // parse_response() treats every status >= 400 identically; this data provider proves
+    // that holds across the codes BTCPay actually returns, for both create_invoice() (POST)
+    // and get_invoice_status()/resolve_payment_request() (GET).
+
+    public static function http_error_status_provider(): array
+    {
+        return [
+            'bad request'         => [400, 'Bad Request'],
+            'forbidden'           => [403, 'Forbidden'],
+            'not found'           => [404, 'Not Found'],
+            'too many requests'   => [429, 'Too Many Requests'],
+            'service unavailable' => [503, 'Service Unavailable'],
+        ];
+    }
+
+    /** @dataProvider http_error_status_provider */
+    public function test_create_invoice_throws_on_http_error_status(int $code, string $message): void
+    {
+        $http = FakeHttpClient::respondingToPost(http_error($code, $message));
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new BtcpayInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['order_id' => 1, 'memo' => 'test', 'expiry' => 3600]);
+    }
+
+    /** @dataProvider http_error_status_provider */
+    public function test_get_invoice_status_throws_on_http_error_status(int $code, string $message): void
+    {
+        $http = FakeHttpClient::respondingToGet(http_error($code, $message));
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new BtcpayInvoiceService($http, $this->default_gateway()))
+            ->get_invoice_status('inv_abc');
+    }
+
+    public function test_create_invoice_throws_on_malformed_json(): void
+    {
+        $http = FakeHttpClient::respondingToPost([
+            'response' => ['code' => 200, 'message' => 'OK'],
+            'body'     => '{not valid json',
+        ]);
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new BtcpayInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['order_id' => 1, 'memo' => 'test', 'expiry' => 3600]);
+    }
+
+    public function test_create_invoice_throws_on_timeout(): void
+    {
+        // WpHttpClient (the real HttpClientContract adapter) turns a WP_Error — e.g. a
+        // cURL timeout — into an empty array; simulate that directly here since fakes
+        // implement the contract, not wp_remote_post()/wp_remote_get().
+        $http = FakeHttpClient::respondingToPost([]);
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new BtcpayInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['order_id' => 1, 'memo' => 'test', 'expiry' => 3600]);
     }
 }
 

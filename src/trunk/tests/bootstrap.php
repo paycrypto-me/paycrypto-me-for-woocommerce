@@ -17,4 +17,5 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/_support/wp-helpers.php';
 require_once __DIR__ . '/_support/wp-scripts.php';
 require_once __DIR__ . '/_support/paycryptome-shims.php';
+require_once __DIR__ . '/_support/fake-http-client.php';
 

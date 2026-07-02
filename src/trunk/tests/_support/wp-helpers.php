@@ -1,8 +1,26 @@
 <?php
 // Minimal WP helper fallbacks for unit tests (global namespace)
 
+// apply_filters()/do_action() stay no-ops (no real filter/action dispatch — that
+// remains out of scope, see docs/architecture-audit-plan.md), but every call is
+// recorded so tests can assert a hook fired without a full WP hook system.
+// Query via hook_spy_calls()/hook_spy_reset() below instead of poking the global.
 if (!function_exists('apply_filters')) {
-    function apply_filters($tag, $value) { return $value; }
+    function apply_filters($tag, $value, ...$args) {
+        $GLOBALS['__hook_spy'][] = ['type' => 'filter', 'tag' => $tag, 'args' => array_merge([$value], $args)];
+        return $value;
+    }
+}
+if (!function_exists('hook_spy_calls')) {
+    function hook_spy_calls(?string $tag = null): array {
+        $calls = $GLOBALS['__hook_spy'] ?? [];
+        return $tag === null ? $calls : array_values(array_filter($calls, fn ($c) => $c['tag'] === $tag));
+    }
+}
+if (!function_exists('hook_spy_reset')) {
+    function hook_spy_reset(): void {
+        $GLOBALS['__hook_spy'] = [];
+    }
 }
 if (!function_exists('__')) {
     function __($text, $domain = null) { return $text; }
@@ -35,7 +53,10 @@ if (!function_exists('absint')) {
     function absint($value) { return abs((int) $value); }
 }
 if (!function_exists('do_action')) {
-    function do_action($tag /*, ...$args */) { return null; }
+    function do_action($tag, ...$args) {
+        $GLOBALS['__hook_spy'][] = ['type' => 'action', 'tag' => $tag, 'args' => $args];
+        return null;
+    }
 }
 if (!function_exists('wp_verify_nonce')) {
     function wp_verify_nonce($nonce, $action = -1) { return true; }
@@ -77,6 +98,40 @@ if (!function_exists('wp_send_json_success')) {
 if (!function_exists('wp_send_json_error')) {
     function wp_send_json_error($data = null) { throw new \Exception('WP_JSON_ERROR:' . json_encode($data)); }
 }
+// In-memory object-cache fake (keyed by "group:key") so tests can assert real
+// caching/invalidation behavior instead of the calls being silent no-ops.
+if (!function_exists('wp_cache_get')) {
+    function wp_cache_get($key, $group = '') {
+        return $GLOBALS['__wp_cache_store'][$group . ':' . $key] ?? false;
+    }
+}
+if (!function_exists('wp_cache_set')) {
+    function wp_cache_set($key, $data, $group = '', $expire = 0) {
+        $GLOBALS['__wp_cache_store'][$group . ':' . $key] = $data;
+        return true;
+    }
+}
+if (!function_exists('wp_cache_delete')) {
+    function wp_cache_delete($key, $group = '') {
+        unset($GLOBALS['__wp_cache_store'][$group . ':' . $key]);
+        return true;
+    }
+}
+if (!function_exists('esc_url_raw')) {
+    function esc_url_raw($url) { return trim((string) $url); }
+}
+if (!function_exists('wp_parse_url')) {
+    function wp_parse_url($url, $component = -1) { return parse_url($url, $component); }
+}
+// Settings-field validators report errors here instead of wp_die()/redirecting;
+// tests assert against WC_Admin_Settings::$errors and reset it between cases.
+if (!class_exists('WC_Admin_Settings')) {
+    class WC_Admin_Settings
+    {
+        public static $errors = [];
+        public static function add_error($error) { self::$errors[] = $error; }
+    }
+}
 
 // Basic stubs for WP constants
 if (!defined('ARRAY_A')) {
@@ -90,8 +145,12 @@ if (!defined('ARRAY_A')) {
 if (!class_exists('WC_Payment_Gateway')) {
     class WC_Payment_Gateway
     {
+        public $id = '';
+        public $plugin_id = 'woocommerce_';
         public function get_option($key, $empty_value = null) { return $empty_value; }
         public function register_paycrypto_me_log($message, $level = 'info') { return null; }
+        public function get_post_data() { return $_POST; }
+        public function get_field_key($key) { return $this->plugin_id . $this->id . '_' . $key; }
     }
 }
 if (!class_exists('WC_Order')) {

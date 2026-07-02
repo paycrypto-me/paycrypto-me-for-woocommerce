@@ -106,7 +106,8 @@ class AbstractLightningProcessorTest extends TestCase
 
         $service = $this->createMock(LightningInvoiceServiceContract::class);
         $service->method('create_invoice')->willReturn(new LightningInvoiceResponse('inv3', '', 'New', null));
-        $service->method('resolve_payment_request')->willReturn('');
+        // Exactly RESOLVE_MAX_ATTEMPTS calls, no more/fewer — proves the loop bound.
+        $service->expects($this->exactly(2))->method('resolve_payment_request')->willReturn('');
 
         $db = $this->createMock(PayCryptoMeLightningDBStatementsService::class);
         $db->expects($this->never())->method('insert_invoice');
@@ -115,5 +116,16 @@ class AbstractLightningProcessorTest extends TestCase
 
         $this->expectException(PayCryptoMePaymentException::class);
         $processor->process($order, []);
+    }
+
+    public function test_retry_constants_are_two_attempts_750ms_apart(): void
+    {
+        // Asserted via reflection rather than a live-timed retry: usleep()-ing the
+        // real 750ms in a unit test would make the suite slow without adding
+        // confidence beyond what the exhaustion test above already proves.
+        $rc = new \ReflectionClass(\PayCryptoMe\WooCommerce\AbstractLightningProcessor::class);
+
+        $this->assertSame(2, $rc->getConstant('RESOLVE_MAX_ATTEMPTS'));
+        $this->assertSame(750, $rc->getConstant('RESOLVE_DELAY_MS'));
     }
 }

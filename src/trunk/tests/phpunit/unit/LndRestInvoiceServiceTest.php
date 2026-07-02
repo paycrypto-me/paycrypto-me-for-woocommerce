@@ -8,8 +8,10 @@ namespace {
 
 use PHPUnit\Framework\TestCase;
 use PayCryptoMe\WooCommerce\LndRestInvoiceService;
-use PayCryptoMe\WooCommerce\HttpClientContract;
 use PayCryptoMe\WooCommerce\PayCryptoMePaymentException;
+
+// FakeHttpClient/http_ok()/http_error() live in tests/_support/fake-http-client.php
+// (loaded by bootstrap.php before any test file).
 
 class LndRestInvoiceServiceTest extends TestCase
 {
@@ -32,14 +34,6 @@ class LndRestInvoiceServiceTest extends TestCase
         ]);
     }
 
-    private function ok_response(array $body): array
-    {
-        return [
-            'response' => ['code' => 200, 'message' => 'OK'],
-            'body'     => json_encode($body),
-        ];
-    }
-
     public function test_create_invoice_returns_correct_payment_request_and_invoice_id(): void
     {
         // r_hash as URL-safe base64 of known bytes: 0xdeadbeef → base64url = '3q2-7w=='
@@ -47,20 +41,10 @@ class LndRestInvoiceServiceTest extends TestCase
         $r_hash_b64   = rtrim(strtr(base64_encode($r_hash_bytes), '+/', '-_'), '=');
         $expected_id  = bin2hex($r_hash_bytes); // 'deadbeef'
 
-        $http = new class($r_hash_b64) implements HttpClientContract {
-            public function __construct(private string $r_hash) {}
-            public function post(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode([
-                        'payment_request' => 'lnbc1test',
-                        'r_hash'          => $this->r_hash,
-                    ]),
-                ];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
+        $http = FakeHttpClient::respondingToPost(http_ok([
+            'payment_request' => 'lnbc1test',
+            'r_hash'          => $r_hash_b64,
+        ]));
 
         $service  = new LndRestInvoiceService($http, $this->default_gateway());
         $response = $service->create_invoice(['memo' => 'test order', 'expiry' => 3600]);
@@ -76,20 +60,10 @@ class LndRestInvoiceServiceTest extends TestCase
         $r_hash_b64  = 'aGVsbG8';
         $expected_id = bin2hex(base64_decode('aGVsbG8='));
 
-        $http = new class($r_hash_b64) implements HttpClientContract {
-            public function __construct(private string $r_hash) {}
-            public function post(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode([
-                        'payment_request' => 'lnbc1hello',
-                        'r_hash'          => $this->r_hash,
-                    ]),
-                ];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
+        $http = FakeHttpClient::respondingToPost(http_ok([
+            'payment_request' => 'lnbc1hello',
+            'r_hash'          => $r_hash_b64,
+        ]));
 
         $service  = new LndRestInvoiceService($http, $this->default_gateway());
         $response = $service->create_invoice(['memo' => 'test', 'expiry' => 600]);
@@ -99,16 +73,7 @@ class LndRestInvoiceServiceTest extends TestCase
 
     public function test_get_invoice_status_settled_returns_paid_true(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array
-            {
-                return [
-                    'response' => ['code' => 200, 'message' => 'OK'],
-                    'body'     => json_encode(['state' => 'SETTLED']),
-                ];
-            }
-        };
+        $http = FakeHttpClient::respondingToGet(http_ok(['state' => 'SETTLED']));
 
         $result = (new LndRestInvoiceService($http, $this->default_gateway()))
             ->get_invoice_status('deadbeef');
@@ -119,12 +84,7 @@ class LndRestInvoiceServiceTest extends TestCase
 
     public function test_resolve_payment_request_returns_empty_string(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array { return []; }
-            public function get(string $url, array $args): array { return []; }
-        };
-
-        $result = (new LndRestInvoiceService($http, $this->default_gateway()))
+        $result = (new LndRestInvoiceService(new FakeHttpClient(), $this->default_gateway()))
             ->resolve_payment_request('deadbeef');
 
         $this->assertSame('', $result);
@@ -132,13 +92,67 @@ class LndRestInvoiceServiceTest extends TestCase
 
     public function test_create_invoice_empty_body_throws_exception(): void
     {
-        $http = new class implements HttpClientContract {
-            public function post(string $url, array $args): array
-            {
-                return ['response' => ['code' => 200, 'message' => 'OK'], 'body' => ''];
-            }
-            public function get(string $url, array $args): array { return []; }
-        };
+        $http = FakeHttpClient::respondingToPost(['response' => ['code' => 200, 'message' => 'OK'], 'body' => '']);
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+    }
+
+    // --- HTTP error matrix -------------------------------------------------------------
+    // parse_response() treats every status >= 400 identically; this data provider proves
+    // that holds across representative codes, for both create_invoice() (POST) and
+    // get_invoice_status() (GET).
+
+    public static function http_error_status_provider(): array
+    {
+        return [
+            'bad request'         => [400, 'Bad Request'],
+            'forbidden'           => [403, 'Forbidden'],
+            'not found'           => [404, 'Not Found'],
+            'too many requests'   => [429, 'Too Many Requests'],
+            'service unavailable' => [503, 'Service Unavailable'],
+        ];
+    }
+
+    /** @dataProvider http_error_status_provider */
+    public function test_create_invoice_throws_on_http_error_status(int $code, string $message): void
+    {
+        $http = FakeHttpClient::respondingToPost(http_error($code, $message));
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+    }
+
+    /** @dataProvider http_error_status_provider */
+    public function test_get_invoice_status_throws_on_http_error_status(int $code, string $message): void
+    {
+        $http = FakeHttpClient::respondingToGet(http_error($code, $message));
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->get_invoice_status('deadbeef');
+    }
+
+    public function test_create_invoice_throws_on_malformed_json(): void
+    {
+        $http = FakeHttpClient::respondingToPost([
+            'response' => ['code' => 200, 'message' => 'OK'],
+            'body'     => '{not valid json',
+        ]);
+
+        $this->expectException(PayCryptoMePaymentException::class);
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+    }
+
+    public function test_create_invoice_throws_on_timeout(): void
+    {
+        // WpHttpClient (the real HttpClientContract adapter) turns a WP_Error — e.g. a
+        // cURL timeout — into an empty array; simulate that directly here since fakes
+        // implement the contract, not wp_remote_post()/wp_remote_get().
+        $http = FakeHttpClient::respondingToPost([]);
 
         $this->expectException(PayCryptoMePaymentException::class);
         (new LndRestInvoiceService($http, $this->default_gateway()))

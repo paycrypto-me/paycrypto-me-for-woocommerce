@@ -9,6 +9,8 @@ class FakeWPDB
     public $insert_id = 0;
     public $prefix = 'wp_';
     public $last_query = '';
+    public $release_lock_result = '1';
+    public $release_lock_calls = 0;
 
     public function prepare($query /*, ...$args */)
     {
@@ -46,7 +48,8 @@ class FakeWPDB
         }
 
         if (stripos($query, 'RELEASE_LOCK') !== false) {
-            return '1';
+            $this->release_lock_calls++;
+            return $this->release_lock_result;
         }
 
         return null;
@@ -102,6 +105,21 @@ class PayCryptoMeDBStatementsServiceTest extends TestCase
         $next = $svc->reserve_derivation_index_for_wallet(1, 1);
 
         $this->assertSame(0, $next, 'First reserved derivation index should be 0');
+    }
+
+    public function test_reserve_derivation_index_for_wallet_ignores_release_lock_failure()
+    {
+        global $wpdb;
+        $wpdb->release_lock_result = '0';
+
+        $svc = new PayCryptoMeDBStatementsService();
+        $next = $svc->reserve_derivation_index_for_wallet(1, 1);
+
+        // RELEASE_LOCK runs in a `finally` block whose return value is never checked —
+        // characterizing today's behavior: a failed release does not fail the
+        // reservation, nor is it surfaced anywhere (no exception, no log).
+        $this->assertSame(0, $next);
+        $this->assertSame(1, $wpdb->release_lock_calls);
     }
 
     public function test_insert_address_returns_true_when_order_missing()

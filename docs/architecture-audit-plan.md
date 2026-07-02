@@ -31,7 +31,7 @@ A auditoria original (2026-07-01) continha premissas que já não valem. Corrigi
 | Fase | Status |
 |---|---|
 | Fase 0 — persistir auditoria + limpeza trivial | ✅ **Concluída** (2026-07-01) |
-| Fase 1 — testes críticos faltantes (rede de segurança) + spy mínimo nos shims | ⬜ Não iniciada (re-baselined em 2026-07-02) |
+| Fase 1 — testes críticos faltantes (rede de segurança) + spy mínimo nos shims | ✅ **Concluída** (2026-07-02) — 147 testes, 0 erros |
 | Fase 2 — extrações de alto valor (dedup dos AJAX testers, `PaymentOrderValidator`, DI de `QrCodeService`) | ⬜ Não iniciada |
 | Fase 3+ (adiada) — breakup integral das god classes + DRY amplo | ⬜ Backlog, gated em webhook/blocos/express assentarem |
 
@@ -56,28 +56,30 @@ A auditoria original (2026-07-01) continha premissas que já não valem. Corrigi
 
 **Pontos fortes a preservar:** `BitcoinAddressService` (DI limpa, bem decomposta), `AbstractLightningProcessor` (template method sem duplicação entre BTCPay/lnd), contracts (`GatewayProcessorContract`, `HttpClientContract`, `LightningInvoiceServiceContract`), factories (`ProcessorStrategiesFactory` e derivadas), DTOs (`LightningInvoiceResponse`/`LightningInvoiceStatusResponse`), `AssetManager`, classes de blocos Gutenberg.
 
-### Cobertura de testes — estado atual (2026-07-02)
+### Cobertura de testes — estado atual (pós-Fase 1, 2026-07-02)
 
-Suíte atual: **52 testes, 2 erros pré-existentes** (não relacionados à auditoria). ~31 classes fonte, 19 classes de teste. Cobertura estimada 40-50%, majoritariamente happy-path.
+Suíte atual: **147 testes, 335 asserções, 0 erros**. ~31 classes fonte, 23 classes de teste (4 novas na Fase 1). Cobertura subiu bastante nas áreas críticas de dinheiro/config; ainda majoritariamente unit-level (sem WP real).
 
 | Risco | Classe | Situação real hoje |
 |---|---|---|
-| **CRÍTICO** | `PayCryptoMeLightningDBStatementsService` | **Zero testes** — `insert_invoice()`, `update_status()`, `get_by_order_id()`, `exists_for_order()`, invalidação de cache nunca exercitados. **Gap aberto.** |
-| **CRÍTICO** | `WC_Gateway_PayCryptoMe_Lightning` | **Zero testes** — 9 validadores, `ajax_test_btcpay_connection`, `ajax_test_lnd_connection`, `_is_lnd_rest_selected()`, `is_available()`. **Gap aberto.** |
-| **CRÍTICO** (mitigado) | `PayCryptoMeDBStatementsService::reserve_derivation_index_for_wallet()` | `GET_LOCK` retornando 0 **já testado** (`ReserveDerivationConcurrencyTest`). Falta só o caso de `RELEASE_LOCK` retornando 0. |
-| Alto | `PaymentProcessor::process_payment()` | Teste **existe mas é oco** — só asserta `payment_data`/pre-check. Faltam: disparo de `before/after_payment`, `update_order_after_payment` (meta/status), `get_return_url`, e a ramificação do express (`:207-209`). |
-| Alto | `ProcessorStrategiesFactory` (topo) | Caso de gateway inválido (`InvalidArgumentException`) **não testado**. (A `LightningProcessorStrategiesFactory` já tem roteamento btcpay/lnd/default coberto.) |
-| Médio (mitigado) | `AbstractLightningProcessor` | Retry **já coberto** (resolução tardia, skip, esgotamento). Opcional: asserir número de tentativas/intervalo exatos. |
-| Médio | `BitcoinAddressService` | `validate_extended_pubkey()`, `validate_bitcoin_address()`, `build_bitcoin_payment_uri()` **sem testes** (só geração é coberta via vetores). |
-| Médio | `BtcpayInvoiceService`/`LndRestInvoiceService` | Alguns erros já cobertos; falta completar a matriz: HTTP 400/403/404/429/503, JSON malformado, timeout. |
-| Médio | **Botão express (server-side)** | A única lógica de servidor é o aceite de `{gateway_id}_express` em `validate_order()` (`:207-209`). **Sem teste.** Resto é settings/JS. |
+| ~~CRÍTICO~~ | `PayCryptoMeLightningDBStatementsService` | ✅ **Fechado na Fase 1** — `PayCryptoMeLightningDBStatementsServiceTest` (9 testes): insert/update/get/exists + invalidação de cache (incl. characterization de que um cache miss nunca fica em cache). |
+| ~~CRÍTICO~~ | `WC_Gateway_PayCryptoMe_Lightning` | ✅ **Fechado na Fase 1** (parcial) — `WCGatewayLightningValidationTest` (37 testes): os 9 `validate_*_field()`, `_is_lnd_rest_selected()`, `is_available()`. Handlers AJAX (`ajax_test_btcpay_connection`/`ajax_test_lnd_connection`) seguem sem teste — mais fáceis depois da extração da Fase 2. |
+| ~~CRÍTICO~~ | `PayCryptoMeDBStatementsService::reserve_derivation_index_for_wallet()` | ✅ **Fechado na Fase 1** — `GET_LOCK`=0 (já existia) e `RELEASE_LOCK`=0 (novo) cobertos. |
+| ~~Alto~~ | `PaymentProcessor::process_payment()` | ✅ **Fechado na Fase 1** — teste fim a fim: hooks before/after (via spy), meta `_paycrypto_me_*`, status `pending`, `get_return_url()`, ramificação do express. Achado colateral corrigido: o stub de teste do `ProcessorStrategiesFactory` nunca era efetivamente usado (perdia a corrida de autoload contra a classe real). |
+| ~~Alto~~ | `ProcessorStrategiesFactory` (topo) | ✅ **Fechado na Fase 1** — `ProcessorStrategiesFactoryTest`: gateway inválido lança `InvalidArgumentException`; dispatch feliz Bitcoin/Lightning também coberto. |
+| ~~Médio~~ | `AbstractLightningProcessor` | ✅ **Fechado na Fase 1** — retry já estava coberto; adicionado número exato de tentativas (`exactly(2)`) + constantes via reflection. |
+| ~~Médio~~ | `BitcoinAddressService` | ✅ **Fechado na Fase 1** — `BitcoinAddressValidationTest` (18 testes): `validate_extended_pubkey()`/`validate_bitcoin_address()` (mainnet/testnet, prefixo inválido, checksum corrompido, mismatch de rede), `build_bitcoin_payment_uri()`. |
+| ~~Médio~~ | `BtcpayInvoiceService`/`LndRestInvoiceService` | ✅ **Fechado na Fase 1** — matriz completa HTTP 400/403/404/429/503 (data provider), JSON malformado, timeout. |
+| ~~Médio~~ | **Botão express (server-side)** | ✅ **Fechado na Fase 1** — coberto dentro do teste fim a fim do `PaymentProcessor`. |
 | Baixo | Blocos Gutenberg (3 classes) | Zero testes (fora de escopo — trilha JS). |
 
-**Problemas estruturais na infraestrutura de teste:**
-- `tests/_support/wp-helpers.php` (e stubs locais em arquivos de teste): `apply_filters()`/`do_action()` são no-op — **mascaram disparo de hooks**. A Fase 1 evolui isso *o mínimo* (spy que registra invocações), sem reescrever a infra.
-- Testes de banco usam `FakeWPDB` single-threaded — simulação de lock não captura concorrência real (aceito).
-- `BtcpayInvoiceServiceTest` e `LndRestInvoiceServiceTest` reimplementam o mock de `HttpClientContract` cada um do zero — sem fixture compartilhada.
-- Endpoint REST do webhook (`paycrypto-me/v1/webhook`) referenciado na UI de settings (`class-wc-gateway-paycrypto-me-lightning.php:158`) mas **não implementado** — fora do escopo (feature nova); registrado aqui só para explicar a ausência de testes de webhook.
+**Problemas estruturais na infraestrutura de teste — estado pós-Fase 1:**
+- ~~`apply_filters()`/`do_action()` são no-op~~ — ✅ agora registram invocações (`hook_spy_calls()`/`hook_spy_reset()` em `tests/_support/wp-helpers.php`); dispatch real de hooks/filtros continua fora de escopo (decisão confirmada).
+- ~~`WC_Payment_Gateway`/`WC_Order`/shims de função WP duplicados e divergentes entre arquivos~~ — ✅ consolidados numa fonte única (`tests/_support/wp-helpers.php`) na Fase 1, item 0. Foi essa divergência de aridade que causava os 2 erros pré-existentes da Fase 0.
+- ~~`BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest` reimplementavam o mock de `HttpClientContract` cada um do zero~~ — ✅ extraído para `tests/_support/fake-http-client.php` (`FakeHttpClient`/`http_ok()`/`http_error()`) na Fase 1, item 10.
+- Testes de banco usam `FakeWPDB` single-threaded — simulação de lock não captura concorrência real (aceito, sem mudança).
+- `phpcs` **não está configurado neste repo** — sem binário nem config (`composer.json` não declara a dependência, não há `phpcs.xml*`), apesar de referenciado como expectativa de release no `CLAUDE.md`. Não foi possível rodar ao final da Fase 1; **gap novo, registrado aqui**.
+- Endpoint REST do webhook (`paycrypto-me/v1/webhook`) referenciado na UI de settings (`class-wc-gateway-paycrypto-me-lightning.php:158`) mas **não implementado** — fora do escopo (feature premium); registrado aqui só para explicar a ausência de testes de webhook.
 
 ---
 
@@ -93,19 +95,19 @@ Suíte atual: **52 testes, 2 erros pré-existentes** (não relacionados à audit
 Objetivo: characterization tests que capturem o comportamento **atual**, para as Fases 2+ refatorarem com confiança.
 
 0. ✅ **Concluído (2026-07-02)** — Corrigir os 2 erros pré-existentes em `BitcoinPaymentProcessorTest`. Causa raiz: cada arquivo de teste declarava seu próprio fallback guardado `class WC_Payment_Gateway`, com aridades diferentes de `get_option()`; qual arquivo "vencia" a corrida de `class_exists()` (ordem alfabética de carregamento) decidia silenciosamente a aridade que os mocks de todos os outros arquivos tinham que respeitar — e o mock gerado pelo PHPUnit captura os parâmetros pela assinatura declarada da classe vencedora, não pela quantidade de argumentos realmente passada na chamada. `BitcoinPaymentProcessorTest` assumia 1 argumento em `get_option()` mas herdava a versão de 2 argumentos de `AbstractLightningProcessorTest`, então `willReturnMap()` nunca casava e devolvia `null`. Fix: trocado por `willReturnCallback()` (agnóstico à aridade) e **consolidados todos os shims `WC_Payment_Gateway`/`WC_Order`/funções WP duplicados em 8 arquivos de teste** para `tests/_support/wp-helpers.php` (fonte única), removendo cópias mortas/inconsistentes (uma delas devolvia um valor errado que nunca era realmente usado). Descoberta lateral: `tests/` inteiro estava no `.gitignore` — a suíte nunca tinha ido para o controle de versão; corrigido junto. Suíte: 52 testes, 188 asserções, verde, sem nenhuma asserção alterada.
-1. **`PayCryptoMeLightningDBStatementsServiceTest`** (novo, CRÍTICO) — `insert_invoice()`, `update_status()`, `get_by_order_id()`, `exists_for_order()`, invalidação de cache. Seguir o padrão de `PayCryptoMeDBStatementsServiceTest` (FakeWPDB).
-2. **Testes para `WC_Gateway_PayCryptoMe_Lightning`** (novo, CRÍTICO) — o que é testável isoladamente sem WP real: os 9 `validate_*_field()`, `_is_lnd_rest_selected()`, `_sanitize_text_val()`, ramos de `is_available()`. Os handlers AJAX (`ajax_test_btcpay_connection`/`ajax_test_lnd_connection`) ficam mais fáceis de testar depois de extraídos na Fase 2 — por ora cobrir a lógica interna via reflection, como já feito em `WCGatewayAjaxTest` para o On-Chain.
-3. **Spy mínimo nos shims** — evoluir `apply_filters()`/`do_action()` (em `tests/_support/wp-helpers.php` e/ou nos stubs locais) para *registrar* as invocações, sem reescrever a infra. Habilita o item 4.
-4. **Aprofundar `PaymentProcessorTest`** (hoje oco) para cobrir `process_payment()` fim a fim: disparo de `paycryptome_before_payment`/`paycryptome_after_payment` (via spy do item 3), `update_order_after_payment` (meta `_paycrypto_me_*` + status `pending`), `get_return_url`, e a **ramificação do express** (`validate_order()` aceitando `{gateway_id}_express`).
-5. **Rede de segurança do express (server-side)** — teste dedicado (pode viver no item 4) provando que um pedido com método `{gateway_id}_express` passa a validação de método. É a única lógica de servidor do express.
-6. **`ProcessorStrategiesFactoryTest`** (novo/extensão) — gateway ID inválido lança `InvalidArgumentException` na factory de topo.
-7. **`BitcoinAddressValidationTest`** (novo) — `validate_extended_pubkey()` (xpub/ypub/zpub em mainnet/testnet), `validate_bitcoin_address()`, `build_bitcoin_payment_uri()` com amount/label/message.
-8. Estender `PayCryptoMeDBStatementsServiceTest` com o caso faltante: `RELEASE_LOCK` retornando 0 (o de `GET_LOCK` já existe).
-9. Completar a matriz de erro em `BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest` — HTTP 400/403/404/429/503, JSON malformado, timeout.
-10. **Fixture compartilhada de mock de `HttpClientContract`** — extrair o mock hoje duplicado nos dois arquivos de teste de invoice.
-11. *(Opcional)* Estender `AbstractLightningProcessorTest` para asserir número de tentativas/intervalo exatos do retry (o esgotamento já é coberto).
+1. ✅ **`PayCryptoMeLightningDBStatementsServiceTest`** (novo, CRÍTICO) — `insert_invoice()`, `update_status()`, `get_by_order_id()`, `exists_for_order()`, invalidação de cache (incl. um teste que documenta que um cache miss nunca fica em cache — comportamento atual, não corrigido). Adicionado shim `wp_cache_get/set/delete` em memória (não existia).
+2. ✅ **Testes para `WC_Gateway_PayCryptoMe_Lightning`** (novo, CRÍTICO) — os 9 `validate_*_field()`, `_is_lnd_rest_selected()`, ramos de `is_available()` (37 testes). Handlers AJAX seguem para depois da extração da Fase 2. Shims novos: `WC_Admin_Settings::add_error()`, `esc_url_raw()`, `wp_parse_url()`, `get_post_data()`/`get_field_key()` no `WC_Payment_Gateway` central.
+3. ✅ **Spy mínimo nos shims** — `apply_filters()`/`do_action()` em `tests/_support/wp-helpers.php` agora registram `{tag, args}` em `$GLOBALS['__hook_spy']`, consultável via `hook_spy_calls()`/`hook_spy_reset()`. Continuam no-op (sem dispatch real).
+4. ✅ **Aprofundado `PaymentProcessorTest`** fim a fim: hooks before/after (via spy do item 3), meta `_paycrypto_me_*`, status `pending`, `get_return_url()` (ambos os ramos). **Achado real corrigido no processo:** o stub `ProcessorStrategiesFactory` do arquivo nunca era efetivamente usado — `class_alias()` perdia a corrida de `class_exists()` contra a classe real (autoloadável via Composer), então qualquer teste que chamasse `process_payment()` de ponta a ponta caía nos processors reais sem WP de verdade. O teste antigo nunca pegou isso porque só testava os passos privados via reflection, nunca o método público. Corrigido fazendo o teste passar pelo `BitcoinPaymentProcessor` real com um endereço estático (sem precisar de derivação/DB).
+5. ✅ **Rede de segurança do express (server-side)** — coberto dentro do item 4 (`test_process_payment_accepts_express_payment_method_variant`).
+6. ✅ **`ProcessorStrategiesFactoryTest`** (novo) — gateway inválido lança `InvalidArgumentException`; dispatch feliz para Bitcoin/Lightning também coberto. Só passou a funcionar de verdade depois do fix do item 4 (antes, o `class_alias` do item 4 corrompia esse teste quando a suíte inteira rodava).
+7. ✅ **`BitcoinAddressValidationTest`** (novo, 18 testes) — `validate_extended_pubkey()`/`validate_bitcoin_address()` (mainnet/testnet, prefixo inválido, checksum corrompido, mismatch de rede) e `build_bitcoin_payment_uri()` com amount/label/message.
+8. ✅ Estendido `PayCryptoMeDBStatementsServiceTest` — `RELEASE_LOCK` retornando 0: reserva ainda é bem-sucedida (o valor de retorno é ignorado dentro do `finally`, sem exceção nem log).
+9. ✅ Matriz de erro completa em `BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest` — HTTP 400/403/404/429/503 (data provider), JSON malformado, timeout (simulado como array vazio, igual ao que `WpHttpClient` devolve num `WP_Error`).
+10. ✅ **Fixture compartilhada `FakeHttpClient`/`http_ok()`/`http_error()`** em `tests/_support/fake-http-client.php` — feita **antes** do item 9 (ordem invertida de propósito) para não duplicar mock que seria refeito na sequência.
+11. ✅ *(Opcional)* `AbstractLightningProcessorTest` — número exato de tentativas (`expects($this->exactly(2))`) + constantes `RESOLVE_MAX_ATTEMPTS`/`RESOLVE_DELAY_MS` via reflection (sem live-sleep no teste).
 
-Critério de saída da Fase 1: `./vendor/bin/phpunit` (de `src/trunk/`) verde, incluindo os 2 erros do item 0 resolvidos e as novas suítes passando contra o código **atual**.
+Critério de saída da Fase 1: `./vendor/bin/phpunit` (de `src/trunk/`) verde — **147 testes, 335 asserções, 0 erros** (2026-07-02). `phpcs` não pôde ser rodado: sem binário nem config no ambiente atual (nunca foi configurado neste repo apesar de referenciado na documentação) — sinalizado, não bloqueante para a Fase 1.
 
 ### Fase 2 — Extrações de alto valor (contidas, baixo churn)
 Pré-requisito: Fase 1 concluída. Escopo deliberadamente enxuto ("alto valor primeiro") — só o que dá retorno claro, é contido e não conflita com as features em voo.
@@ -168,5 +170,5 @@ Para o add-on ser **100% zero-core-edit**, o plugin base precisa expor os pontos
 - Rodar `./vendor/bin/phpunit` (de `src/trunk/`, via `docker exec` no container `paycrypto-me-for-woocommerce-wordpress-1`) ao final de cada fase — deve permanecer verde.
 - Fase 1: os novos testes devem primeiro passar contra o código **atual** (provando que capturam o comportamento existente) antes de qualquer refactor começar.
 - Fase 2: mesma suíte (Fase 1 + pré-existentes) sem nenhuma mudança de asserção — só o código de produção muda.
-- Rodar `phpcs` (WooCommerce coding standards) antes de considerar cada fase concluída.
+- Rodar `phpcs` (WooCommerce coding standards) antes de considerar cada fase concluída. **Não disponível hoje** neste ambiente (sem binário/config, ver "Problemas estruturais na infraestrutura de teste") — pendência a resolver antes do critério de saída poder ser cumprido à risca numa fase futura.
 - Smoke test manual: criar pedido de teste via On-Chain (endereço estático e via xPub), via Lightning (BTCPay sandbox, se disponível) e via **botão express** de ambos, confirmando que checkout e order-details continuam funcionando após a Fase 2.
