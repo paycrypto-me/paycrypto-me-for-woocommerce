@@ -9,7 +9,7 @@ metadata:
 
 ## PayCrypto.Me for WooCommerce
 
-Plugin WordPress GPL-3.0 que adiciona gateways de pagamento em Bitcoin ao WooCommerce. Versão atual: **0.1.0**. Autor: Lucas Rosa (lucasrosa95 / lucas@ipag.com.br).
+Plugin WordPress GPL-3.0 que adiciona gateways de pagamento em Bitcoin ao WooCommerce. Versão atual: **0.1.0**. Autor: Lucas Rosa (lucasrosa95 / lucas.rosa95br@gmail.com).
 
 **Por que existe:** Permitir lojas WooCommerce aceitarem Bitcoin de forma non-custodial, sem intermediários.
 
@@ -38,4 +38,4 @@ Plugin WordPress GPL-3.0 que adiciona gateways de pagamento em Bitcoin ao WooCom
 
 **Why:** Manter esta memória ajuda futuros agentes a não confundir arquivos compilados com fontes editáveis, e a entender que o plugin tem dois gateways completamente separados com lógicas distintas.
 
-**How to apply:** Ao trabalhar no plugin, sempre editar fontes em `src/trunk/includes/` e `src/trunk/includes/blocks/js/`. Nunca editar diretamente `assets/blocks/` (são artefatos de build). Para o Lightning gateway o fluxo de invoice ainda está incompleto — ver [[project-wip]].
+**How to apply:** Ao trabalhar no plugin, sempre editar fontes em `src/trunk/includes/` e `src/trunk/includes/blocks/js/`. Nunca editar diretamente `assets/blocks/` (são artefatos de build). O fluxo de invoice do Lightning (BTCPay + lnd REST) já está implementado; o que falta é o endpoint de webhook, conversão fiat→sats e os blocos Gutenberg do Lightning — ver [[project-wip]].

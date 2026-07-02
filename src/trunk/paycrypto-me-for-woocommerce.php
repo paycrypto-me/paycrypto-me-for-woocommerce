@@ -137,8 +137,3 @@ function wc_paycrypto_me_initialize()
 
 add_action('plugins_loaded', __NAMESPACE__ . '\\wc_paycrypto_me_initialize', 10);
 
-function paycrypto_me_before_payment($order_id, $data)
-{
-    do_action('paycryptome_before_payment', $order_id, $data);
-}
-
