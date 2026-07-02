@@ -51,6 +51,9 @@ test.php
 # Ignore PHPUnit result cache files created by test runs
 *.cache
 
+# Stray fixture written at test runtime by ActivateDbDeltaTest (ABSPATH concat artifact)
+src/trunk/tests/..wp-admin/
+
 # Project / development ignores (merged from src/.gitignore)
 
 # Dependencies
@@ -108,4 +111,3 @@ wp-content/wp-cache-config.php
 debug-paycrypto.php
 releases/*
 !releases/.gitkeep
-tests/
