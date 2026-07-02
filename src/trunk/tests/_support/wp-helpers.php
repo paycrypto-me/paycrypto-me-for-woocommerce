@@ -37,6 +37,16 @@ if (!function_exists('wp_kses_post')) {
 if (!function_exists('wp_strip_all_tags')) {
     function wp_strip_all_tags($text) { return strip_tags((string) $text); }
 }
+if (!function_exists('wp_trim_words')) {
+    function wp_trim_words($text, $num_words = 55, $more = null) {
+        $more = $more ?? '&hellip;';
+        $words = preg_split('/[\n\r\t ]+/', trim(wp_strip_all_tags((string) $text)), -1, PREG_SPLIT_NO_EMPTY);
+        if (count($words) <= $num_words) {
+            return implode(' ', $words);
+        }
+        return implode(' ', array_slice($words, 0, $num_words)) . $more;
+    }
+}
 if (!function_exists('esc_url')) {
     function esc_url($url) { return $url; }
 }
@@ -72,6 +82,12 @@ if (!function_exists('wc_add_notice')) {
 }
 if (!function_exists('wc_get_checkout_url')) {
     function wc_get_checkout_url() { return 'https://example.org/checkout'; }
+}
+if (!function_exists('wc_price')) {
+    function wc_price($amount, $args = []) {
+        $currency = $args['currency'] ?? '';
+        return trim($currency . ' ' . $amount);
+    }
 }
 if (!function_exists('wp_json_encode')) {
     function wp_json_encode($data, $options = 0, $depth = 512) { return json_encode($data, $options, $depth); }

@@ -1,6 +1,7 @@
 <?php
 use PHPUnit\Framework\TestCase;
 use PayCryptoMe\WooCommerce\PaymentProcessor;
+use PayCryptoMe\WooCommerce\PaymentOrderValidator;
 
 // WC_Order/WC_Payment_Gateway/apply_filters/do_action/etc. fallbacks live in
 // tests/_support/wp-helpers.php (loaded by bootstrap.php before any test file).
@@ -139,13 +140,9 @@ class PaymentProcessorTest extends TestCase
             $m2->setAccessible(true);
             $payment_data = $m2->invoke($processor, $order, $gateway, $final_amount);
 
-            $m3 = new \ReflectionMethod(PaymentProcessor::class, 'validate_order');
-            $m3->setAccessible(true);
-            $m3->invoke($processor, $order, $payment_data, $gateway);
-
-            $m4 = new \ReflectionMethod(PaymentProcessor::class, 'validate_gateway_config');
-            $m4->setAccessible(true);
-            $m4->invoke($processor, $gateway);
+            $validator = new PaymentOrderValidator();
+            $validator->validate_order($order, $payment_data, $gateway);
+            $validator->validate_gateway_config($gateway);
         } catch (\Throwable $e) {
             $this->fail('Failure during pre-check steps: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
         }

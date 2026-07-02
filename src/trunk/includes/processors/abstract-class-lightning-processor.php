@@ -43,7 +43,7 @@ abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
             $this->gateway
         );
 
-        $payment_data['crypto_network'] = 'lightning';
+        $payment_data['crypto_network'] = "lightning:{$this->node_type()}";
 
         $response = $this->service->create_invoice($args);
 

@@ -15,6 +15,13 @@ namespace PayCryptoMe\WooCommerce;
 
 class PaymentProcessor
 {
+    private PaymentOrderValidator $validator;
+
+    public function __construct()
+    {
+        $this->validator = new PaymentOrderValidator();
+    }
+
     public function process_payment($order_id, \WC_Payment_Gateway $gateway): array
     {
         try {
@@ -22,9 +29,9 @@ class PaymentProcessor
             $final_amount = $this->apply_filter_payment_amount($order);
             $payment_data = $this->apply_filter_payment_data($order, $gateway, $final_amount);
 
-            $this->validate_order($order, $payment_data, $gateway);
+            $this->validator->validate_order($order, $payment_data, $gateway);
 
-            $this->validate_gateway_config($gateway);
+            $this->validator->validate_gateway_config($gateway);
 
             $this->trigger_hook_before($order, $payment_data, $gateway);
 
@@ -84,6 +91,7 @@ class PaymentProcessor
 
         $meta_data = [
             'crypto_currency'  => $payment_data['crypto_currency'] ?? 'N-A',
+            'crypto_network'   => $payment_data['crypto_network'] ?? 'N-A',
             'crypto_amount'    => $payment_data['crypto_amount'] ?? 'N-A',
             'fiat_currency'    => $payment_data['fiat_currency'] ?? 'N-A',
             'fiat_amount'      => $payment_data['fiat_amount'] ?? 'N-A',
@@ -179,59 +187,6 @@ class PaymentProcessor
         $payment_data['crypto_currency'] = $selected_crypto;
 
         return $payment_data;
-    }
-
-    private function validate_order(\WC_Order $order, array $payment_data, \WC_Payment_Gateway $gateway)
-    {
-        if (!$order) {
-            throw new \InvalidArgumentException('Order is unavailable.');
-        }
-
-        if (!$order->needs_payment()) {
-            throw new \InvalidArgumentException(
-                    \sprintf(
-                        'Order #%s does not require payment.',
-                        esc_html( (string) $order->get_id() )
-                    )
-            );
-        }
-
-        if ($payment_data['fiat_amount'] <= 0) {
-            throw new \InvalidArgumentException(\sprintf(
-                    'Order #%s total amount (%s) is not valid for payment.',
-                    esc_html( (string) $order->get_id() ),
-                    esc_html( wp_strip_all_tags( wc_price( $payment_data['fiat_amount'], [ 'currency' => $order->get_currency() ] ) ) )
-                ) );
-        }
-
-        // Accept the gateway's own ID or the express block variant (gateway_id . '_express').
-        $order_payment_method = $order->get_payment_method();
-        if ($order_payment_method !== $gateway->id && $order_payment_method !== $gateway->id . '_express') {
-            throw new \InvalidArgumentException(
-                    \sprintf(
-                        'Payment method (%s) of order #%s is incompatible to payment gateway (%s).',
-                        esc_html( (string) $order_payment_method ),
-                        esc_html( (string) $order->get_id() ),
-                        esc_html( (string) $gateway->id )
-                    ) );
-        }
-
-        if (!$order->get_currency()) {
-            throw new \InvalidArgumentException(
-                    \sprintf(
-                        'Order #%s currency (%s) is not valid for payment.',
-                        esc_html( (string) $order->get_id() ),
-                        esc_html( (string) $order->get_currency() )
-                    )
-            );
-        }
-    }
-
-    private function validate_gateway_config(\WC_Payment_Gateway $gateway)
-    {
-        if (!$gateway->is_available()) {
-            throw new PayCryptoMeException('Payment gateway is not available.');
-        }
     }
 
     private function handle_payment_processor_strategy(\WC_Order $order, array $payment_data, \WC_Payment_Gateway $gateway)

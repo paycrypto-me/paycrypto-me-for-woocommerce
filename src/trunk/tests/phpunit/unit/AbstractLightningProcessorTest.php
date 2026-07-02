@@ -118,6 +118,22 @@ class AbstractLightningProcessorTest extends TestCase
         $processor->process($order, []);
     }
 
+    public function test_process_encodes_node_type_into_crypto_network(): void
+    {
+        $order = $this->createMock(\WC_Order::class);
+        $order->method('get_id')->willReturn(46);
+
+        $service = $this->createMock(LightningInvoiceServiceContract::class);
+        $service->method('create_invoice')->willReturn(new LightningInvoiceResponse('inv5', 'lnbc1test', 'OPEN', null));
+
+        $db = $this->createMock(PayCryptoMeLightningDBStatementsService::class);
+
+        $processor = $this->make_processor(new \WC_Payment_Gateway(), $service, $db);
+        $result    = $processor->process($order, []);
+
+        $this->assertSame('lightning:btcpay', $result['crypto_network'], 'node_type is folded into crypto_network so PaymentProcessor::register_payment_log() and order meta surface it without adding a bare node_type key that On-Chain orders would show as N-A');
+    }
+
     public function test_retry_constants_are_two_attempts_750ms_apart(): void
     {
         // Asserted via reflection rather than a live-timed retry: usleep()-ing the

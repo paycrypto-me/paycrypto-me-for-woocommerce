@@ -16,6 +16,9 @@ namespace PayCryptoMe\WooCommerce;
 
 class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 {
+    private QrCodeService $qr_code_service;
+    private LightningConnectionTester $connection_tester;
+
     /**
      * Constructor for the gateway.
      */
@@ -37,6 +40,9 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->payment_number_confirmations = absint($this->get_option('payment_number_confirmations', 0));
         $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
         $this->express_payment_text = $this->get_option('express_payment_text', '') ?: __('Buy with', 'paycrypto-me-for-woocommerce');
+
+        $this->qr_code_service = new QrCodeService();
+        $this->connection_tester = new LightningConnectionTester(new WpHttpClient(), $this);
 
         parent::__construct();
 
@@ -314,142 +320,12 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
     public function ajax_test_btcpay_connection()
     {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'paycrypto-me-for-woocommerce')));
-        }
-
-        check_ajax_referer('paycrypto_btcpay_test', 'security');
-
-        $url = esc_url_raw(wp_unslash($this->get_option('btcpay_url', '')));
-        $api = esc_attr($this->get_option('btcpay_api_key', ''));
-        $store = esc_attr($this->get_option('btcpay_store_id', ''));
-
-        if (empty($url)) {
-            wp_send_json_error(array('message' => __('BTCPay URL is required for test.', 'paycrypto-me-for-woocommerce')));
-        }
-
-        // Build endpoint to check: prefer store endpoint if provided, else list stores.
-        $endpoint = rtrim($url, '/') . '/api/v1/stores';
-        if ($store !== '') {
-            $endpoint = rtrim($url, '/') . '/api/v1/stores/' . rawurlencode($store);
-        }
-
-        $args = array(
-            'timeout' => 15,
-            'headers' => array('Accept' => 'application/json', 'Content-Type' => 'application/json'),
-        );
-        if ($api !== '') {
-            $args['headers']['Authorization'] = 'token ' . $api;
-        }
-
-        $resp = wp_remote_get($endpoint, $args);
-        if (is_wp_error($resp)) {
-            $this->register_paycrypto_me_log(
-                \sprintf('BTCPay connection test failed: %s', esc_html($resp->get_error_message())),
-                'error'
-            );
-            wp_send_json_error(array('message' => $resp->get_error_message()));
-        }
-
-        $code = wp_remote_retrieve_response_code($resp);
-        $body = wp_remote_retrieve_body($resp);
-
-        if ($code >= 200 && $code < 300) {
-            wp_send_json_success(array('message' => sprintf(__('Connection OK (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code)));
-        }
-
-        $this->register_paycrypto_me_log(
-            \sprintf('BTCPay connection test failed: status=%d body=%s', $code, esc_html(substr((string) $body, 0, 500))),
-            'error'
-        );
-
-        $message = sprintf(__('Request failed (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
-        if (!empty($body)) {
-            $message .= ' ' . wp_strip_all_tags(wp_trim_words($body, 40));
-        }
-
-        wp_send_json_error(array('message' => $message));
+        $this->connection_tester->test_btcpay_connection();
     }
 
     public function ajax_test_lnd_connection()
     {
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error(array('message' => __('Permission denied.', 'paycrypto-me-for-woocommerce')));
-        }
-
-        check_ajax_referer('paycrypto_lnd_test', 'security');
-
-        $url = isset($_POST['lnd_rest_url']) ? esc_url_raw(wp_unslash($_POST['lnd_rest_url'])) : '';
-        $macaroon = isset($_POST['lnd_macaroon_hex']) ? sanitize_text_field(wp_unslash($_POST['lnd_macaroon_hex'])) : '';
-        $certificate = isset($_POST['lnd_certificate']) ? wp_kses_post(wp_unslash($_POST['lnd_certificate'])) : '';
-        $verify_ssl = isset($_POST['lnd_verify_ssl']) ? sanitize_text_field(wp_unslash($_POST['lnd_verify_ssl'])) : 'yes';
-
-        if (empty($url)) {
-            wp_send_json_error(array('message' => __('lnd REST URL is required for test.', 'paycrypto-me-for-woocommerce')));
-        }
-
-        $endpoint = rtrim($url, '/') . '/v1/getinfo';
-
-        $args = array(
-            'timeout' => 15,
-            'headers' => array('Accept' => 'application/json'),
-        );
-
-        // Handle SSL verification: use certificate if provided, otherwise use verify_ssl flag
-        if (!empty($certificate)) {
-            // Save certificate to temp file for wp_remote_get
-            $temp_cert = tempnam(sys_get_temp_dir(), 'lnd_cert_');
-            if ($temp_cert && file_put_contents($temp_cert, $certificate)) {
-                $args['sslcertificates'] = $temp_cert;
-            }
-        } else {
-            // Fall back to verify_ssl flag
-            $args['sslverify'] = ($verify_ssl === 'yes');
-        }
-
-        if (!empty($macaroon)) {
-            $args['headers']['Grpc-Metadata-macaroon'] = $macaroon;
-        }
-
-        $resp = wp_remote_get($endpoint, $args);
-
-        // Clean up temp certificate file if created
-        if (!empty($temp_cert) && file_exists($temp_cert)) {
-            unlink($temp_cert);
-        }
-
-        if (is_wp_error($resp)) {
-            $this->register_paycrypto_me_log(
-                \sprintf('lnd REST connection test failed: %s', esc_html($resp->get_error_message())),
-                'error'
-            );
-            wp_send_json_error(array('message' => $resp->get_error_message()));
-        }
-
-        $code = wp_remote_retrieve_response_code($resp);
-        $body = wp_remote_retrieve_body($resp);
-
-        if ($code >= 200 && $code < 300) {
-            $data = json_decode($body, true);
-            $alias = isset($data['alias']) ? $data['alias'] : '';
-            $message = sprintf(__('Connection OK (HTTP %d)', 'paycrypto-me-for-woocommerce'), $code);
-            if ($alias) {
-                $message .= ' - ' . sprintf(__('Node: %s', 'paycrypto-me-for-woocommerce'), esc_html($alias));
-            }
-            wp_send_json_success(array('message' => $message));
-        }
-
-        $this->register_paycrypto_me_log(
-            \sprintf('lnd REST connection test failed: status=%d body=%s', $code, esc_html(substr((string) $body, 0, 500))),
-            'error'
-        );
-
-        $message = sprintf(__('Request failed (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
-        if (!empty($body)) {
-            $message .= ' ' . wp_strip_all_tags(wp_trim_words($body, 40));
-        }
-
-        wp_send_json_error(array('message' => $message));
+        $this->connection_tester->test_lnd_connection();
     }
 
     public function render_admin_order_details_section($order)
@@ -478,7 +354,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $payment_display_data = [
             'payment_identifier'    => $payment_request,
             'payment_uri'           => $payment_uri,
-            'payment_qr_code'       => (new QrCodeService())->generate_qr_code_data_uri($payment_uri, $logo_path),
+            'payment_qr_code'       => $this->qr_code_service->generate_qr_code_data_uri($payment_uri, $logo_path),
             'fiat_amount'           => $order->get_meta('_paycrypto_me_fiat_amount'),
             'fiat_currency'         => $order->get_meta('_paycrypto_me_fiat_currency'),
             'crypto_amount'         => null,
