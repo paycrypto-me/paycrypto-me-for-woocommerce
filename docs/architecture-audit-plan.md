@@ -26,6 +26,18 @@ A auditoria original (2026-07-01) continha premissas que já não valem. Corrigi
 - ⚠️ **Erros HTTP dos invoice services** — já parcialmente cobertos (`BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest` já têm casos de exceção); falta só completar a matriz de códigos.
 - ➕ **Botão express não existia na auditoria original** e agora vive dentro das god classes-alvo, sem testes — incorporado abaixo.
 
+### Revisão 2026-07-02 (parte 2) — gate da Fase 3+ reavaliado
+
+O gate original da Fase 3+ ("adiada até webhook, blocos Gutenberg do Lightning e o botão express assentarem") foi verificado contra o código e corrigido:
+
+- ❌ **Botão express "não assentado"** — falso hoje; implementado em `8c1f528` e estável desde então (só ajustes de layout/erro já fechados em `b31e9b4`/`b00f474`), com cobertura de teste desde a Fase 1 (`test_process_payment_accepts_express_payment_method_variant`). **Condição satisfeita.**
+- ❌ **Blocos Gutenberg do Lightning "em desenvolvimento ativo"** — sem evidência no código: `paycrypto_me_lightning-blocks.js` (40 linhas) tem estrutura idêntica ao `paycrypto_me-blocks.js` do On-Chain (43 linhas, já maduro), registra `registerPaymentMethod`+`registerExpressPaymentMethod` completos via o mesmo `createPaymentComponents()` compartilhado, sem `TODO`/`FIXME`, sem arquivo untracked pendente, e sem commit desde `8c1f528`. **Condição satisfeita** — o `CLAUDE.md`/`project-wip.md` que descreviam isso como WIP ativo foram corrigidos.
+- ⚠️ **Webhook como condição de gate — mal formulada.** O webhook é *intencionalmente* reservado para o add-on premium separado (ver "Fora de escopo" abaixo) — por design, nunca será implementado *neste* repo, então "esperar o webhook assentar" travaria a Fase 3+ indefinidamente. Reformulado: a condição real é as **costuras do add-on estarem implementadas** (`get_by_invoice_id()` + action `paycryptome_lightning_status_changed`, ver "Costuras para o add-on premium" abaixo) — pequeno, não gated em terceiros.
+
+**Gate revisado:** Fase 3+ pode começar assim que as 2 costuras pendentes do add-on forem implementadas. Não é um bloqueio amplo — é uma pré-condição pequena e sob nosso controle.
+
+**Atualização 2026-07-02 (execução):** as 2 costuras foram implementadas — ver "Costuras para o add-on premium" abaixo. **Gate liberado**: Fase 3+ está pronta para começar quando priorizada, sem nenhuma pré-condição pendente.
+
 ### Status por fase
 
 | Fase | Status |
@@ -33,7 +45,7 @@ A auditoria original (2026-07-01) continha premissas que já não valem. Corrigi
 | Fase 0 — persistir auditoria + limpeza trivial | ✅ **Concluída** (2026-07-01) |
 | Fase 1 — testes críticos faltantes (rede de segurança) + spy mínimo nos shims | ✅ **Concluída** (2026-07-02) — 147 testes, 0 erros |
 | Fase 2 — extrações de alto valor (dedup dos AJAX testers, `PaymentOrderValidator`, DI de `QrCodeService`) | ✅ **Concluída** (2026-07-02) — 168 testes, 0 erros; smoke test manual OK |
-| Fase 3+ (adiada) — breakup integral das god classes + DRY amplo | ⬜ Backlog, gated em webhook/blocos/express assentarem |
+| Fase 3+ (adiada) — breakup integral das god classes + DRY amplo | ⬜ Backlog, **gate liberado (2026-07-02)** — as 2 costuras do add-on premium foram implementadas; sem pré-condição pendente, começa quando priorizada |
 
 ---
 
@@ -78,7 +90,6 @@ Suíte atual: **147 testes, 335 asserções, 0 erros**. ~31 classes fonte, 23 cl
 - ~~`WC_Payment_Gateway`/`WC_Order`/shims de função WP duplicados e divergentes entre arquivos~~ — ✅ consolidados numa fonte única (`tests/_support/wp-helpers.php`) na Fase 1, item 0. Foi essa divergência de aridade que causava os 2 erros pré-existentes da Fase 0.
 - ~~`BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest` reimplementavam o mock de `HttpClientContract` cada um do zero~~ — ✅ extraído para `tests/_support/fake-http-client.php` (`FakeHttpClient`/`http_ok()`/`http_error()`) na Fase 1, item 10.
 - Testes de banco usam `FakeWPDB` single-threaded — simulação de lock não captura concorrência real (aceito, sem mudança).
-- `phpcs` **não está configurado neste repo** — sem binário nem config (`composer.json` não declara a dependência, não há `phpcs.xml*`), apesar de referenciado como expectativa de release no `CLAUDE.md`. Não foi possível rodar ao final da Fase 1; **gap novo, registrado aqui**.
 - Endpoint REST do webhook (`paycrypto-me/v1/webhook`) referenciado na UI de settings (`class-wc-gateway-paycrypto-me-lightning.php:158`) mas **não implementado** — fora do escopo (feature premium); registrado aqui só para explicar a ausência de testes de webhook.
 
 ---
@@ -107,7 +118,7 @@ Objetivo: characterization tests que capturem o comportamento **atual**, para as
 10. ✅ **Fixture compartilhada `FakeHttpClient`/`http_ok()`/`http_error()`** em `tests/_support/fake-http-client.php` — feita **antes** do item 9 (ordem invertida de propósito) para não duplicar mock que seria refeito na sequência.
 11. ✅ *(Opcional)* `AbstractLightningProcessorTest` — número exato de tentativas (`expects($this->exactly(2))`) + constantes `RESOLVE_MAX_ATTEMPTS`/`RESOLVE_DELAY_MS` via reflection (sem live-sleep no teste).
 
-Critério de saída da Fase 1: `./vendor/bin/phpunit` (de `src/trunk/`) verde — **147 testes, 335 asserções, 0 erros** (2026-07-02). `phpcs` não pôde ser rodado: sem binário nem config no ambiente atual (nunca foi configurado neste repo apesar de referenciado na documentação) — sinalizado, não bloqueante para a Fase 1.
+Critério de saída da Fase 1: `./vendor/bin/phpunit` (de `src/trunk/`) verde — **147 testes, 335 asserções, 0 erros** (2026-07-02).
 
 ### Fase 2 — Extrações de alto valor (contidas, baixo churn) ✅
 Pré-requisito: Fase 1 concluída. Escopo deliberadamente enxuto ("alto valor primeiro") — só o que dá retorno claro, é contido e não conflita com as features em voo.
@@ -120,15 +131,34 @@ Critério de saída da Fase 2: suíte completa (Fase 1 + pré-existentes) contin
 
 **Follow-up feito ainda dentro da Fase 2** (mesmo arquivo, `abstract-class-lightning-processor.php`, fora do escopo original dos 3 itens): o log principal por pedido (`PaymentProcessor::register_payment_log()`) nunca incluía `crypto_network` — lacuna pré-existente, não introduzida pela Fase 2, só notada durante o smoke test manual. Corrigido adicionando `crypto_network` ao whitelist do log; o `node_type` do Lightning (btcpay/lnd_rest) foi embutido no próprio valor (`"lightning:{$this->node_type()}"`) em vez de virar uma chave `node_type` separada, evitando um `node_type: "N-A"` sem sentido nos logs de pedidos On-Chain. Sem consumidores afetados: o render do Lightning (`class-wc-gateway-paycrypto-me-lightning.php:363`) hardcoda `'lightning'` direto no `payment_display_data` em vez de ler a meta de volta, e o render do On-Chain nunca roda para pedidos Lightning (guard de meta ausente). Teste atualizado: `AbstractLightningProcessorTest::test_process_encodes_node_type_into_crypto_network`.
 
-### Fase 3+ — Breakup integral e DRY amplo (ADIADA)
-Backlog explicitamente **adiado até webhook, blocos Gutenberg do Lightning e o botão express assentarem** — quebrar essas classes com features em voo geraria churn e conflitos. Registrado aqui para não se perder:
+### Fase 3+ — Breakup integral e DRY amplo (ADIADA, gate liberado)
+Backlog **adiado até as 2 costuras do add-on premium serem implementadas** (`get_by_invoice_id()` + action `paycryptome_lightning_status_changed` — ver "Costuras para o add-on premium" abaixo). Gate revisado em 2026-07-02: express e blocos Gutenberg do Lightning já estão assentados (ver "Revisão 2026-07-02 (parte 2)"); esperar pelo webhook em si não fazia sentido como gate, já que ele é intencionalmente uma feature do add-on separado. **As 2 costuras foram implementadas em 2026-07-02** — o backlog abaixo está liberado para começar quando priorizado.
 
-- **`WC_Gateway_PayCryptoMe_Lightning`** — `LightningConfigValidator` (os 9 validadores + helpers); mover os geradores de HTML (`generate_node_type_html`/`generate_btcpay_test_button_html`/`generate_lnd_test_button_html`) para um helper de renderização de campo; deixar o gateway como só o `WC_Payment_Gateway` (settings, `is_available`, `payment_fields`).
-- **`PaymentProcessor`** — mover `init_url_params()` e `instance()` para o bootstrap/singleton (pertencem a `paycrypto-me-for-woocommerce.php` ou uma `PaymentProcessorFactory`, não à orquestração); consolidar o log em `Abstract_WC_Gateway_PayCryptoMe::register_paycrypto_me_log()` ou num `PaymentLogger`.
-- **DRY entre gateways** — `PaymentDisplayDataBuilder` (normaliza rótulo de rede — ex. o `match()` em `class-wc-gateway-paycrypto-me.php:234-238` —, valor, endereço/invoice, incl. campos de display do express); mover `render_*_order_details_section()` para a abstrata, parametrizadas pelo builder; pré-computar `crypto_label` e remover a tabela `crypto_names` (com `ETH`/`LTC` mortos) do template.
-- **DRY entre invoice services** — extrair helper único do arquivo de certificado temporário duplicado em `LndRestInvoiceService::create_invoice()`/`::get_invoice_status()`; fatorar auth header + `parse_response()` comum a `BtcpayInvoiceService`/`LndRestInvoiceService`.
-- **Long methods** — `init_form_fields()` (114) → builder de campos; `enqueue_checkout_styles()` (49, cascata de `file_exists`) → lista de assets orientada a config; `BitcoinPaymentProcessor::process()` (124) → passos (resolução de endereço → persistência → construção de URI).
-- **DI nos processors** — injetar `BitcoinAddressService`/`PayCryptoMeDBStatementsService`/invoice services via construtor em `BitcoinPaymentProcessor`, `BtcpayLightningProcessor`, `LndRestLightningProcessor` (ajustando as factories).
+#### Análise de complexidade (2026-07-02)
+
+Cada item foi lido direto no código atual (LOC, métodos, acoplamento de teste via grep em `tests/`) para estimar esforço/risco real, não só a descrição do achado original:
+
+| # | Item | LOC/métodos tocados | Testes afetados | Complexidade |
+|---|---|---|---|---|
+| 1 | `WC_Gateway_PayCryptoMe_Lightning` → `LightningConfigValidator` + render helper | ~120 LOC (9 validators + `_is_lnd_rest_selected()` + `is_available()`) + ~95 LOC (3 geradores de HTML) | `WCGatewayLightningValidationTest` — **37 testes**, chamando os validators como métodos públicos direto na instância do gateway, e 3 usando `ReflectionMethod` com `WC_Gateway_PayCryptoMe_Lightning::class` **hardcoded** | 🔴 **Alta** |
+| 2 | `PaymentProcessor` — mover `init_url_params()`/`instance()`; consolidar log | ~30 LOC | Nenhum teste referencia por nome; só 2 call sites de produção (`Abstract_WC_Gateway_PayCryptoMe::process_payment()`/`process_pre_order_payment()`) usam `PaymentProcessor::instance()` | 🟢 **Baixa** |
+| 3 | DRY entre gateways — `PaymentDisplayDataBuilder` + unificar `render_*_order_details_section()` + remover `crypto_names` morto do template | ~45 LOC duplicadas | **Zero** testes tocam `render_admin_order_details_section()`/`render_checkout_order_details_section()` | 🟢 **Baixa** |
+| 4 | DRY invoice services — cert temp-file + `parse_response()` | ~30 LOC duplicadas | `BtcpayInvoiceServiceTest`/`LndRestInvoiceServiceTest`, mas testam via HTTP mock/comportamento (`create_invoice`/`get_invoice_status`), nunca por reflection no método interno | 🟢 **Baixa** |
+| 5 | Long methods — `init_form_fields()` (114), `enqueue_checkout_styles()` (49), `BitcoinPaymentProcessor::process()` (124) | ~290 LOC ao todo, extract-method puro | Testados só via interface pública (black-box) | 🟢 **Baixa** |
+| 6 | DI via construtor nos processors (`BitcoinAddressService`/`PayCryptoMeDBStatementsService`/invoice services) + ajuste das 2 factories | Construtores pequenos (3 classes) + 2 factories | `BitcoinPaymentProcessorTest` **já** contorna o `new` hardcoded via `disableOriginalConstructor()` + reflection — muda pouco | 🟡 **Média** (risco é de API pública quebrar consumidores externos/add-on, não os testes internos) |
+
+**Leitura geral:** itens 2, 3, 4 e 5 são baixo risco — a suíte já exercita essas áreas via interface pública/comportamento, não por acoplamento estrutural. O item 1 é o outlier: os 37 testes de `WCGatewayLightningValidationTest` estão acoplados à *localização e visibilidade* dos métodos na classe do gateway (não só ao comportamento), incluindo `ReflectionMethod` com o nome da classe hardcoded — extrair o `LightningConfigValidator` exige reescrever esses 37 testes, não só mover código. O item 6 é tecnicamente barato mas muda assinatura pública de construtor — atenção ao add-on premium futuro, que pode instanciar essas classes diretamente.
+
+**Recomendação de ordem: 2 → 3 → 4 → 5 → 6 → 1** (baixo risco e ganho rápido primeiro; item 6 médio mas contido; item 1 (alto risco/maior esforço de reescrita de teste) por último).
+
+#### Backlog (detalhe por item, na ordem recomendada de execução)
+
+1. **[🟢 Baixa] `PaymentProcessor`** — mover `init_url_params()` e `instance()` para o bootstrap/singleton (pertencem a `paycrypto-me-for-woocommerce.php` ou uma `PaymentProcessorFactory`, não à orquestração); consolidar o log em `Abstract_WC_Gateway_PayCryptoMe::register_paycrypto_me_log()` ou num `PaymentLogger`.
+2. **[🟢 Baixa] DRY entre gateways** — `PaymentDisplayDataBuilder` (normaliza rótulo de rede — ex. o `match()` em `class-wc-gateway-paycrypto-me.php:234-238` —, valor, endereço/invoice, incl. campos de display do express); mover `render_*_order_details_section()` para a abstrata, parametrizadas pelo builder; pré-computar `crypto_label` e remover a tabela `crypto_names` (com `ETH`/`LTC` mortos) do template.
+3. **[🟢 Baixa] DRY entre invoice services** — extrair helper único do arquivo de certificado temporário duplicado em `LndRestInvoiceService::create_invoice()`/`::get_invoice_status()`; fatorar auth header + `parse_response()` comum a `BtcpayInvoiceService`/`LndRestInvoiceService`.
+4. **[🟢 Baixa] Long methods** — `init_form_fields()` (114) → builder de campos; `enqueue_checkout_styles()` (49, cascata de `file_exists`) → lista de assets orientada a config; `BitcoinPaymentProcessor::process()` (124) → passos (resolução de endereço → persistência → construção de URI).
+5. **[🟡 Média] DI nos processors** — injetar `BitcoinAddressService`/`PayCryptoMeDBStatementsService`/invoice services via construtor em `BitcoinPaymentProcessor`, `BtcpayLightningProcessor`, `LndRestLightningProcessor` (ajustando as 2 factories em `includes/strategies/`). Risco é de superfície pública (add-on futuro instanciando direto), não de teste interno.
+6. **[🔴 Alta] `WC_Gateway_PayCryptoMe_Lightning`** — `LightningConfigValidator` (os 9 validadores + `_is_lnd_rest_selected()` + helpers); mover os geradores de HTML (`generate_node_type_html`/`generate_btcpay_test_button_html`/`generate_lnd_test_button_html`) para um helper de renderização de campo; deixar o gateway como só o `WC_Payment_Gateway` (settings, `is_available`, `payment_fields`). Fazer por último: exige reescrever os 37 testes de `WCGatewayLightningValidationTest` (hoje acoplados à localização/visibilidade dos métodos no gateway, incl. `ReflectionMethod` hardcoded), não só mover código.
 
 ---
 
@@ -156,8 +186,8 @@ Para o add-on ser **100% zero-core-edit**, o plugin base precisa expor os pontos
 
 | # | Ponto de extensão | Lado | Status |
 |---|---|---|---|
-| 1 | **`PayCryptoMeLightningDBStatementsService::get_by_invoice_id()`** — lookup por invoice id (hoje só há `get_by_order_id`), para casos em que o provider retorne só o id da invoice no webhook | base | ⬜ A adicionar |
-| 2 | **Action de domínio `do_action('paycryptome_lightning_status_changed', $order_id, $old_status, $new_status)`** disparada dentro de `update_status()` — deixa o add-on (e terceiros) reagirem a mudança de status sem monkey-patch | base | ⬜ A adicionar |
+| 1 | **`PayCryptoMeLightningDBStatementsService::get_by_invoice_id()`** — lookup por invoice id (hoje só há `get_by_order_id`), para casos em que o provider retorne só o id da invoice no webhook | base | ✅ **Adicionado (2026-07-02)** — sem cache (lookup pontual, diferente de `get_by_order_id`) |
+| 2 | **Action de domínio `do_action('paycryptome_lightning_status_changed', $order_id, $old_status, $new_status)`** disparada dentro de `update_status()` — deixa o add-on (e terceiros) reagirem a mudança de status sem monkey-patch | base | ✅ **Adicionado (2026-07-02)** — só dispara quando a linha existia e o status realmente mudou (sem ruído em update para o mesmo status ou em pedido inexistente) |
 | 3 | **Filtros de invoice args carregam contexto do pedido** (`$order` + `$gateway`) para o add-on computar sats a partir do total fiat | base | ✅ Já satisfeito — `apply_filters($this->invoice_args_filter(), $args, $order, $this->gateway)` em `abstract-class-lightning-processor.php:30-44` |
 | 4 | **Extensão de settings** — o add-on pode apèndar campos à tela do gateway Lightning via o filtro que o WooCommerce já oferece (`woocommerce_settings_api_form_fields_paycrypto_me_lightning`), sem tocar em `init_form_fields()` | WC (nativo) | ✅ Já disponível — nenhuma mudança no base |
 | 5 | **Guard de dependência** — checar `class_exists('PayCryptoMe\\WooCommerce\\...')` + versão mínima do base, com `admin_notice` se o base estiver ausente/desatualizado | add-on | ⬜ Responsabilidade do add-on (não é mudança no base) |
@@ -167,10 +197,16 @@ Para o add-on ser **100% zero-core-edit**, o plugin base precisa expor os pontos
 - **webhook + status** — add-on registra a própria rota (`register_rest_route('paycrypto-me/v1', '/webhook', …)`), valida a assinatura (segredo já é option do gateway), acha o pedido (`orderId` do payload → `get_by_order_id()` ou o novo `get_by_invoice_id()`), chama `update_status()` e `$order->payment_complete()`. Para lnd, polling via `wp_schedule_event`.
 - **licenciamento** — camada fina no add-on (chave validada contra servidor próprio ou Freemius/EDD SL); sem licença, o add-on não registra os hooks. O base nunca conhece licença.
 
+**Execução das costuras 1 e 2 (2026-07-02):** ambas implementadas em `PayCryptoMeLightningDBStatementsService` —
+- `get_by_invoice_id(string $invoice_id): ?array` — mesmo padrão de query do `get_by_order_id()`, mas **sem cache** (lookup pontual disparado por webhook/polling, não por request de checkout repetido — não valia a complexidade extra de uma segunda chave de cache).
+- `update_status()` agora lê o `status` atual da linha **antes** do `UPDATE` e, só se a linha existia e o status realmente mudou, dispara `do_action('paycryptome_lightning_status_changed', $order_id, $old_status, $new_status)` — decisão deliberada de não disparar em update para o mesmo status nem em pedido inexistente, para o add-on não precisar filtrar ruído.
+- Hook documentado na tabela "Public hooks" do `CLAUDE.md`.
+- Testes novos em `PayCryptoMeLightningDBStatementsServiceTest`: `get_by_invoice_id` (encontrado/não encontrado) + `update_status` disparando a action (mudança real, mesma status, pedido inexistente) via o spy já existente (`hook_spy_calls()`). Suíte: **173 testes, 395 asserções, 0 erros** (eram 168 antes desta execução).
+
 ## Verificação
 
 - Rodar `./vendor/bin/phpunit` (de `src/trunk/`, via `docker exec` no container `paycrypto-me-for-woocommerce-wordpress-1`) ao final de cada fase — deve permanecer verde.
 - Fase 1: os novos testes devem primeiro passar contra o código **atual** (provando que capturam o comportamento existente) antes de qualquer refactor começar.
 - Fase 2: mesma suíte (Fase 1 + pré-existentes) sem nenhuma mudança de asserção — só o código de produção muda.
-- Rodar `phpcs` (WooCommerce coding standards) antes de considerar cada fase concluída. **Não disponível hoje** neste ambiente (sem binário/config, ver "Problemas estruturais na infraestrutura de teste") — pendência a resolver antes do critério de saída poder ser cumprido à risca numa fase futura.
 - Smoke test manual: criar pedido de teste via On-Chain (endereço estático e via xPub), via Lightning (BTCPay sandbox, se disponível) e via **botão express** de ambos, confirmando que checkout e order-details continuam funcionando após a Fase 2. ✅ **Feito e confirmado pelo usuário** (2026-07-02).
+- Costuras do add-on premium (2026-07-02): `./vendor/bin/phpunit` verde, **173 testes, 0 erros**, sem alteração de asserção em testes pré-existentes.

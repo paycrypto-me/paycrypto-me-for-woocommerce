@@ -44,6 +44,9 @@ WC_Payment_Gateway (WooCommerce)
 |--------|---------|-----------------|
 | `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Gerar/validar endereços Bitcoin (p2pkh, p2sh-p2wpkh, p2wpkh) a partir de xpub/ypub/zpub |
 | `PayCryptoMeDBStatementsService` | `services/pay-crypto-me-db-statements-service.php` | CRUD nas 3 tabelas customizadas; usa `GET_LOCK` para reserva atômica de índice de derivação |
+| `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD em `paycrypto_me_lightning_invoices`: `insert_invoice`/`get_by_order_id` (cacheado)/`get_by_invoice_id` (sem cache, lookup pontual)/`update_status` (dispara `paycryptome_lightning_status_changed` em mudança real) |
+| `BtcpayInvoiceService` / `LndRestInvoiceService` | `services/class-btcpay-invoice-service.php` / `services/class-lnd-rest-invoice-service.php` | Criam/resolvem/checam invoices via REST (BTCPay ou lnd), implementam `LightningInvoiceServiceContract` |
+| `LightningConnectionTester` | `services/class-lightning-connection-tester.php` | Testa conectividade BTCPay/lnd para os botões "Test connection" do admin (via `HttpClientContract`, nunca `wp_remote_get` direto) |
 | `QrCodeService` | `services/class-qr-code-service.php` | Gerar QR code como data URI (usa `endroid/qr-code`) |
 | `AssetManager` | `utils/class-asset-manager.php` | Registrar scripts/styles dos blocos WooCommerce |
 
@@ -71,5 +74,6 @@ Prefixo `{$wpdb->prefix}`:
 - `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args` — filter do array completo de args (inclui `amount`/`currency` já mesclados) antes de chamar `create_invoice()`
 - `paycryptome_lightning_payment_data` — filter final do `$payment_data` retornado pelo processor Lightning
 - `paycryptome_lightning_btcpay_payment_method_id` / `paycryptome_lightning_btcpay_speed_policy` — filters de constantes de protocolo do BTCPay que não passam pelo `$args` (ver seção Lightning acima)
+- `paycryptome_lightning_status_changed($order_id, $old_status, $new_status)` — action disparada dentro de `PayCryptoMeLightningDBStatementsService::update_status()`, só quando a linha existia e o status realmente mudou. Costura para o add-on premium (webhook/polling) reagir sem monkey-patch — ver `docs/architecture-audit-plan.md` § "Costuras para o add-on premium".
 
 Cada gateway Lightning (BTCPay, lnd) tem sua própria classe de service em `services/class-btcpay-invoice-service.php` / `services/class-lnd-rest-invoice-service.php`, implementando `LightningInvoiceServiceContract` (`create_invoice`, `resolve_payment_request`, `get_invoice_status`).

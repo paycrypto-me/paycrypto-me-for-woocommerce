@@ -38,4 +38,4 @@ Plugin WordPress GPL-3.0 que adiciona gateways de pagamento em Bitcoin ao WooCom
 
 **Why:** Manter esta memória ajuda futuros agentes a não confundir arquivos compilados com fontes editáveis, e a entender que o plugin tem dois gateways completamente separados com lógicas distintas.
 
-**How to apply:** Ao trabalhar no plugin, sempre editar fontes em `src/trunk/includes/` e `src/trunk/includes/blocks/js/`. Nunca editar diretamente `assets/blocks/` (são artefatos de build). O fluxo de invoice do Lightning (BTCPay + lnd REST) já está implementado; o que falta é o endpoint de webhook, conversão fiat→sats e os blocos Gutenberg do Lightning — ver [[project-wip]].
+**How to apply:** Ao trabalhar no plugin, sempre editar fontes em `src/trunk/includes/` e `src/trunk/includes/blocks/js/`. Nunca editar diretamente `assets/blocks/` (são artefatos de build). O fluxo de invoice do Lightning (BTCPay + lnd REST) e os blocos Gutenberg do Lightning já estão implementados; o que falta (webhook, conversão fiat→sats) é escopo reservado de propósito para o add-on premium, não trabalho pendente na versão free — ver [[project-wip]].

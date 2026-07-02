@@ -47,14 +47,24 @@ Invoices são zero-amount de propósito na versão free. A conversão do total f
 
 ---
 
-### Blocos Gutenberg do Lightning
-`includes/blocks/js/paycrypto_me_lightning-blocks.js` e seus assets compilados em `assets/blocks/paycrypto_me_lightning-blocks.*` estão em desenvolvimento ativo.
+### Blocos Gutenberg do Lightning — reclassificado como concluído (2026-07-02)
+Antes listado aqui como "em desenvolvimento ativo"; verificado contra o código em 2026-07-02 e não achada evidência de trabalho pendente — `paycrypto_me_lightning-blocks.js` espelha estruturalmente o `paycrypto_me-blocks.js` do On-Chain (já maduro), registra pagamento normal + express via `createPaymentComponents()` compartilhado, sem `TODO`/`FIXME`, sem commit desde `8c1f528` (mesmo commit do botão express). Tratar como pronto a menos que retome desenvolvimento.
 
 ---
 
 ### Débito arquitetural / auditoria
 
-`docs/architecture-audit-plan.md` (revisado 2026-07-02) — auditoria SOLID/DRY + cobertura, faseada. Fase 0 ✅ (dead code + persistência). Fase 1 (rede de segurança: testes críticos + spy mínimo nos shims) não iniciada; gate-zero = corrigir os 2 erros pré-existentes acima. Fase 2 = extrações de alto valor (`LightningConnectionTester`, `PaymentOrderValidator`, DI de `QrCodeService`). Fase 3+ (breakup integral das god classes Lightning 647 linhas / `PaymentProcessor` 280 linhas) **adiada** até webhook/blocos/express assentarem. Lacunas CRÍTICAS abertas: `PayCryptoMeLightningDBStatementsService` e `WC_Gateway_PayCryptoMe_Lightning` com zero testes.
+`docs/architecture-audit-plan.md` (revisado 2026-07-02) — auditoria SOLID/DRY + cobertura, faseada.
+- Fase 0 ✅ (dead code + persistência).
+- Fase 1 ✅ (2026-07-02) — rede de segurança: testes críticos + spy mínimo nos shims. 147 testes, 0 erros.
+- Fase 2 ✅ (2026-07-02) — extrações de alto valor: `LightningConnectionTester`, `PaymentOrderValidator`, DI de `QrCodeService`. 168 testes, 0 erros (confirmado rodando em 2026-07-02). Lightning gateway caiu de 647→523 linhas, `PaymentProcessor` de 280→235.
+- Fase 3+ (breakup integral das god classes + DRY amplo) **adiada de propósito**. Gate revisado em 2026-07-02: express e blocos Gutenberg do Lightning já estão assentados (ver acima); o gate real era só as 2 costuras do add-on premium pendentes (`get_by_invoice_id()` + action `paycryptome_lightning_status_changed`) — esperar pelo webhook em si não fazia sentido, já que ele nunca será implementado neste repo por design.
+- **Costuras do add-on premium implementadas em 2026-07-02** — `get_by_invoice_id()` (sem cache, lookup pontual) e a action `paycryptome_lightning_status_changed($order_id, $old_status, $new_status)` (só dispara em mudança real de status, dentro de `update_status()`) foram adicionadas a `PayCryptoMeLightningDBStatementsService`. Hook documentado no `CLAUDE.md`. Suíte: 173 testes, 0 erros (era 168). **Gate da Fase 3+ liberado** — sem pré-condição pendente.
+- **Complexidade da Fase 3+ analisada em 2026-07-02** (leitura direta do código + grep em `tests/`, ver plano § "Análise de complexidade"): 4 dos 6 itens são 🟢 baixa complexidade (mover `init_url_params()`/`instance()`, `PaymentDisplayDataBuilder`, DRY dos invoice services, long methods) — a suíte já testa essas áreas via comportamento público, não estrutura interna. DI nos processors é 🟡 média (risco só de API pública para o futuro add-on, não de teste). Extrair `LightningConfigValidator` do gateway Lightning é 🔴 alta — os 37 testes de `WCGatewayLightningValidationTest` estão acoplados à localização/visibilidade dos métodos no gateway (incl. `ReflectionMethod` com o nome da classe hardcoded), exigindo reescrita de teste, não só mover código. **Ordem recomendada de execução:** mover `init_url_params()`/`instance()` → `PaymentDisplayDataBuilder` → DRY invoice services → long methods → DI nos processors → `LightningConfigValidator` (por último).
+
+**Pendências reais para fechar o plano por completo** (ver seção "O que falta" no plano):
+1. ~~2 costuras aditivas do add-on premium~~ ✅ Concluído (2026-07-02) — ver acima.
+2. Fase 3+ em si (breakup das god classes, DRY entre gateways/invoice services, DI nos processors) — sem gate pendente, começa quando priorizada.
 
 ### Ícones novos
 Arquivos não rastreados em `assets/`:

@@ -6,7 +6,7 @@ Detailed context is split into topic files under `.claude/memory/`:
 
 - [project-overview.md](.claude/memory/project-overview.md) — propósito, dois gateways, stack, estrutura de pastas
 - [architecture.md](.claude/memory/architecture.md) — hierarquia de classes, fluxo On-Chain, serviços, tabelas DB, blocos Gutenberg, hooks
-- [project-wip.md](.claude/memory/project-wip.md) — Lightning core implementado (M1–M5); webhook REST, conversão fiat→sats e blocos Gutenberg do Lightning ainda em WIP
+- [project-wip.md](.claude/memory/project-wip.md) — Lightning core implementado (M1–M5); webhook REST e conversão fiat→sats reservados de propósito para o add-on premium (não são WIP)
 - [dev-workflow.md](.claude/memory/dev-workflow.md) — build JS, PHPUnit, traduções, release, Docker, dependências Composer forked
 - [user-lucas.md](.claude/memory/user-lucas.md) — perfil do autor/mantenedor
 - [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) — auditoria SOLID/DRY e de cobertura de testes, com roteiro faseado de remediação (testes críticos antes de quebrar as god classes)
@@ -108,7 +108,7 @@ All prefixed with `{$wpdb->prefix}`:
 |-------|------|------|
 | `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Generate/validate Bitcoin addresses (p2pkh, p2sh-p2wpkh, p2wpkh) from xpub/ypub/zpub using `bitwasp/bitcoin` |
 | `PayCryptoMeDBStatementsService` | `services/pay-crypto-me-db-statements-service.php` | CRUD on the 3 On-Chain custom tables; atomic index reservation via MySQL advisory lock |
-| `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD on `paycrypto_me_lightning_invoices` (insert/update status/lookup by order) |
+| `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD on `paycrypto_me_lightning_invoices` (insert/update status/lookup by order or by invoice id) |
 | `BtcpayInvoiceService` | `services/class-btcpay-invoice-service.php` | Creates/resolves/checks BTCPay Server invoices via REST |
 | `LndRestInvoiceService` | `services/class-lnd-rest-invoice-service.php` | Creates/checks lnd invoices via its REST API (macaroon auth, optional TLS cert) |
 | `QrCodeService` | `services/class-qr-code-service.php` | Generate QR code as data URI (uses `endroid/qr-code`) |
@@ -127,6 +127,7 @@ All prefixed with `{$wpdb->prefix}`:
 | `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args` | filter | Full invoice args array before `create_invoice()` (includes `amount`/`currency` already merged) |
 | `paycryptome_lightning_payment_data` | filter | Final `$payment_data` returned by the Lightning processor |
 | `paycryptome_lightning_btcpay_payment_method_id` / `paycryptome_lightning_btcpay_speed_policy` | filter | BTCPay protocol constants that don't flow through the args array |
+| `paycryptome_lightning_status_changed` | action | Fired inside `PayCryptoMeLightningDBStatementsService::update_status($order_id, $old_status, $new_status)` after a successful, actual status change — premium add-on seam (webhook/polling consumers react here instead of monkey-patching) |
 
 **Note:** before adding a new filter for Lightning, check whether the value already flows through `base_invoice_args()`/the `invoice_args_filter()` array — only add a dedicated filter for values hardcoded inside a service that never reach that array.
 
@@ -183,11 +184,11 @@ The Lightning invoice flow itself (BTCPay + lnd REST, creation/resolution/persis
 
 ### Active WIP (genuine in-progress development, free version)
 
-**Gutenberg blocks for Lightning** — `includes/blocks/js/paycrypto_me_lightning-blocks.js` and its compiled output are being actively worked on. This is the one item here that *is* unfinished free-version work.
+None currently. The Lightning Gutenberg blocks (`includes/blocks/js/paycrypto_me_lightning-blocks.js` + compiled output) were previously tracked here as active WIP; verified 2026-07-02 against the code — the file mirrors the mature On-Chain block (`paycrypto_me-blocks.js`) structurally, registers both the regular and express payment methods via the shared `createPaymentComponents()` helper, has no `TODO`/`FIXME` markers, and has had no commits since the express-button feature landed. Treat as done unless new work resumes on it.
 
 ### Known architectural debt
 
-See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a full SOLID/DRY audit and test-coverage gap analysis. Highlights: `WC_Gateway_PayCryptoMe_Lightning` (647 lines) and `PaymentProcessor` (280 lines) are god classes slated for a phased breakup; `PayCryptoMeLightningDBStatementsService` and the Lightning gateway class currently have zero test coverage.
+See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a full SOLID/DRY audit and test-coverage gap analysis. Phases 0–2 are done (173 tests, 0 errors; high-value extractions — `LightningConnectionTester`, `PaymentOrderValidator`, `QrCodeService` DI — landed). The 2 premium add-on seams (`get_by_invoice_id()` and the `paycryptome_lightning_status_changed` action, see the services table and "Public hooks" above) that gated Phase 3+ are also done. Highlights of what remains: `WC_Gateway_PayCryptoMe_Lightning` (523 lines) and `PaymentProcessor` (235 lines) are still god classes slated for a phased breakup (Phase 3+, now ungated and ready to start whenever prioritized).
 
 ---
 
@@ -197,4 +198,3 @@ See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a ful
 - All user-facing strings go through `__()` / `esc_html__()` with text domain `paycrypto-me-for-woocommerce`
 - Sanitize all inputs at system boundaries; trust internal data
 - No comments explaining WHAT code does; only WHY when non-obvious
-- WooCommerce coding standards (PHPCS) — `phpcs` is expected to pass before release

@@ -62,6 +62,22 @@ class PayCryptoMeLightningDBStatementsService
         return $this->get_by_order_id($order_id) !== null;
     }
 
+    public function get_by_invoice_id(string $invoice_id): ?array
+    {
+        global $wpdb;
+
+        $table = esc_sql($this->table_name);
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$table} WHERE invoice_id = %s LIMIT 1",
+                $invoice_id
+            ),
+            ARRAY_A
+        );
+
+        return $row ?: null;
+    }
+
     public function insert_invoice(
         int $order_id,
         string $node_type,
@@ -106,6 +122,8 @@ class PayCryptoMeLightningDBStatementsService
     {
         global $wpdb;
 
+        $old_status = $this->get_by_order_id($order_id)['status'] ?? null;
+
         $table = esc_sql($this->table_name);
 
         $updated = $wpdb->update(
@@ -118,6 +136,10 @@ class PayCryptoMeLightningDBStatementsService
 
         if (function_exists('wp_cache_delete')) {
             wp_cache_delete('paycrypto_lightning_order_' . $order_id, 'paycrypto_me');
+        }
+
+        if ($updated !== false && $old_status !== null && $old_status !== $status) {
+            do_action('paycryptome_lightning_status_changed', $order_id, $old_status, $status);
         }
 
         return $updated !== false;

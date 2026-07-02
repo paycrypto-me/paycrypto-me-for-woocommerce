@@ -29,6 +29,16 @@ class FakeWPDBLightningInvoices
             return $this->rows[$order_id] ?? null;
         }
 
+        if (preg_match("/invoice_id = '([^']+)'/", $query, $m)) {
+            $invoice_id = $m[1];
+            foreach ($this->rows as $row) {
+                if (($row['invoice_id'] ?? null) === $invoice_id) {
+                    return $row;
+                }
+            }
+            return null;
+        }
+
         return null;
     }
 
@@ -56,6 +66,7 @@ class PayCryptoMeLightningDBStatementsServiceTest extends TestCase
         global $wpdb;
         $wpdb = new FakeWPDBLightningInvoices();
         $GLOBALS['__wp_cache_store'] = [];
+        hook_spy_reset();
     }
 
     public function test_get_by_order_id_returns_null_when_missing()
@@ -171,5 +182,54 @@ class PayCryptoMeLightningDBStatementsServiceTest extends TestCase
         // repeated miss always re-queries $wpdb. Documented here as characterization
         // of existing behavior, not an endorsement of it.
         $this->assertSame(2, $wpdb->get_row_calls);
+    }
+
+    public function test_get_by_invoice_id_returns_matching_row()
+    {
+        $svc = new PayCryptoMeLightningDBStatementsService();
+        $svc->insert_invoice(11, 'btcpay', 'inv_11', 'lnbc11', '2026-03-01 00:00:00');
+
+        $row = $svc->get_by_invoice_id('inv_11');
+
+        $this->assertNotNull($row);
+        $this->assertSame(11, $row['order_id']);
+    }
+
+    public function test_get_by_invoice_id_returns_null_when_missing()
+    {
+        $svc = new PayCryptoMeLightningDBStatementsService();
+
+        $this->assertNull($svc->get_by_invoice_id('does_not_exist'));
+    }
+
+    public function test_update_status_fires_status_changed_action_with_old_and_new_status()
+    {
+        $svc = new PayCryptoMeLightningDBStatementsService();
+        $svc->insert_invoice(4, 'btcpay', 'inv_4', 'lnbc4', '2026-02-01 00:00:00');
+
+        $svc->update_status(4, 'Settled');
+
+        $calls = hook_spy_calls('paycryptome_lightning_status_changed');
+        $this->assertCount(1, $calls);
+        $this->assertSame([4, 'New', 'Settled'], $calls[0]['args']);
+    }
+
+    public function test_update_status_does_not_fire_action_when_status_unchanged()
+    {
+        $svc = new PayCryptoMeLightningDBStatementsService();
+        $svc->insert_invoice(6, 'btcpay', 'inv_6', 'lnbc6', '2026-02-01 00:00:00');
+
+        $svc->update_status(6, 'New');
+
+        $this->assertCount(0, hook_spy_calls('paycryptome_lightning_status_changed'));
+    }
+
+    public function test_update_status_does_not_fire_action_when_order_missing()
+    {
+        $svc = new PayCryptoMeLightningDBStatementsService();
+
+        $svc->update_status(999, 'Settled');
+
+        $this->assertCount(0, hook_spy_calls('paycryptome_lightning_status_changed'));
     }
 }
