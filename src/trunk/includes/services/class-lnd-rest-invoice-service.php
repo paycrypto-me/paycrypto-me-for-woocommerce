@@ -13,19 +13,12 @@ namespace PayCryptoMe\WooCommerce;
 
 \defined('ABSPATH') || exit;
 
-class LndRestInvoiceService implements LightningInvoiceServiceContract
+class LndRestInvoiceService extends AbstractLightningInvoiceService
 {
-    public function __construct(
-        private HttpClientContract  $http,
-        private \WC_Payment_Gateway $gateway,
-    ) {}
-
     public function create_invoice(array $args): LightningInvoiceResponse
     {
-        $lnd_url     = rtrim($this->gateway->get_option('lnd_rest_url'), '/');
-        $macaroon    = $this->gateway->get_option('lnd_macaroon_hex');
-        $certificate = $this->gateway->get_option('lnd_certificate');
-        $verify_ssl  = $this->gateway->get_option('lnd_verify_ssl');
+        $lnd_url  = rtrim($this->gateway->get_option('lnd_rest_url'), '/');
+        $macaroon = $this->gateway->get_option('lnd_macaroon_hex');
 
         $url  = "{$lnd_url}/v1/invoices";
         $body = [
@@ -33,31 +26,13 @@ class LndRestInvoiceService implements LightningInvoiceServiceContract
             'expiry' => (string) ((int) abs((int) ($args['expiry'] ?? 3600))),
         ];
 
-        $http_args = [
+        $data = $this->request_with_cert('post', $url, [
             'headers' => [
                 'Grpc-Metadata-macaroon' => $macaroon,
                 'Content-Type'           => 'application/json',
             ],
             'body' => wp_json_encode($body),
-        ];
-
-        $temp_cert = '';
-        if (!empty($certificate)) {
-            $temp_cert = tempnam(sys_get_temp_dir(), 'lnd_cert_');
-            file_put_contents($temp_cert, $certificate);
-            $http_args['sslcertificates'] = $temp_cert;
-        } else {
-            $http_args['sslverify'] = ($verify_ssl === 'yes');
-        }
-
-        try {
-            $response = $this->http->post($url, $http_args);
-            $data     = $this->parse_response($response);
-        } finally {
-            if (!empty($temp_cert) && file_exists($temp_cert)) {
-                unlink($temp_cert);
-            }
-        }
+        ]);
 
         $payment_request = (string) ($data['payment_request'] ?? '');
         $r_hash_b64      = (string) ($data['r_hash'] ?? '');
@@ -74,17 +49,33 @@ class LndRestInvoiceService implements LightningInvoiceServiceContract
 
     public function get_invoice_status(string $invoice_id): LightningInvoiceStatusResponse
     {
-        $lnd_url     = rtrim($this->gateway->get_option('lnd_rest_url'), '/');
-        $macaroon    = $this->gateway->get_option('lnd_macaroon_hex');
-        $certificate = $this->gateway->get_option('lnd_certificate');
-        $verify_ssl  = $this->gateway->get_option('lnd_verify_ssl');
+        $lnd_url  = rtrim($this->gateway->get_option('lnd_rest_url'), '/');
+        $macaroon = $this->gateway->get_option('lnd_macaroon_hex');
 
-        $url       = "{$lnd_url}/v1/invoice/{$invoice_id}";
-        $http_args = [
+        $url  = "{$lnd_url}/v1/invoice/{$invoice_id}";
+        $data = $this->request_with_cert('get', $url, [
             'headers' => [
                 'Grpc-Metadata-macaroon' => $macaroon,
             ],
-        ];
+        ]);
+
+        $state = (string) ($data['state'] ?? '');
+
+        return new LightningInvoiceStatusResponse($state === 'SETTLED', $state);
+    }
+
+    /**
+     * Wraps an HTTP call with lnd's TLS-certificate handling: when a cert is configured it is
+     * written to a temp file passed as `sslcertificates`, otherwise `sslverify` is toggled by the
+     * setting. The temp file is always removed afterward, including on parse/exception paths.
+     *
+     * @param 'post'|'get' $method
+     * @throws PayCryptoMePaymentException from parse_response() on HTTP/JSON errors
+     */
+    private function request_with_cert(string $method, string $url, array $http_args): array
+    {
+        $certificate = $this->gateway->get_option('lnd_certificate');
+        $verify_ssl  = $this->gateway->get_option('lnd_verify_ssl');
 
         $temp_cert = '';
         if (!empty($certificate)) {
@@ -96,43 +87,22 @@ class LndRestInvoiceService implements LightningInvoiceServiceContract
         }
 
         try {
-            $response = $this->http->get($url, $http_args);
-            $data     = $this->parse_response($response);
+            $response = $this->http->{$method}($url, $http_args);
+            return $this->parse_response($response);
         } finally {
             if (!empty($temp_cert) && file_exists($temp_cert)) {
                 unlink($temp_cert);
             }
         }
-
-        $state = (string) ($data['state'] ?? '');
-
-        return new LightningInvoiceStatusResponse($state === 'SETTLED', $state);
     }
 
-    /**
-     * @throws PayCryptoMePaymentException when HTTP status >= 400, body is empty, or JSON is invalid
-     */
-    private function parse_response(array $response): array
+    protected function error_log_label(): string
     {
-        $status_code = (int) ($response['response']['code'] ?? 0);
-        $body        = (string) ($response['body'] ?? '');
+        return 'lnd REST';
+    }
 
-        if ($status_code >= 400 || $body === '') {
-            throw new PayCryptoMePaymentException(
-                \sprintf('lnd REST HTTP error: status=%d body=%s', $status_code, substr($body, 0, 500)),
-                __('Payment via Lightning node failed. Please try again.', 'paycrypto-me-for-woocommerce')
-            );
-        }
-
-        $data = json_decode($body, true);
-
-        if (!is_array($data)) {
-            throw new PayCryptoMePaymentException(
-                'lnd REST invalid JSON response',
-                __('Payment via Lightning node failed. Please try again.', 'paycrypto-me-for-woocommerce')
-            );
-        }
-
-        return $data;
+    protected function payment_failed_message(): string
+    {
+        return __('Payment via Lightning node failed. Please try again.', 'paycrypto-me-for-woocommerce');
     }
 }

@@ -3,8 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$crypto_names = ['BTC' => 'Bitcoin', 'ETH' => 'Ethereum', 'LTC' => 'Litecoin'];
-$crypto_label = $crypto_names[$payment_display_data['crypto_currency']] ?? $payment_display_data['crypto_currency'];
+$crypto_label = $payment_display_data['crypto_label'];
 
 if ($payment_display_data['payment_identifier']): ?>
     <section class="wc-block-order-confirmation-billing-address paycrypto-me-order-details paycrypto-me-order-details--<?php echo esc_attr($payment_display_data['crypto_network']); ?>">

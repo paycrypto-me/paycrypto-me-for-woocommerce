@@ -12,29 +12,12 @@ use PayCryptoMe\WooCommerce\PayCryptoMePaymentException;
 
 class AbstractLightningProcessorTest extends TestCase
 {
-    private function setPrivateProperty(object $obj, string $name, $value): void
-    {
-        $rc = new \ReflectionObject($obj);
-        while (!$rc->hasProperty($name) && $rc->getParentClass()) {
-            $rc = $rc->getParentClass();
-        }
-        $prop = $rc->getProperty($name);
-        $prop->setAccessible(true);
-        $prop->setValue($obj, $value);
-    }
-
+    // Constructor injection (audit Fase 3+, DI nos processors) replaced the previous
+    // disableOriginalConstructor() + reflection setup — these tests now also exercise
+    // the concrete Lightning processor's injected service/db seam end-to-end.
     private function make_processor(\WC_Payment_Gateway $gateway, $service, $db): BtcpayLightningProcessor
     {
-        $processor = $this->getMockBuilder(BtcpayLightningProcessor::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
-
-        $this->setPrivateProperty($processor, 'gateway', $gateway);
-        $this->setPrivateProperty($processor, 'service', $service);
-        $this->setPrivateProperty($processor, 'db', $db);
-
-        return $processor;
+        return new BtcpayLightningProcessor($gateway, $service, $db);
     }
 
     public function test_resolves_payment_request_when_initially_empty_before_db_insert(): void

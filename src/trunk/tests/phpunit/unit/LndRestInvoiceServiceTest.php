@@ -158,6 +158,62 @@ class LndRestInvoiceServiceTest extends TestCase
         (new LndRestInvoiceService($http, $this->default_gateway()))
             ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
     }
+
+    // --- TLS certificate handling (request_with_cert helper) ---------------------------
+    // Characterizes the branch shared by create_invoice()/get_invoice_status() after the
+    // temp-cert dance was factored into request_with_cert() (audit Fase 3+, DRY invoice services).
+
+    private function gateway_with_cert(string $certificate): \WC_Payment_Gateway
+    {
+        return $this->make_gateway([
+            'lnd_rest_url'     => 'https://lnd.example.com',
+            'lnd_macaroon_hex' => 'deadbeef',
+            'lnd_certificate'  => $certificate,
+            'lnd_verify_ssl'   => 'yes',
+        ]);
+    }
+
+    public function test_create_invoice_writes_certificate_to_temp_file_and_cleans_up(): void
+    {
+        $http = FakeHttpClient::respondingToPost(http_ok(['payment_request' => 'lnbc1', 'r_hash' => 'aGVsbG8']));
+
+        (new LndRestInvoiceService($http, $this->gateway_with_cert('CERT-PEM-DATA')))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+
+        $temp_cert = $http->lastPostArgs['sslcertificates'] ?? null;
+        $this->assertNotNull($temp_cert, 'sslcertificates should be set when a certificate is configured');
+        $this->assertArrayNotHasKey('sslverify', $http->lastPostArgs);
+        $this->assertFileDoesNotExist($temp_cert, 'temp cert file must be removed after the request');
+    }
+
+    public function test_create_invoice_without_certificate_toggles_sslverify(): void
+    {
+        $http = FakeHttpClient::respondingToPost(http_ok(['payment_request' => 'lnbc1', 'r_hash' => 'aGVsbG8']));
+
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+
+        $this->assertTrue($http->lastPostArgs['sslverify']);
+        $this->assertArrayNotHasKey('sslcertificates', $http->lastPostArgs);
+    }
+
+    public function test_get_invoice_status_cleans_up_certificate_on_http_error(): void
+    {
+        // Error path still runs parse_response() inside the try, so the finally must fire.
+        $http = FakeHttpClient::respondingToGet(http_error(500, 'Server Error'));
+        $service = new LndRestInvoiceService($http, $this->gateway_with_cert('CERT-PEM-DATA'));
+
+        try {
+            $service->get_invoice_status('deadbeef');
+            $this->fail('expected PayCryptoMePaymentException');
+        } catch (PayCryptoMePaymentException $e) {
+            // expected
+        }
+
+        $temp_cert = $http->lastGetArgs['sslcertificates'] ?? null;
+        $this->assertNotNull($temp_cert);
+        $this->assertFileDoesNotExist($temp_cert, 'temp cert file must be removed even when the request fails');
+    }
 }
 
 } // end global namespace

@@ -13,20 +13,11 @@ namespace PayCryptoMe\WooCommerce;
 
 \defined('ABSPATH') || exit;
 
-class BtcpayInvoiceService implements LightningInvoiceServiceContract
+class BtcpayInvoiceService extends AbstractLightningInvoiceService
 {
-    public function __construct(
-        private HttpClientContract  $http,
-        private \WC_Payment_Gateway $gateway,
-    ) {}
-
     public function create_invoice(array $args): LightningInvoiceResponse
     {
-        $btcpay_url = rtrim($this->gateway->get_option('btcpay_url'), '/');
-        $store_id   = $this->gateway->get_option('btcpay_store_id');
-        $api_key    = $this->gateway->get_option('btcpay_api_key');
-
-        $url  = "{$btcpay_url}/api/v1/stores/{$store_id}/invoices";
+        $url  = "{$this->store_url()}/invoices";
         $body = [
             'amount'   => (string) ($args['amount'] ?? '0'),
             'currency' => (string) ($args['currency'] ?? 'BTC'),
@@ -42,10 +33,7 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
         ];
 
         $response = $this->http->post($url, [
-            'headers' => [
-                'Authorization' => 'token ' . $api_key,
-                'Content-Type'  => 'application/json',
-            ],
+            'headers' => $this->auth_headers(['Content-Type' => 'application/json']),
             'body'    => wp_json_encode($body),
         ]);
 
@@ -60,16 +48,10 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
     public function get_invoice_status(string $invoice_id): LightningInvoiceStatusResponse
     {
-        $btcpay_url = rtrim($this->gateway->get_option('btcpay_url'), '/');
-        $store_id   = $this->gateway->get_option('btcpay_store_id');
-        $api_key    = $this->gateway->get_option('btcpay_api_key');
-
-        $url = "{$btcpay_url}/api/v1/stores/{$store_id}/invoices/{$invoice_id}";
+        $url = "{$this->store_url()}/invoices/{$invoice_id}";
 
         $response = $this->http->get($url, [
-            'headers' => [
-                'Authorization' => 'token ' . $api_key,
-            ],
+            'headers' => $this->auth_headers(),
         ]);
 
         $data   = $this->parse_response($response);
@@ -80,16 +62,10 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
 
     public function resolve_payment_request(string $invoice_id): string
     {
-        $btcpay_url = rtrim($this->gateway->get_option('btcpay_url'), '/');
-        $store_id   = $this->gateway->get_option('btcpay_store_id');
-        $api_key    = $this->gateway->get_option('btcpay_api_key');
-
-        $url = "{$btcpay_url}/api/v1/stores/{$store_id}/invoices/{$invoice_id}/payment-methods";
+        $url = "{$this->store_url()}/invoices/{$invoice_id}/payment-methods";
 
         $response = $this->http->get($url, [
-            'headers' => [
-                'Authorization' => 'token ' . $api_key,
-            ],
+            'headers' => $this->auth_headers(),
         ]);
 
         $methods = $this->parse_response($response);
@@ -141,30 +117,29 @@ class BtcpayInvoiceService implements LightningInvoiceServiceContract
         return (string) apply_filters('paycryptome_lightning_btcpay_speed_policy', 'MediumSpeed');
     }
 
-    /**
-     * @throws PayCryptoMePaymentException when HTTP status >= 400, body is empty, or JSON is invalid
-     */
-    private function parse_response(array $response): array
+    private function store_url(): string
     {
-        $status_code = (int) ($response['response']['code'] ?? 0);
-        $body        = (string) ($response['body'] ?? '');
+        $btcpay_url = rtrim($this->gateway->get_option('btcpay_url'), '/');
+        $store_id   = $this->gateway->get_option('btcpay_store_id');
 
-        if ($status_code >= 400 || $body === '') {
-            throw new PayCryptoMePaymentException(
-                \sprintf('BTCPay HTTP error: status=%d body=%s', $status_code, substr($body, 0, 500)),
-                __('Payment via BTCPay Server failed. Please try again.', 'paycrypto-me-for-woocommerce')
-            );
-        }
+        return "{$btcpay_url}/api/v1/stores/{$store_id}";
+    }
 
-        $data = json_decode($body, true);
+    private function auth_headers(array $extra = []): array
+    {
+        return array_merge(
+            ['Authorization' => 'token ' . $this->gateway->get_option('btcpay_api_key')],
+            $extra
+        );
+    }
 
-        if (!is_array($data)) {
-            throw new PayCryptoMePaymentException(
-                'BTCPay invalid JSON response',
-                __('Payment via BTCPay Server failed. Please try again.', 'paycrypto-me-for-woocommerce')
-            );
-        }
+    protected function error_log_label(): string
+    {
+        return 'BTCPay';
+    }
 
-        return $data;
+    protected function payment_failed_message(): string
+    {
+        return __('Payment via BTCPay Server failed. Please try again.', 'paycrypto-me-for-woocommerce');
     }
 }

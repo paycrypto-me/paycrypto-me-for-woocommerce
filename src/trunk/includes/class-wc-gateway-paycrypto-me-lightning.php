@@ -16,8 +16,8 @@ namespace PayCryptoMe\WooCommerce;
 
 class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 {
-    private QrCodeService $qr_code_service;
     private LightningConnectionTester $connection_tester;
+    private ?LightningConfigValidator $config_validator = null;
 
     /**
      * Constructor for the gateway.
@@ -29,7 +29,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->method_description = __('Accept Bitcoin payments self-hosted via Lightning Network', 'paycrypto-me-for-woocommerce') . ' (' . __('Provided by PayCrypto.Me', 'paycrypto-me-for-woocommerce') . ').';
         $this->has_fields = false;
 
-        $this->icon         = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-icon.png';
+        $this->icon         = WC_PayCryptoMe::plugin_url() . '/assets/paycrypto-me-lightning-icon.png';
         $this->express_icon = WC_PayCryptoMe::plugin_url() . '/assets/lightning-network-icon.png';
         $this->title = $this->get_option('title') ?: __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce');
         $this->description = $this->get_option('description') ?: __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
@@ -41,8 +41,8 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
         $this->express_payment_text = $this->get_option('express_payment_text', '') ?: __('Buy with', 'paycrypto-me-for-woocommerce');
 
-        $this->qr_code_service = new QrCodeService();
         $this->connection_tester = new LightningConnectionTester(new WpHttpClient(), $this);
+        $this->config_validator  = new LightningConfigValidator();
 
         parent::__construct();
 
@@ -328,50 +328,24 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->connection_tester->test_lnd_connection();
     }
 
-    public function render_admin_order_details_section($order)
-    {
-        echo '<style>.paycrypto-me-order-details { clear: both } .paycrypto-me-order-details h3 { margin: 0 0 10px 0 !important; padding-top: 10px !important; }</style>';
-        $this->render_checkout_order_details_section($order);
-    }
-
-    public function render_checkout_order_details_section($order)
+    public function build_order_display_args(\WC_Order $order): ?array
     {
         $payment_request = $order->get_meta('_paycrypto_me_payment_request');
 
         if (!$payment_request) {
-            return;
+            return null;
         }
 
-        $payment_uri = $order->get_meta('_paycrypto_me_payment_uri');
-        $logo_path   = WC_PayCryptoMe::plugin_abspath() . 'assets/lightning-network-icon.png';
-
-        $expires_hours        = (int) $order->get_meta('_paycrypto_me_payment_expires_at');
-        $order_date           = $order->get_date_created();
-        $expires_at_formatted = ($expires_hours > 0 && $order_date)
-            ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $order_date->getTimestamp() + $expires_hours * HOUR_IN_SECONDS)
-            : null;
-
-        $payment_display_data = [
-            'payment_identifier'    => $payment_request,
-            'payment_uri'           => $payment_uri,
-            'payment_qr_code'       => $this->qr_code_service->generate_qr_code_data_uri($payment_uri, $logo_path),
-            'fiat_amount'           => $order->get_meta('_paycrypto_me_fiat_amount'),
-            'fiat_currency'         => $order->get_meta('_paycrypto_me_fiat_currency'),
-            'crypto_amount'         => null,
-            'crypto_currency'       => 'BTC',
-            'network_label'         => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
-            'crypto_network'        => 'lightning',
-            'expires_at'            => $order->get_meta('_paycrypto_me_payment_expires_at'),
-            'expires_at_formatted'  => $expires_at_formatted,
+        return [
+            'payment_identifier'     => $payment_request,
+            'payment_uri'            => $order->get_meta('_paycrypto_me_payment_uri'),
+            'logo_path'              => WC_PayCryptoMe::plugin_abspath() . 'assets/lightning-network-icon.png',
+            'crypto_network'         => 'lightning',
+            'network_label'          => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
+            'crypto_amount'          => null,
+            'crypto_currency'        => 'BTC',
             'confirmations_required' => 0,
         ];
-
-        wc_get_template(
-            'order-details/paycrypto-me-order-details.php',
-            compact('payment_display_data'),
-            '',
-            WC_PayCryptoMe::plugin_abspath() . 'templates/'
-        );
     }
 
     public function is_available()
@@ -399,126 +373,67 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         return true;
     }
 
-    private function _sanitize_text_val($v)
+    private function config_validator(): LightningConfigValidator
     {
-        return is_null($v) ? '' : sanitize_text_field(wp_unslash($v));
+        if ($this->config_validator === null) {
+            $this->config_validator = new LightningConfigValidator();
+        }
+
+        return $this->config_validator;
     }
 
+    // Kept on the gateway (not the validator): reads the gateway's submitted form data via
+    // WC_Settings_API. Delegates the node_type decision to the validator to avoid duplication.
     private function _is_lnd_rest_selected()
     {
-        $post_data = $this->get_post_data();
-        $node_type_key = $this->get_field_key('node_type');
-        $node_type = isset($post_data[$node_type_key]) ? sanitize_text_field(wp_unslash($post_data[$node_type_key])) : 'btcpay';
-        return $node_type === 'lnd_rest';
+        return $this->config_validator()->is_lnd_rest_selected($this->get_post_data(), $this->get_field_key('node_type'));
     }
 
+    // The 9 validate_*_field() stubs stay on the gateway: WC_Settings_API discovers them via
+    // method_exists($this, 'validate_<key>_field') on the gateway instance. Real logic lives in
+    // LightningConfigValidator; "is lnd_rest selected" is resolved here (from POST) and passed in.
     public function validate_btcpay_url_field($key, $value)
     {
-        if ($this->_is_lnd_rest_selected() || is_null($value) || $value === '') {
-            return is_null($value) ? '' : esc_url_raw(trim(stripslashes($value)));
-        }
-        $val = trim(stripslashes($value));
-        $url = esc_url_raw($val);
-        if (empty($url)) {
-            return '';
-        }
-        $parts = wp_parse_url($url);
-        if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(esc_html__('BTCPay URL must use HTTPS.', 'paycrypto-me-for-woocommerce'));
-            return '';
-        }
-        return $url;
+        return $this->config_validator()->validate_btcpay_url($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_btcpay_api_key_field($key, $value)
     {
-        $val = $this->_sanitize_text_val($value);
-        if (!$this->_is_lnd_rest_selected() && $val !== '' && strlen($val) < 20) {
-            \WC_Admin_Settings::add_error(esc_html__('BTCPay API key must be at least 20 characters.', 'paycrypto-me-for-woocommerce'));
-            return '';
-        }
-        return $val;
+        return $this->config_validator()->validate_btcpay_api_key($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_btcpay_store_id_field($key, $value)
     {
-        return $this->_sanitize_text_val($value);
+        return $this->config_validator()->validate_btcpay_store_id($value);
     }
 
     public function validate_btcpay_payment_method_id_field($key, $value)
     {
-        $val = $this->_sanitize_text_val($value);
-        return $val !== '' ? $val : 'BTC-LN';
+        return $this->config_validator()->validate_btcpay_payment_method_id($value);
     }
 
     public function validate_btcpay_webhook_secret_field($key, $value)
     {
-        $val = $this->_sanitize_text_val($value);
-        if (!$this->_is_lnd_rest_selected() && $val !== '' && strlen($val) < 16) {
-            \WC_Admin_Settings::add_error(esc_html__('BTCPay webhook secret is shorter than the recommended 16 characters.', 'paycrypto-me-for-woocommerce'));
-        }
-        return $val;
+        return $this->config_validator()->validate_btcpay_webhook_secret($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_lnd_rest_url_field($key, $value)
     {
-        if (!$this->_is_lnd_rest_selected() || is_null($value) || $value === '') {
-            return is_null($value) ? '' : esc_url_raw(trim(stripslashes($value)));
-        }
-        $val = trim(stripslashes($value));
-        $url = esc_url_raw($val);
-        if (empty($url)) {
-            return '';
-        }
-        $parts = wp_parse_url($url);
-        if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(esc_html__('lnd REST URL must use HTTPS.', 'paycrypto-me-for-woocommerce'));
-            return '';
-        }
-        return $url;
+        return $this->config_validator()->validate_lnd_rest_url($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_lnd_macaroon_hex_field($key, $value)
     {
-        $val = $this->_sanitize_text_val($value);
-        $val = preg_replace('/\s+/', '', $val);
-        if ($this->_is_lnd_rest_selected() && $val !== '') {
-            if (strlen($val) < 100) {
-                \WC_Admin_Settings::add_error(esc_html__('lnd Macaroon must be at least 100 characters.', 'paycrypto-me-for-woocommerce'));
-                return '';
-            }
-            if (!ctype_xdigit($val)) {
-                \WC_Admin_Settings::add_error(esc_html__('lnd Macaroon must be a valid hexadecimal string.', 'paycrypto-me-for-woocommerce'));
-                return '';
-            }
-        }
-        return $val;
+        return $this->config_validator()->validate_lnd_macaroon_hex($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_lnd_certificate_field($key, $value)
     {
-        $val = wp_kses_post(wp_unslash($value));
-        if (!$this->_is_lnd_rest_selected() || $val === '') {
-            return $val;
-        }
-        if (strpos($val, '-----BEGIN CERTIFICATE-----') === false || strpos($val, '-----END CERTIFICATE-----') === false) {
-            \WC_Admin_Settings::add_error(esc_html__('Invalid certificate format. Must be valid PEM format starting with -----BEGIN CERTIFICATE-----.', 'paycrypto-me-for-woocommerce'));
-            return '';
-        }
-        return $val;
+        return $this->config_validator()->validate_lnd_certificate($value, $this->_is_lnd_rest_selected());
     }
 
     public function validate_invoice_expiry_field($key, $value)
     {
-        $val = absint($value);
-        if ($val < 300) {
-            \WC_Admin_Settings::add_error(esc_html__('Invoice Expiry must be at least 300 seconds (5 minutes).', 'paycrypto-me-for-woocommerce'));
-            return '3600';
-        }
-        if ($val > 86400) {
-            \WC_Admin_Settings::add_error(esc_html__('Invoice Expiry cannot exceed 86400 seconds (24 hours).', 'paycrypto-me-for-woocommerce'));
-            return '3600';
-        }
-        return strval($val);
+        return $this->config_validator()->validate_invoice_expiry($value);
     }
 }

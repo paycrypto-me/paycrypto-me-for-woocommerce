@@ -204,33 +204,4 @@ class PaymentProcessor
 
         return $processor;
     }
-
-    public static function init_url_params()
-    {
-        add_filter('query_vars', function ($vars) {
-            $vars[] = 'crypto';
-            $vars[] = 'paycrypto_network';
-            return $vars;
-        });
-
-        add_action('template_redirect', function () {
-            if (is_checkout()) {
-                $crypto = get_query_var('crypto');
-                $network = get_query_var('paycrypto_network');
-
-                if (!empty($crypto) && WC()->session) {
-                    WC()->session->set('paycrypto_me_selected_crypto', sanitize_text_field($crypto));
-                }
-
-                if (!empty($network) && WC()->session) {
-                    WC()->session->set('paycrypto_me_selected_network', sanitize_text_field($network));
-                }
-            }
-        });
-    }
-
-    public static function instance()
-    {
-        return new self();
-    }
 }

@@ -17,6 +17,10 @@ class BitcoinProcessorStrategiesFactory
 {
     public static function create(\WC_Payment_Gateway $gateway): GatewayProcessorContract
     {
-        return new BitcoinPaymentProcessor($gateway);
+        return new BitcoinPaymentProcessor(
+            $gateway,
+            new BitcoinAddressService(),
+            new PayCryptoMeDBStatementsService()
+        );
     }
 }

@@ -24,7 +24,6 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
     protected $payment_timeout_hours;
     protected $payment_number_confirmations;
     private BitcoinAddressService $bitcoin_address_service;
-    private QrCodeService $qr_code_service;
     private PayCryptoMeDBStatementsService $db_statements_service;
 
     public function __construct()
@@ -47,7 +46,6 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
         $this->express_payment_text = $this->get_option('express_payment_text', '') ?: __('Buy with', 'paycrypto-me-for-woocommerce');
 
-        $this->qr_code_service = new QrCodeService();
         $this->bitcoin_address_service = new BitcoinAddressService();
         $this->db_statements_service = new PayCryptoMeDBStatementsService();
 
@@ -209,61 +207,30 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         return true;
     }
 
-    public function render_admin_order_details_section($order)
-    {
-        echo '<style>';
-        echo '.paycrypto-me-order-details { clear: both }';
-        echo '.paycrypto-me-order-details h3 { margin: 0 0 10px 0 !important; padding-top: 10px !important; }';
-        echo '</style>';
-
-        $this->render_checkout_order_details_section($order);
-    }
-
-    public function render_checkout_order_details_section($order)
+    public function build_order_display_args(\WC_Order $order): ?array
     {
         $payment_address = $order->get_meta('_paycrypto_me_payment_address');
 
         if (!$payment_address) {
-            return;
+            return null;
         }
 
-        $payment_uri    = $order->get_meta('_paycrypto_me_payment_uri');
         $crypto_network = $order->get_meta('_paycrypto_me_crypto_network');
-        $logo_path      = WC_PayCryptoMe::plugin_abspath() . 'assets/bitcoin-icon.png';
 
-        $network_label = match ($crypto_network) {
-            'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),
-            'testnet' => 'Testnet',
-            default   => $crypto_network,
-        };
-
-        $expires_hours        = (int) $order->get_meta('_paycrypto_me_payment_expires_at');
-        $order_date           = $order->get_date_created();
-        $expires_at_formatted = ($expires_hours > 0 && $order_date)
-            ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $order_date->getTimestamp() + $expires_hours * HOUR_IN_SECONDS)
-            : null;
-
-        $payment_display_data = [
-            'payment_identifier'    => $payment_address,
-            'payment_uri'           => $payment_uri,
-            'payment_qr_code'       => $this->qr_code_service->generate_qr_code_data_uri($payment_uri, $logo_path),
-            'fiat_amount'           => $order->get_meta('_paycrypto_me_fiat_amount'),
-            'fiat_currency'         => $order->get_meta('_paycrypto_me_fiat_currency'),
-            'crypto_amount'         => $order->get_meta('_paycrypto_me_crypto_amount'),
-            'crypto_currency'       => $order->get_meta('_paycrypto_me_crypto_currency'),
-            'network_label'         => $network_label,
-            'crypto_network'        => $crypto_network,
-            'expires_at'            => $order->get_meta('_paycrypto_me_payment_expires_at'),
-            'expires_at_formatted'  => $expires_at_formatted,
+        return [
+            'payment_identifier'     => $payment_address,
+            'payment_uri'            => $order->get_meta('_paycrypto_me_payment_uri'),
+            'logo_path'              => WC_PayCryptoMe::plugin_abspath() . 'assets/bitcoin-icon.png',
+            'crypto_network'         => $crypto_network,
+            'network_label'          => match ($crypto_network) {
+                'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),
+                'testnet' => 'Testnet',
+                default   => $crypto_network,
+            },
+            'crypto_amount'          => $order->get_meta('_paycrypto_me_crypto_amount'),
+            'crypto_currency'        => $order->get_meta('_paycrypto_me_crypto_currency'),
             'confirmations_required' => (int) $order->get_meta('_paycrypto_me_payment_number_confirmations'),
         ];
-
-        wc_get_template(
-            'order-details/paycrypto-me-order-details.php',
-            compact('payment_display_data'),
-            '',
-            WC_PayCryptoMe::plugin_abspath() . 'templates/'
-        );
     }
 
     public function generate_settings_html($form_fields = array(), $echo = true)

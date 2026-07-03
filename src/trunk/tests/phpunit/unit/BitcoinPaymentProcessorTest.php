@@ -4,20 +4,13 @@ use PayCryptoMe\WooCommerce\BitcoinPaymentProcessor;
 
 // WC_Payment_Gateway/WC_Order/__/get_bloginfo/get_option fallbacks live in
 // tests/_support/wp-helpers.php (loaded by bootstrap.php before any test file).
+//
+// Dependencies are now injected via the constructor (audit Fase 3+, DI nos processors):
+// new BitcoinPaymentProcessor($gateway, $bitcoin_address_service, $db) — no more
+// disableOriginalConstructor() + reflection to bypass hardcoded `new Service()`.
 
 class BitcoinPaymentProcessorTest extends TestCase
 {
-    private function setPrivateProperty(object $obj, string $name, $value): void
-    {
-        $rc = new \ReflectionObject($obj);
-        while (!$rc->hasProperty($name) && $rc->getParentClass()) {
-            $rc = $rc->getParentClass();
-        }
-        $prop = $rc->getProperty($name);
-        $prop->setAccessible(true);
-        $prop->setValue($obj, $value);
-    }
-
     public function test_process_uses_existing_address()
     {
         $gateway = $this->createMock(\WC_Payment_Gateway::class);
@@ -43,14 +36,7 @@ class BitcoinPaymentProcessorTest extends TestCase
         $btcSvc->method('validate_extended_pubkey')->willReturn(true);
         $btcSvc->method('build_bitcoin_payment_uri')->willReturn('bitcoin:1ExistingAddr?amount=0.123');
 
-        $processor = $this->getMockBuilder(BitcoinPaymentProcessor::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
-
-        $this->setPrivateProperty($processor, 'gateway', $gateway);
-        $this->setPrivateProperty($processor, 'db', $db);
-        $this->setPrivateProperty($processor, 'bitcoin_address_service', $btcSvc);
+        $processor = new BitcoinPaymentProcessor($gateway, $btcSvc, $db);
 
         $input = ['crypto_amount' => 0.123];
         $out = $processor->process($order, $input);
@@ -92,14 +78,7 @@ class BitcoinPaymentProcessorTest extends TestCase
         $btcSvc->method('validate_extended_pubkey')->willReturn(true);
         $btcSvc->method('build_bitcoin_payment_uri')->willReturn('bitcoin:1NewAddr?amount=0.123');
 
-        $processor = $this->getMockBuilder(BitcoinPaymentProcessor::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
-
-        $this->setPrivateProperty($processor, 'gateway', $gateway);
-        $this->setPrivateProperty($processor, 'db', $db);
-        $this->setPrivateProperty($processor, 'bitcoin_address_service', $btcSvc);
+        $processor = new BitcoinPaymentProcessor($gateway, $btcSvc, $db);
 
         $input = ['crypto_amount' => 0.123];
         $out = $processor->process($order, $input);
@@ -132,14 +111,7 @@ class BitcoinPaymentProcessorTest extends TestCase
         $btcSvc = $this->createMock(\PayCryptoMe\WooCommerce\BitcoinAddressService::class);
         $btcSvc->method('validate_extended_pubkey')->willReturn(true);
 
-        $processor = $this->getMockBuilder(BitcoinPaymentProcessor::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods([])
-            ->getMock();
-
-        $this->setPrivateProperty($processor, 'gateway', $gateway);
-        $this->setPrivateProperty($processor, 'db', $db);
-        $this->setPrivateProperty($processor, 'bitcoin_address_service', $btcSvc);
+        $processor = new BitcoinPaymentProcessor($gateway, $btcSvc, $db);
 
         try {
             $processor->process($order, ['crypto_amount' => 0.1]);

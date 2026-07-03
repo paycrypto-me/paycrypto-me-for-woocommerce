@@ -59,6 +59,9 @@ if (!function_exists('get_bloginfo')) {
 if (!function_exists('get_option')) {
     function get_option($key) { return null; }
 }
+if (!function_exists('wp_date')) {
+    function wp_date($format, $timestamp = null) { return gmdate((string) $format, $timestamp ?? 0); }
+}
 if (!function_exists('absint')) {
     function absint($value) { return abs((int) $value); }
 }
@@ -153,6 +156,9 @@ if (!class_exists('WC_Admin_Settings')) {
 if (!defined('ARRAY_A')) {
     define('ARRAY_A', 'ARRAY_A');
 }
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 3600);
+}
 
 // Single source of truth for WC_Payment_Gateway/WC_Order fallbacks — previously each
 // test file declared its own guarded copy, and whichever file's autoloader position
@@ -177,5 +183,7 @@ if (!class_exists('WC_Order')) {
         public function get_billing_first_name($context = 'view') { return ''; }
         public function get_total() { return '0'; }
         public function get_currency() { return 'USD'; }
+        public function get_meta($key, $single = true, $context = 'view') { return ''; }
+        public function get_date_created() { return null; }
     }
 }

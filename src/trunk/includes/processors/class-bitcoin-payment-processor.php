@@ -19,11 +19,14 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
     private BitcoinAddressService $bitcoin_address_service;
     private PayCryptoMeDBStatementsService $db;
 
-    public function __construct(\WC_Payment_Gateway $gateway)
-    {
+    public function __construct(
+        \WC_Payment_Gateway $gateway,
+        ?BitcoinAddressService $bitcoin_address_service = null,
+        ?PayCryptoMeDBStatementsService $db = null
+    ) {
         parent::__construct($gateway);
-        $this->bitcoin_address_service = new BitcoinAddressService();
-        $this->db = new PayCryptoMeDBStatementsService();
+        $this->bitcoin_address_service = $bitcoin_address_service ?? new BitcoinAddressService();
+        $this->db = $db ?? new PayCryptoMeDBStatementsService();
     }
 
     public function process(\WC_Order $order, array $payment_data): array
@@ -31,12 +34,10 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         $payment_data['payment_number_confirmations'] = (int) abs((int) $this->gateway->get_option('payment_number_confirmations', 0));
         $payment_data['crypto_network']               = (string) $this->gateway->get_option('selected_network', 'mainnet');
 
-        $xPub = $this->gateway->get_option('network_identifier');
+        $xPub    = $this->gateway->get_option('network_identifier');
         $network = $this->gateway->get_option('selected_network');
 
-        $bitcoin_network = $network === 'mainnet' ?
-            \BitWasp\Bitcoin\Network\NetworkFactory::bitcoin() :
-            \BitWasp\Bitcoin\Network\NetworkFactory::bitcoinTestnet();
+        $bitcoin_network = $this->resolve_bitcoin_network($network);
 
         if (empty($xPub)) {
             throw new PayCryptoMeException('Bitcoin xPub is not configured in the payment gateway settings.');
@@ -46,23 +47,8 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         // static Bitcoin address (bech32/legacy). If a static address is provided
         // treat it as the payment address for this order (no derivation).
         if ($this->bitcoin_address_service->validate_bitcoin_address($xPub, $bitcoin_network)) {
-            $payment_address = $xPub;
-
-            $payment_data['payment_address'] = $payment_address;
-
-            $message = \sprintf(
-                /* translators: 1: payment address, 2: order reference number. */
-                __('Payment sent to %1$s, Order Reference #%2$s', 'paycrypto-me-for-woocommerce'),
-                $payment_address,
-                $order->get_order_number()
-            );
-
-            $payment_data['payment_uri'] = $this->bitcoin_address_service->build_bitcoin_payment_uri(
-                message: $message,
-                address: $payment_address,
-                amount: $payment_data['crypto_amount'],
-                label: $order->get_billing_first_name(),
-            );
+            $payment_data['payment_address'] = $xPub;
+            $payment_data['payment_uri']     = $this->build_payment_uri($order, $xPub, $payment_data['crypto_amount']);
 
             return $payment_data;
         }
@@ -79,66 +65,11 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         }
 
         try {
-            $existing = $this->db->get_by_order_id((int) $order->get_id());
+            [$payment_address, $derivation_index] = $this->resolve_derived_address($order, $xPub, $network, $bitcoin_network);
 
-            if ($existing && !empty($existing['payment_address'])) {
-                $payment_address = $existing['payment_address'];
-                $derivation_index = $existing['derivation_index'];
-            } else {
-
-                if (!$wallet_xpub_id = $this->db->get_wallet_xpubkey_id($xPub, $network)) {
-                    $wallet_xpub_id = $this->db->insert_wallet_xpubkey($xPub, $network);
-                }
-
-                if (!$wallet_xpub_id) {
-                    throw new PayCryptoMeException(
-                        \sprintf('Failed to persist wallet xPub for order #%s', $order->get_id())
-                    );
-                }
-
-                $derivation_index = (int) $this->db->reserve_derivation_index_for_wallet((int) $wallet_xpub_id);
-
-                $gateway = $this->gateway;
-                $payment_address = $this->bitcoin_address_service->generate_address_from_xPub(
-                    $xPub,
-                    $derivation_index,
-                    $bitcoin_network,
-                    null,
-                    static function (string $msg, string $level) use ($gateway): void {
-                        $gateway->register_paycrypto_me_log($msg, $level);
-                    }
-                );
-
-                $inserted = $this->db->insert_address((int) $order->get_id(), $derivation_index, $payment_address, $wallet_xpub_id);
-
-                if ($inserted === false) {
-                    $this->gateway->register_paycrypto_me_log(
-                        \sprintf('Failed to persist generated address for order #%s', $order->get_id()),
-                        'error'
-                    );
-                    throw new PayCryptoMeException(
-                        \sprintf('Failed to persist generated address for order #%s', $order->get_id())
-                    );
-                }
-            }
-
-            $payment_data['payment_address'] = $payment_address;
+            $payment_data['payment_address']  = $payment_address;
             $payment_data['derivation_index'] = $derivation_index;
-
-            $message = \sprintf(
-                /* translators: 1: payment address, 2: order reference number. */
-                __('Payment sent to %1$s, Order Reference #%2$s', 'paycrypto-me-for-woocommerce'),
-                $payment_address,
-                $order->get_order_number()
-            );
-
-            $payment_data['payment_uri'] = $this->bitcoin_address_service->build_bitcoin_payment_uri(
-                message: $message,
-                address: $payment_address,
-                amount: $payment_data['crypto_amount'],
-                label: $order->get_billing_first_name(),
-            );
-
+            $payment_data['payment_uri']      = $this->build_payment_uri($order, $payment_address, $payment_data['crypto_amount']);
         } catch (\Exception $e) {
             $clean = wp_strip_all_tags( $e->getMessage() );
             throw new PayCryptoMeException(
@@ -149,5 +80,81 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         }
 
         return $payment_data;
+    }
+
+    private function resolve_bitcoin_network($network): \BitWasp\Bitcoin\Network\NetworkInterface
+    {
+        return $network === 'mainnet'
+            ? \BitWasp\Bitcoin\Network\NetworkFactory::bitcoin()
+            : \BitWasp\Bitcoin\Network\NetworkFactory::bitcoinTestnet();
+    }
+
+    /**
+     * Returns [payment_address, derivation_index]: reuses the order's existing reservation
+     * when present, otherwise reserves an index, derives an address and persists it.
+     *
+     * @throws PayCryptoMeException on xPub/address persistence failure
+     */
+    private function resolve_derived_address(\WC_Order $order, string $xPub, $network, $bitcoin_network): array
+    {
+        $existing = $this->db->get_by_order_id((int) $order->get_id());
+
+        if ($existing && !empty($existing['payment_address'])) {
+            return [$existing['payment_address'], $existing['derivation_index']];
+        }
+
+        if (!$wallet_xpub_id = $this->db->get_wallet_xpubkey_id($xPub, $network)) {
+            $wallet_xpub_id = $this->db->insert_wallet_xpubkey($xPub, $network);
+        }
+
+        if (!$wallet_xpub_id) {
+            throw new PayCryptoMeException(
+                \sprintf('Failed to persist wallet xPub for order #%s', $order->get_id())
+            );
+        }
+
+        $derivation_index = (int) $this->db->reserve_derivation_index_for_wallet((int) $wallet_xpub_id);
+
+        $gateway = $this->gateway;
+        $payment_address = $this->bitcoin_address_service->generate_address_from_xPub(
+            $xPub,
+            $derivation_index,
+            $bitcoin_network,
+            null,
+            static function (string $msg, string $level) use ($gateway): void {
+                $gateway->register_paycrypto_me_log($msg, $level);
+            }
+        );
+
+        $inserted = $this->db->insert_address((int) $order->get_id(), $derivation_index, $payment_address, $wallet_xpub_id);
+
+        if ($inserted === false) {
+            $this->gateway->register_paycrypto_me_log(
+                \sprintf('Failed to persist generated address for order #%s', $order->get_id()),
+                'error'
+            );
+            throw new PayCryptoMeException(
+                \sprintf('Failed to persist generated address for order #%s', $order->get_id())
+            );
+        }
+
+        return [$payment_address, $derivation_index];
+    }
+
+    private function build_payment_uri(\WC_Order $order, string $payment_address, $crypto_amount): string
+    {
+        $message = \sprintf(
+            /* translators: 1: payment address, 2: order reference number. */
+            __('Payment sent to %1$s, Order Reference #%2$s', 'paycrypto-me-for-woocommerce'),
+            $payment_address,
+            $order->get_order_number()
+        );
+
+        return $this->bitcoin_address_service->build_bitcoin_payment_uri(
+            message: $message,
+            address: $payment_address,
+            amount: $crypto_amount,
+            label: $order->get_billing_first_name(),
+        );
     }
 }

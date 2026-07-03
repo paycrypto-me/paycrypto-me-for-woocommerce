@@ -28,9 +28,12 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     protected $express_icon;
     protected $support_btc_address = 'bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw';
     protected $support_btc_payment_address = 'PM8TJdrkRoSqkCWmJwUMojQCG1rEXsuCTQ4GG7Gub7SSMYxaBx7pngJjhV8GUeXbaJujy8oq5ybpazVpNdotFftDX7f7UceYodNGmffUUiS5NZFu4wq4';
+    protected PaymentDisplayDataBuilder $display_data_builder;
 
     public function __construct()
     {
+        $this->display_data_builder = new PaymentDisplayDataBuilder(new QrCodeService());
+
         $this->has_fields = true;
 
         $this->supports = ['products', 'pre-orders'];
@@ -58,6 +61,38 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     abstract public function get_available_networks();
     abstract public function get_available_cryptocurrencies($network = null);
     abstract protected function init_form_fields_items();
+
+    /**
+     * Gateway-specific values for the order-details display.
+     *
+     * Returns null when the order has no payment for this gateway (guard),
+     * otherwise the variable inputs consumed by PaymentDisplayDataBuilder::build().
+     */
+    abstract public function build_order_display_args(\WC_Order $order): ?array;
+
+    public function render_admin_order_details_section($order)
+    {
+        echo '<style>.paycrypto-me-order-details { clear: both } .paycrypto-me-order-details h3 { margin: 0 0 10px 0 !important; padding-top: 10px !important; }</style>';
+        $this->render_checkout_order_details_section($order);
+    }
+
+    public function render_checkout_order_details_section($order)
+    {
+        $args = $this->build_order_display_args($order);
+
+        if ($args === null) {
+            return;
+        }
+
+        $payment_display_data = $this->display_data_builder->build($order, $args);
+
+        wc_get_template(
+            'order-details/paycrypto-me-order-details.php',
+            compact('payment_display_data'),
+            '',
+            WC_PayCryptoMe::plugin_abspath() . 'templates/'
+        );
+    }
 
     public function admin_enqueue_scripts()
     {
@@ -243,12 +278,12 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
 
     public function process_pre_order_payment($order)
     {
-        return PaymentProcessor::instance()->process_payment($order->get_id(), $this);
+        return (new PaymentProcessor())->process_payment($order->get_id(), $this);
     }
 
     public function process_payment($order_id)
     {
-        return PaymentProcessor::instance()->process_payment($order_id, $this);
+        return (new PaymentProcessor())->process_payment($order_id, $this);
     }
 
     public function enqueue_checkout_styles()

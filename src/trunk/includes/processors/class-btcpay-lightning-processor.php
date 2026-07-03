@@ -15,11 +15,14 @@ namespace PayCryptoMe\WooCommerce;
 
 class BtcpayLightningProcessor extends AbstractLightningProcessor
 {
-    public function __construct(\WC_Payment_Gateway $gateway)
-    {
+    public function __construct(
+        \WC_Payment_Gateway $gateway,
+        ?LightningInvoiceServiceContract $service = null,
+        ?PayCryptoMeLightningDBStatementsService $db = null
+    ) {
         parent::__construct($gateway);
-        $this->service = new BtcpayInvoiceService(new WpHttpClient(), $gateway);
-        $this->db      = new PayCryptoMeLightningDBStatementsService();
+        $this->service = $service ?? new BtcpayInvoiceService(new WpHttpClient(), $gateway);
+        $this->db      = $db ?? new PayCryptoMeLightningDBStatementsService();
     }
 
     protected function invoice_args_filter(): string { return 'paycryptome_lightning_btcpay_invoice_args'; }

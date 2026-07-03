@@ -18,10 +18,12 @@ class LightningProcessorStrategiesFactory
     public static function create(\WC_Payment_Gateway $gateway): GatewayProcessorContract
     {
         $node_type = $gateway->get_option('node_type', 'btcpay');
+        $http      = new WpHttpClient();
+        $db        = new PayCryptoMeLightningDBStatementsService();
 
         return match ($node_type) {
-            'lnd_rest' => new LndRestLightningProcessor($gateway),
-            default    => new BtcpayLightningProcessor($gateway),
+            'lnd_rest' => new LndRestLightningProcessor($gateway, new LndRestInvoiceService($http, $gateway), $db),
+            default    => new BtcpayLightningProcessor($gateway, new BtcpayInvoiceService($http, $gateway), $db),
         };
     }
 }
