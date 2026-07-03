@@ -285,7 +285,3 @@ msgstr "QR-код для оплаты"
 #: templates/order-details/paycrypto-me-order-details.php:53
 msgid "Payment address copied to clipboard."
 msgstr "Адрес оплаты скопирован в буфер обмена."
-
-#: templates/order-details/paycrypto-me-order-details.php:63
-msgid "Pay Now"
-msgstr "откройте своё приложение кошелька"

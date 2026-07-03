@@ -11,18 +11,19 @@
 }
 
 .paycrypto-me-order-details__status-badge {
+    color: #92400e;
     align-items: center;
     background: #fef3c7;
     border-radius: 1.5rem;
-    color: #92400e;
     display: inline-flex;
     font-family: sans-serif;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    padding: 5px 10px;
+    user-select: none;
     font-size: .7rem;
     font-weight: 700;
     gap: 6px;
-    letter-spacing: .02em;
-    padding: 5px 10px;
-    user-select: none;
 }
 
 .paycrypto-me-order-details__status-dot {
@@ -35,8 +36,15 @@
 }
 
 @keyframes paycrypto-me-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .25; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .25;
+    }
 }
 
 .paycrypto-me-order-details__container {

@@ -282,7 +282,3 @@ msgstr "Código QR para el pago"
 #: templates/order-details/paycrypto-me-order-details.php:53
 msgid "Payment address copied to clipboard."
 msgstr "Dirección de pago copiada al portapapeles."
-
-#: templates/order-details/paycrypto-me-order-details.php:63
-msgid "Pay Now"
-msgstr "abra su aplicación de monedero"

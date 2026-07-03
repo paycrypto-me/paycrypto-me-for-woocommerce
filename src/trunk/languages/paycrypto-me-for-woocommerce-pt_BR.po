@@ -284,7 +284,3 @@ msgstr "QR Code para pagamento"
 #: templates/order-details/paycrypto-me-order-details.php:53
 msgid "Payment address copied to clipboard."
 msgstr "Endereço de pagamento copiado para a área de transferência."
-
-#: templates/order-details/paycrypto-me-order-details.php:63
-msgid "Pay Now"
-msgstr "abra seu aplicativo de carteira"

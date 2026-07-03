@@ -30,6 +30,19 @@ if ($payment_display_data['payment_identifier']): ?>
             <div class="paycrypto-me-order-details__wrapper">
                 <small><?php esc_html_e('Status:', 'paycrypto-me-for-woocommerce'); ?></small>
                 <div class="paycrypto-me-network-switch">
+                    <?php if (!empty($payment_display_data['confirmations_required'])): ?>
+                        <p class="paycrypto-me-order-details__confirmations-hint">
+                            <?php printf(
+                                esc_html( _n(
+                                    '%d confirmation required',
+                                    '%d confirmations required',
+                                    (int) $payment_display_data['confirmations_required'],
+                                    'paycrypto-me-for-woocommerce'
+                                )),
+                                (int) $payment_display_data['confirmations_required']
+                            ); ?>
+                        </p>
+                    <?php endif; ?>
                     <span class="paycrypto-me-order-details__status-badge">
                         <span class="paycrypto-me-order-details__status-dot"></span>
                         <?php esc_html_e('Awaiting Payment', 'paycrypto-me-for-woocommerce'); ?>
@@ -68,23 +81,9 @@ if ($payment_display_data['payment_identifier']): ?>
                     <span class="paycrypto-me-copy-feedback"><?php esc_html_e('Copied!', 'paycrypto-me-for-woocommerce'); ?></span>
                 </button>
             </div>
-            <?php if (!empty($payment_display_data['confirmations_required'])): ?>
-                <p class="paycrypto-me-order-details__confirmations-hint">
-                    <?php printf(
-                        esc_html( _n(
-                            '%d confirmation required',
-                            '%d confirmations required',
-                            (int) $payment_display_data['confirmations_required'],
-                            'paycrypto-me-for-woocommerce'
-                        )),
-                        (int) $payment_display_data['confirmations_required']
-                    ); ?>
-                </p>
-            <?php endif; ?>
-
             <a class="woocommerce-button wp-element-button paycrypto-me-order-details__button paycrypto-me-order-details__open-wallet-button"
                 href="<?php echo esc_attr( $payment_display_data['payment_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
-                <?php esc_html_e('Pay Now', 'paycrypto-me-for-woocommerce'); ?>
+                ⚡ <?php esc_html_e('Pay Using Wallet', 'paycrypto-me-for-woocommerce'); ?>
             </a>
         </div>
 

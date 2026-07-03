@@ -288,7 +288,3 @@ msgstr "QR Code de paiement"
 #: templates/order-details/paycrypto-me-order-details.php:53
 msgid "Payment address copied to clipboard."
 msgstr "Adresse de paiement copiée dans le presse-papiers."
-
-#: templates/order-details/paycrypto-me-order-details.php:63
-msgid "Pay Now"
-msgstr "ouvrez votre application de portefeuille"
