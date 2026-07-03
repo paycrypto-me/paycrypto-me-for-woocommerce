@@ -22,8 +22,8 @@ WC_Payment_Gateway (WooCommerce)
 
 1. `WC_Gateway_PayCryptoMe::process_payment($order_id)` → delega para `PaymentProcessor::process_payment`
 2. `PaymentProcessor` valida pedido e gateway, dispara hooks, chama `ProcessorStrategiesFactory::create($gateway)`
-3. Para `paycrypto_me` → `BitcoinProcessorStrategiesFactory` → retorna `BitcoinPaymentProcessor`
-4. `BitcoinPaymentProcessor::process()`:
+3. Para `paycrypto_me` → `BitcoinProcessorStrategiesFactory` (composition root, desde a Fase 3+/2026-07-03) → `new BitcoinPaymentProcessor($gateway, new BitcoinAddressService(), new PayCryptoMeDBStatementsService())`. Os parâmetros de serviço no construtor são nullable com fallback interno (`$dep ?? new Dep()`), então `new BitcoinPaymentProcessor($gateway)` sem eles ainda funciona — a factory é só onde a fiação real acontece.
+4. `BitcoinPaymentProcessor::process()` (dividido em `resolve_bitcoin_network()` → `resolve_derived_address()` → `build_payment_uri()` desde a Fase 3+):
    - Se `network_identifier` é um endereço estático → usa direto
    - Se é xPub → usa `BitcoinAddressService::generate_address_from_xPub()` com índice de derivação incremental
    - Persiste índice e endereço via `PayCryptoMeDBStatementsService`
@@ -31,12 +31,16 @@ WC_Payment_Gateway (WooCommerce)
 
 ### Fluxo de pagamento (Lightning)
 
-1. `LightningProcessorStrategiesFactory::create($gateway)` mapeia `node_type` (`btcpay` ou `lnd_rest`) → `BtcpayLightningProcessor` ou `LndRestLightningProcessor`, ambos extends `AbstractLightningProcessor`.
+1. `LightningProcessorStrategiesFactory::create($gateway)` (composition root) mapeia `node_type` (`btcpay` ou `lnd_rest`) e monta `new BtcpayLightningProcessor($gateway, new BtcpayInvoiceService($http, $gateway), $db)` ou o equivalente lnd — ambos extends `AbstractLightningProcessor`, mesmo padrão de construtor nullable-com-fallback do lado Bitcoin.
 2. `AbstractLightningProcessor::process()` monta `$args` (order_id, memo, expiry + o que `base_invoice_args($order)` devolver) e aplica `apply_filters($this->invoice_args_filter(), $args, $order, $this->gateway)` **antes** de chamar `$this->service->create_invoice($args)` — ou seja, qualquer chave que `base_invoice_args()` já tenha preenchido (ex: `amount`, `currency` no caso do BTCPay) **já é filtrável** por quem hookar `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args`. Não precisa de filtro dedicado por campo — é só usar esse.
 3. Se `create_invoice()` volta com `payment_request` vazio (BTCPay pode gerar o invoice Lightning de forma assíncrona), `resolve_payment_request()` tenta resolver com um retry mínimo fixo (2 tentativas, 750ms) antes de desistir com `PayCryptoMePaymentException`.
 4. Constantes de protocolo que **não** passam pelo array `$args` (porque vivem só dentro do `BtcpayInvoiceService`, não em `base_invoice_args()`) precisam de filtro próprio dentro do service — ex: `paymentMethodId` (`paycryptome_lightning_btcpay_payment_method_id`, default configurável também via setting `btcpay_payment_method_id`) e `speedPolicy` (`paycryptome_lightning_btcpay_speed_policy`).
 
 **Regra geral:** antes de adicionar um filtro novo, veja se o valor já passa pelo `$args` de `base_invoice_args()`/`invoice_args_filter()` — só crie um filtro dedicado para valores que nunca chegam a esse array (constantes hardcoded dentro do service).
+
+### Renderização de order-details (compartilhada, desde a Fase 3+)
+
+`Abstract_WC_Gateway_PayCryptoMe` é dona de `render_admin_order_details_section()`/`render_checkout_order_details_section()`; cada gateway concreto só implementa o hook abstrato `build_order_display_args(\WC_Order $order): ?array` (guard de meta, rótulo de rede, valor/moeda cripto, confirmações — só o que difere entre On-Chain e Lightning). O `PaymentDisplayDataBuilder` compartilhado transforma esses args no array final consumido pelo template.
 
 ### Serviços principais
 
@@ -45,8 +49,11 @@ WC_Payment_Gateway (WooCommerce)
 | `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Gerar/validar endereços Bitcoin (p2pkh, p2sh-p2wpkh, p2wpkh) a partir de xpub/ypub/zpub |
 | `PayCryptoMeDBStatementsService` | `services/pay-crypto-me-db-statements-service.php` | CRUD nas 3 tabelas customizadas; usa `GET_LOCK` para reserva atômica de índice de derivação |
 | `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD em `paycrypto_me_lightning_invoices`: `insert_invoice`/`get_by_order_id` (cacheado)/`get_by_invoice_id` (sem cache, lookup pontual)/`update_status` (dispara `paycryptome_lightning_status_changed` em mudança real) |
-| `BtcpayInvoiceService` / `LndRestInvoiceService` | `services/class-btcpay-invoice-service.php` / `services/class-lnd-rest-invoice-service.php` | Criam/resolvem/checam invoices via REST (BTCPay ou lnd), implementam `LightningInvoiceServiceContract` |
+| `AbstractLightningInvoiceService` | `services/abstract-class-lightning-invoice-service.php` | Base dos 2 invoice services (desde a Fase 3+): construtor compartilhado (`HttpClientContract`, `WC_Payment_Gateway`) + `parse_response()`, parametrizada por `error_log_label()`/`payment_failed_message()` |
+| `BtcpayInvoiceService` / `LndRestInvoiceService` | `services/class-btcpay-invoice-service.php` / `services/class-lnd-rest-invoice-service.php` | Criam/resolvem/checam invoices via REST (BTCPay ou lnd), implementam `LightningInvoiceServiceContract`, extends `AbstractLightningInvoiceService`. O lnd fatora o manuseio de cert temp-file em `request_with_cert()` |
 | `LightningConnectionTester` | `services/class-lightning-connection-tester.php` | Testa conectividade BTCPay/lnd para os botões "Test connection" do admin (via `HttpClientContract`, nunca `wp_remote_get` direto) |
+| `PaymentDisplayDataBuilder` | `services/class-payment-display-data-builder.php` | Desde a Fase 3+: recebe `QrCodeService` no construtor, transforma o `build_order_display_args()` de cada gateway (hook abstrato) no array final de exibição (QR, expiry formatada, `crypto_label`) — consumido pelo template unificado de order-details, agora renderizado pela classe abstrata |
+| `LightningConfigValidator` | `validators/class-lightning-config-validator.php` | Desde a Fase 3+: lógica pura/stateless dos 9 `validate_*_field()` + decisão `is_lnd_rest_selected()` do gateway Lightning. O gateway mantém stubs públicos de 1 linha delegando aqui (exigido pelo dispatch `method_exists($this, 'validate_<key>_field')` do `WC_Settings_API`) |
 | `QrCodeService` | `services/class-qr-code-service.php` | Gerar QR code como data URI (usa `endroid/qr-code`) |
 | `AssetManager` | `utils/class-asset-manager.php` | Registrar scripts/styles dos blocos WooCommerce |
 

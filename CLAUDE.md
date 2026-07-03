@@ -10,6 +10,7 @@ Detailed context is split into topic files under `.claude/memory/`:
 - [dev-workflow.md](.claude/memory/dev-workflow.md) — build JS, PHPUnit, traduções, release, Docker, dependências Composer forked
 - [user-lucas.md](.claude/memory/user-lucas.md) — perfil do autor/mantenedor
 - [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) — auditoria SOLID/DRY e de cobertura de testes, com roteiro faseado de remediação (testes críticos antes de quebrar as god classes)
+- [docs/adding-a-new-gateway.md](docs/adding-a-new-gateway.md) — checklist mecânico para implementar um terceiro gateway (registro no bootstrap, métodos abstratos obrigatórios, dispatch do processor, persistência, validação de settings, blocos Gutenberg, testes)
 
 ---
 
@@ -38,8 +39,9 @@ paycrypto-me-for-woocommerce/
 │   │   │   ├── js/paycrypto_me-blocks.js              ← JS SOURCE (edit here)
 │   │   │   └── js/paycrypto_me_lightning-blocks.js    ← JS SOURCE (edit here)
 │   │   ├── processors/           ← payment processor classes
-│   │   ├── services/             ← BitcoinAddressService, QrCodeService, DBStatementsService
-│   │   ├── strategies/           ← ProcessorStrategiesFactory (maps gateway id → processor)
+│   │   ├── services/             ← BitcoinAddressService, QrCodeService, DBStatementsService, PaymentDisplayDataBuilder, invoice services
+│   │   ├── strategies/           ← ProcessorStrategiesFactory (composition root: wires processors + their services via DI)
+│   │   ├── validators/           ← LightningConfigValidator
 │   │   └── utils/class-asset-manager.php
 │   ├── assets/                   ← compiled/static assets (do NOT edit JS/CSS here directly)
 │   │   └── blocks/               ← webpack output from includes/blocks/js/
@@ -74,9 +76,9 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
 ### Payment flow (On-Chain, fully implemented)
 
 1. `WC_Gateway_PayCryptoMe::process_payment($order_id)` → `PaymentProcessor::process_payment()`
-2. `PaymentProcessor` validates order + gateway, fires hooks, calls `ProcessorStrategiesFactory::create($gateway)`
-3. Factory maps `paycrypto_me` → `BitcoinProcessorStrategiesFactory` → `BitcoinPaymentProcessor`
-4. `BitcoinPaymentProcessor::process()`:
+2. `PaymentProcessor` validates order + gateway (via `PaymentOrderValidator`), fires hooks, calls `ProcessorStrategiesFactory::create($gateway)`
+3. Factory maps `paycrypto_me` → `BitcoinProcessorStrategiesFactory`, which is the **composition root**: builds `new BitcoinPaymentProcessor($gateway, new BitcoinAddressService(), new PayCryptoMeDBStatementsService())`. The processor's constructor params are nullable with an internal `new Service()` fallback, so `new BitcoinPaymentProcessor($gateway)` still works — the factory is just where real wiring happens.
+4. `BitcoinPaymentProcessor::process()` (split into `resolve_bitcoin_network()` → `resolve_derived_address()` → `build_payment_uri()`):
    - Static address in `network_identifier` → uses it directly
    - xPub/ypub/zpub → `BitcoinAddressService::generate_address_from_xPub()` with an auto-incremented derivation index
    - Index reservation uses `GET_LOCK` / `RELEASE_LOCK` for atomicity
@@ -86,13 +88,17 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
 ### Payment flow (Lightning, fully implemented)
 
 1. `WC_Gateway_PayCryptoMe_Lightning::process_payment($order_id)` → `PaymentProcessor::process_payment()` → `ProcessorStrategiesFactory::create($gateway)`
-2. Factory maps `paycrypto_me_lightning` → `LightningProcessorStrategiesFactory`, which routes by the `node_type` setting (`btcpay` or `lnd_rest`) to `BtcpayLightningProcessor` or `LndRestLightningProcessor` — both extend `AbstractLightningProcessor`
+2. Factory maps `paycrypto_me_lightning` → `LightningProcessorStrategiesFactory` (composition root), which routes by the `node_type` setting (`btcpay` or `lnd_rest`) and builds `new BtcpayLightningProcessor($gateway, new BtcpayInvoiceService($http, $gateway), $db)` or the lnd equivalent — both processors extend `AbstractLightningProcessor`. Same nullable-with-fallback constructor pattern as the Bitcoin side.
 3. `AbstractLightningProcessor::process()` (template method, `final`):
    - Builds invoice args (order_id, memo, expiry + `base_invoice_args($order)`), applies `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args`
-   - Calls `$this->service->create_invoice($args)` — service is `BtcpayInvoiceService` or `LndRestInvoiceService`, both implementing `LightningInvoiceServiceContract`
+   - Calls `$this->service->create_invoice($args)` — service is `BtcpayInvoiceService` or `LndRestInvoiceService`, both extending `AbstractLightningInvoiceService` (shared constructor + `parse_response()`) and implementing `LightningInvoiceServiceContract`
    - If `payment_request` comes back empty (BTCPay may generate the BOLT11 asynchronously), `resolve_payment_request()` retries a fixed 2 times with 750ms delay before giving up with `PayCryptoMePaymentException`
    - Persists the invoice via `PayCryptoMeLightningDBStatementsService`
 4. `PaymentProcessor` saves order meta and sets status to `pending`, same as On-Chain
+
+### Order-details rendering (shared between gateways)
+
+`Abstract_WC_Gateway_PayCryptoMe` owns `render_admin_order_details_section()`/`render_checkout_order_details_section()`; each gateway only implements the abstract `build_order_display_args(\WC_Order $order): ?array` hook (guard-meta check, network label, crypto amount/currency, confirmations required — the parts that actually differ). The shared `PaymentDisplayDataBuilder` (constructor-injected with `QrCodeService`) turns those args into the final display array (QR code, formatted expiry, `crypto_label`) consumed by `templates/order-details/paycrypto-me-order-details.php`.
 
 ### Custom DB tables (created on plugin activation)
 
@@ -109,8 +115,12 @@ All prefixed with `{$wpdb->prefix}`:
 | `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Generate/validate Bitcoin addresses (p2pkh, p2sh-p2wpkh, p2wpkh) from xpub/ypub/zpub using `bitwasp/bitcoin` |
 | `PayCryptoMeDBStatementsService` | `services/pay-crypto-me-db-statements-service.php` | CRUD on the 3 On-Chain custom tables; atomic index reservation via MySQL advisory lock |
 | `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD on `paycrypto_me_lightning_invoices` (insert/update status/lookup by order or by invoice id) |
+| `AbstractLightningInvoiceService` | `services/abstract-class-lightning-invoice-service.php` | Base for the two Lightning invoice services: shared constructor (`HttpClientContract`, `WC_Payment_Gateway`) + `parse_response()`, parameterized by `error_log_label()`/`payment_failed_message()` |
 | `BtcpayInvoiceService` | `services/class-btcpay-invoice-service.php` | Creates/resolves/checks BTCPay Server invoices via REST |
-| `LndRestInvoiceService` | `services/class-lnd-rest-invoice-service.php` | Creates/checks lnd invoices via its REST API (macaroon auth, optional TLS cert) |
+| `LndRestInvoiceService` | `services/class-lnd-rest-invoice-service.php` | Creates/checks lnd invoices via its REST API (macaroon auth, optional TLS cert via `request_with_cert()`) |
+| `LightningConnectionTester` | `services/class-lightning-connection-tester.php` | Backs the admin "Test connection" AJAX buttons for BTCPay/lnd (via `HttpClientContract`, never `wp_remote_get` directly) |
+| `PaymentDisplayDataBuilder` | `services/class-payment-display-data-builder.php` | Turns a gateway's `build_order_display_args()` output into the final order-details display array (QR, formatted expiry, `crypto_label`) — shared by both gateways' render methods on the abstract class |
+| `LightningConfigValidator` | `validators/class-lightning-config-validator.php` | Pure/stateless validation logic for the Lightning gateway's 9 `validate_*_field()` settings + `is_lnd_rest_selected()` decision. The gateway keeps one-line public stubs delegating here (required for WooCommerce's `method_exists($this, 'validate_<key>_field')` dispatch) |
 | `QrCodeService` | `services/class-qr-code-service.php` | Generate QR code as data URI (uses `endroid/qr-code`) |
 | `AssetManager` | `utils/class-asset-manager.php` | Register WooCommerce Gutenberg block scripts/styles |
 
@@ -188,7 +198,7 @@ None currently. The Lightning Gutenberg blocks (`includes/blocks/js/paycrypto_me
 
 ### Known architectural debt
 
-See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a full SOLID/DRY audit and test-coverage gap analysis. Phases 0–2 are done (173 tests, 0 errors; high-value extractions — `LightningConnectionTester`, `PaymentOrderValidator`, `QrCodeService` DI — landed). The 2 premium add-on seams (`get_by_invoice_id()` and the `paycryptome_lightning_status_changed` action, see the services table and "Public hooks" above) that gated Phase 3+ are also done. Highlights of what remains: `WC_Gateway_PayCryptoMe_Lightning` (523 lines) and `PaymentProcessor` (235 lines) are still god classes slated for a phased breakup (Phase 3+, now ungated and ready to start whenever prioritized).
+See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a full SOLID/DRY audit and test-coverage gap analysis. Phases 0–2 are done, and **Phase 3+ (the god-class breakup) has now executed** (2026-07-03) — **218 tests, 0 errors** (up from 173). Landed: `PaymentProcessor` singleton/dead-code cleanup, `PaymentDisplayDataBuilder` (DRY between gateways' order-details rendering), `AbstractLightningInvoiceService` (DRY between BTCPay/lnd invoice services), constructor DI on all 3 processors (composition root moved to the two `*ProcessorStrategiesFactory` classes), and `LightningConfigValidator` (extracted from the Lightning gateway, which kept public one-line stubs for WooCommerce's settings-field dispatch). Line counts dropped accordingly: `WC_Gateway_PayCryptoMe_Lightning` 647→438, `PaymentProcessor` 280→206. Deliberately deferred as low-priority follow-ups (low value relative to churn, zero test coverage as views/config): `init_form_fields()` (Lightning, ~114 lines) and `enqueue_checkout_styles()` (abstract gateway, ~49 lines) long-method cleanup, plus moving the Lightning gateway's 3 HTML generator methods (`generate_node_type_html`/`generate_btcpay_test_button_html`/`generate_lnd_test_button_html`) to a render helper. **Outstanding before Phase 3+ can be marked fully closed:** manual smoke test (On-Chain static + xPub, Lightning BTCPay, express on both) — see the plan doc's exit criteria.
 
 ---
 
