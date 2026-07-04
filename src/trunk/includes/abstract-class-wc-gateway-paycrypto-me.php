@@ -241,7 +241,7 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                     'title' => __('Debug', 'paycrypto-me-for-woocommerce'),
                     'label' => __('Enable debugging messages', 'paycrypto-me-for-woocommerce'),
                     'type' => 'checkbox',
-                    'default' => 'yes',
+                    'default' => 'no',
                     'description' => __('Debug logs will be saved to WooCommerce > Status > Logs.', 'paycrypto-me-for-woocommerce'),
                 ),
                 'paycrypto_me_donate' => array(

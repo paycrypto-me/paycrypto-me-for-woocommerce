@@ -13,12 +13,12 @@
 | 2 | Cabeçalho do plugin / `readme.txt` — metadados | 0/7 |
 | 3 | Traduções — regenerar catálogo e completar 7 locales | 0/6 |
 | 4 | Documentar persistência de dados na desinstalação | 0/1 |
-| 5 | `debug_log` default `yes` → `no` | 0/3 |
+| 5 | `debug_log` default `yes` → `no` | 3/3 ✅ |
 | 6 | Guia de captura de screenshots | 0/2 |
 | 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 0/2 |
 | 8 | Fechamento do plano | 0/2 |
 | 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
-| **Total** | | **10/33** |
+| **Total** | | **13/33** |
 
 > ⚠️ O passo 9 foi achado via teste manual em 2026-07-04, depois do plano original — é bug
 > funcional com risco de pagamento duplo (não só metadados/conteúdo). Recomenda-se priorizá-lo
@@ -68,11 +68,18 @@
       tabelas customizadas e as configurações dos gateways **permanecem** após desinstalar —
       nenhum texto sobre isso existe hoje no `readme.txt`. (Sem código novo — decisão já tomada.)
 
-### 5. Mudar o default de `debug_log` para `no`
-- [ ] Trocar `'default' => 'yes'` para `'no'` em
-      `src/trunk/includes/abstract-class-wc-gateway-paycrypto-me.php:244` — **ainda `'yes'`**.
-- [ ] Conferir se `OrderDisplayArgsTest.php` ou outros testes assumem o default antigo.
-- [ ] Atualizar changelog do `readme.txt` se fizer sentido mencionar a mudança de comportamento.
+### 5. Mudar o default de `debug_log` para `no` ✅ concluído
+- [x] Trocado `'default' => 'yes'` para `'no'` em
+      `src/trunk/includes/abstract-class-wc-gateway-paycrypto-me.php:244` (mudança já presente no
+      working tree, não commitada ainda — ver fechamento no passo 8). Afeta os dois gateways, já
+      que o campo é definido na classe abstrata compartilhada.
+- [x] Conferido: nenhum teste em `src/trunk/tests/` referencia `debug_log` — nenhum ajuste
+      necessário (`grep -rn debug_log src/trunk/tests/` sem resultados).
+- [x] Changelog do `readme.txt` (`== Changelog ==`, `= 0.1.0 =`) não precisa de menção — é o
+      release inicial (não há comportamento anterior publicado para contrastar); o default `no`
+      já nasce como o comportamento documentado da v0.1.0.
+- [x] Suíte PHPUnit completa rodada após a mudança — **232 tests, 515 assertions, OK** (mesmo
+      resultado de antes, confirmando que nada depende do default antigo).
 
 ### 6. Guia de captura de screenshots (execução manual do usuário)
 - [ ] Preparar o guia (página/URL, estado prévio, orientação/dimensão) para as 6 imagens listadas
@@ -129,7 +136,7 @@
 - [ ] `npm run build` sem erros (não rodado nesta sessão).
 - [ ] `License:` e `Donate link:` decididos e sem divergência entre `readme.txt` e o cabeçalho.
 - [ ] `readme.txt` com `== Privacy ==` e contagem de screenshots batendo com os arquivos reais.
-- [ ] `debug_log` com default `no`, sem quebrar testes existentes.
+- [x] `debug_log` com default `no`, sem quebrar testes existentes (confirmado — ver passo 5).
 - [ ] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
       `docs/TRANSLATION.md` corrigido.
 - [ ] `docs/RELEASE.md` com a subseção nova de envio de `src/assets/` ao SVN.

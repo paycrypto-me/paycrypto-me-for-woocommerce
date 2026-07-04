@@ -199,16 +199,19 @@ Diretório: `src/trunk/languages/`. Scripts existentes: `npm run translate:pot`,
 - Nenhuma mudança de código nesta etapa — decisão consciente de não implementar
   `uninstall.php`/`register_uninstall_hook` agora.
 
-### 5. Mudar o default de `debug_log` para `no`
+### 5. Mudar o default de `debug_log` para `no` ✅ concluído (2026-07-04)
 Arquivo: `src/trunk/includes/abstract-class-wc-gateway-paycrypto-me.php` (campo `debug_log`
-dentro de `init_form_fields()`, hoje `'default' => 'yes'`).
+dentro de `init_form_fields()`).
 
-- Trocar o default do campo de `yes` para `no` — afeta ambos os gateways, já que o campo é
-  definido na classe abstrata compartilhada.
-- Conferir se algum teste (`OrderDisplayArgsTest.php` ou outros) assume o default antigo e
-  ajustar se necessário.
-- Atualizar a descrição do campo/changelog do `readme.txt` se fizer sentido mencionar essa
-  mudança de comportamento (é um comportamento novo em relação ao que estava documentado).
+- Default trocado de `'yes'` para `'no'` (linha 244) — afeta ambos os gateways, já que o campo
+  é definido na classe abstrata compartilhada. Mudança presente no working tree, ainda não
+  commitada (será incluída no commit de fechamento do passo 8).
+- Confirmado: nenhum teste em `src/trunk/tests/` referencia `debug_log` — nada para ajustar.
+- Changelog do `readme.txt` não precisa de menção: `= 0.1.0 =` é o release inicial, então não há
+  comportamento publicado anteriormente para contrastar — o default `no` já é o comportamento
+  documentado da própria v0.1.0.
+- Suíte PHPUnit completa rodada após a mudança: **232 tests, 515 assertions, OK** (mesmo
+  resultado de antes da mudança, confirmando que nada dependia do default antigo).
 
 ### 6. Guia de captura de screenshots (para o usuário executar manualmente)
 Preparar um guia separado e objetivo com, para cada uma das 6 imagens referenciadas hoje no
