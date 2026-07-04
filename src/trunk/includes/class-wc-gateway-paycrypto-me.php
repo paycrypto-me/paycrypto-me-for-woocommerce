@@ -211,7 +211,7 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
     {
         $payment_address = $order->get_meta('_paycrypto_me_payment_address');
 
-        if (!$payment_address) {
+        if (!$payment_address || !OrderGatewayMatcher::matches($order, $this->id)) {
             return null;
         }
 

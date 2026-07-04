@@ -34,7 +34,9 @@ Plugin WordPress GPL-3.0 que adiciona gateways de pagamento em Bitcoin ao WooCom
 
 **Como as coisas se ligam:**
 - `WC_PayCryptoMe` (singleton) registra gateways via `woocommerce_payment_gateways`, inclui arquivos de classe e carrega suporte a blocos.
-- Ativação do plugin cria as tabelas via `PayCryptoMeBitcoinGatewayActivate::activate`.
+- Ativação do plugin cria as tabelas via `PayCryptoMeBitcoinGatewayActivate::activate` (3 tabelas
+  On-Chain) e `PayCryptoMeLightningGatewayActivate::activate` (tabela de invoices Lightning) — as
+  duas registradas via `register_activation_hook` em `paycrypto-me-for-woocommerce.php`.
 
 **Why:** Manter esta memória ajuda futuros agentes a não confundir arquivos compilados com fontes editáveis, e a entender que o plugin tem dois gateways completamente separados com lógicas distintas.
 

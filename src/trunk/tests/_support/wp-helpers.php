@@ -185,5 +185,6 @@ if (!class_exists('WC_Order')) {
         public function get_currency() { return 'USD'; }
         public function get_meta($key, $single = true, $context = 'view') { return ''; }
         public function get_date_created() { return null; }
+        public function get_payment_method() { return ''; }
     }
 }

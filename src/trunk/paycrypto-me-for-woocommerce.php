@@ -39,6 +39,7 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
         {
             $this->includes();
             add_filter('woocommerce_payment_gateways', [__CLASS__, 'add_gateway']);
+            add_filter('woocommerce_available_payment_gateways', [AvailablePaymentGatewaysFilter::class, 'filter']);
             add_action('before_woocommerce_init', [$this, 'declare_wc_compatibility']);
             add_action('woocommerce_blocks_loaded', [$this, 'load_blocks_support']);
         }

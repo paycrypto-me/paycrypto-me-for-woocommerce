@@ -44,7 +44,9 @@ Botão de compra rápida ("Buy with…") disponível para os dois gateways: sett
 
 ### Renderização de order-details (compartilhada)
 
-`Abstract_WC_Gateway_PayCryptoMe` é dona de `render_admin_order_details_section()`/`render_checkout_order_details_section()`; cada gateway concreto só implementa o hook abstrato `build_order_display_args(\WC_Order $order): ?array` (guard de meta, rótulo de rede, valor/moeda cripto, confirmações — só o que difere entre On-Chain e Lightning). O `PaymentDisplayDataBuilder` compartilhado transforma esses args no array final consumido pelo template.
+`Abstract_WC_Gateway_PayCryptoMe` é dona de `render_admin_order_details_section()`/`render_checkout_order_details_section()`; cada gateway concreto só implementa o hook abstrato `build_order_display_args(\WC_Order $order): ?array` (guard de meta + guard de gateway atual, rótulo de rede, valor/moeda cripto, confirmações — só o que difere entre On-Chain e Lightning). O `PaymentDisplayDataBuilder` compartilhado transforma esses args no array final consumido pelo template.
+
+O guard de `build_order_display_args()` exige tanto a presença da própria meta (`_paycrypto_me_payment_address` / `_paycrypto_me_payment_request`) quanto `OrderGatewayMatcher::matches($order, $this->id)` (aceita o id puro ou a variante `{id}_express` do botão de compra rápida) — sem essa segunda checagem, um pedido reprocessado com o outro gateway do plugin acabava exibindo as duas seções de pagamento ao mesmo tempo (risco de pagamento duplo). O filtro `AvailablePaymentGatewaysFilter` (hook `woocommerce_available_payment_gateways`, registrado em `WC_PayCryptoMe::__construct()`) complementa isso escondendo o gateway alternativo em "Pay for order" assim que o pedido já tiver meta de um dos dois — impede a troca de trilho de pagamento, não só a duplicidade visual.
 
 ### Serviços principais
 
@@ -60,13 +62,18 @@ Botão de compra rápida ("Buy with…") disponível para os dois gateways: sett
 | `LightningConfigValidator` | `validators/class-lightning-config-validator.php` | Lógica pura/stateless dos 9 `validate_*_field()` + decisão `is_lnd_rest_selected()` do gateway Lightning. O gateway mantém stubs públicos de 1 linha delegando aqui (exigido pelo dispatch `method_exists($this, 'validate_<key>_field')` do `WC_Settings_API`) |
 | `QrCodeService` | `services/class-qr-code-service.php` | Gerar QR code como data URI (usa `endroid/qr-code`) |
 | `AssetManager` | `utils/class-asset-manager.php` | Registrar scripts/styles dos blocos WooCommerce |
+| `OrderGatewayMatcher` | `utils/class-order-gateway-matcher.php` | Helper puro: `$order->get_payment_method()` bate com um dado gateway id (aceitando a variante `{id}_express`)? Usado por `PaymentOrderValidator` e pelo guard de `build_order_display_args()` dos dois gateways |
+| `AvailablePaymentGatewaysFilter` | `class-available-payment-gateways-filter.php` | Filtra `woocommerce_available_payment_gateways` para esconder o gateway PayCryptoMe alternativo em "Pay for order" quando o pedido já tem meta de um dos dois — impede troca de trilho de pagamento |
 
 ### Tabelas no banco de dados
 
-Prefixo `{$wpdb->prefix}`:
+Prefixo `{$wpdb->prefix}`, criadas na ativação via `register_activation_hook` de
+`PayCryptoMeBitcoinGatewayActivate::activate` (3 primeiras) e
+`PayCryptoMeLightningGatewayActivate::activate` (última):
 - `paycrypto_me_bitcoin_wallet_xpubkeys` — xpubs cadastrados (id, xpub, network)
 - `paycrypto_me_bitcoin_derivation_indexes` — índices reservados por carteira (derivation_index, wallet_xpubkeys_id)
 - `paycrypto_me_bitcoin_transactions_data` — endereço gerado por pedido (order_id, payment_address, derivation_index_id, wallet_xpubkeys_id)
+- `paycrypto_me_lightning_invoices` — invoice Lightning por pedido (order_id, node_type, invoice_id, payment_request, status, expires_at, amount_sats)
 
 ### Blocos WooCommerce (Gutenberg)
 

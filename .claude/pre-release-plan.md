@@ -297,22 +297,33 @@ inconsistência que não deveria existir.
   `order-pay` — o WooCommerce oferece normalmente os dois gateways do plugin ao reabrir o
   pagamento de um pedido pendente.
 
-**Ações propostas (decidir escopo antes de implementar):**
-1. **Fix mínimo (obrigatório):** em `build_order_display_args()` de cada gateway, além do guard
-   de meta, exigir também `$order->get_payment_method() === $this->id` — garante que só a seção
-   do gateway *atualmente selecionado* no pedido apareça, mesmo que sobre meta órfão do outro
-   gateway de uma tentativa anterior.
-2. **Fix estrutural (avaliar, previne o pagamento duplo em si, não só a duplicidade visual):**
-   usar `woocommerce_available_payment_gateways` para esconder o(s) gateway(s) PayCryptoMe do
-   checkout de "Pay for order" quando o pedido já tiver meta de pagamento de qualquer um dos dois
-   gateways do plugin — impede a troca de trilho de pagamento no meio do fluxo.
-3. **Avaliar (opcional):** limpar o meta do gateway anterior quando um reprocessamento genuíno
-   do mesmo gateway acontece (não necessariamente ao trocar de gateway) — decidir se está dentro
-   do escopo deste plano ou se é cenário raro demais para justificar código extra agora.
-4. Adicionar teste(s) cobrindo: pedido com meta dos dois gateways não deve renderizar as duas
-   seções (cobre a decisão 1); e, se a decisão 2 for adotada, pedido com meta de um gateway não
-   deve mais oferecer o outro no "Pay for order".
-5. Rodar a suíte PHPUnit completa após a correção.
+**Escopo decidido com o mantenedor (sessão de 2026-07-04) e implementado:**
+1. **Fix de render (obrigatório, cobre inclusive pedidos legados):** `build_order_display_args()`
+   de cada gateway agora exige, além do guard de meta, `OrderGatewayMatcher::matches($order,
+   $this->id)` — novo helper puro (`includes/utils/class-order-gateway-matcher.php`) que aceita
+   tanto `$this->id` quanto a variante `{id}_express` do botão de compra rápida (mesma regra já
+   usada por `PaymentOrderValidator`, agora compartilhada num único ponto para não driftar).
+   `PaymentOrderValidator::validate_order()` foi refatorado para usar o mesmo helper.
+2. **Fix estrutural (adotado, previne a troca de trilho em si, não só a duplicidade visual):**
+   novo `includes/class-available-payment-gateways-filter.php`
+   (`AvailablePaymentGatewaysFilter`), registrado em `WC_PayCryptoMe::__construct()` via
+   `woocommerce_available_payment_gateways`, esconde o gateway PayCryptoMe alternativo em
+   "Pay for order" quando o pedido já tem meta de pagamento de um dos dois. Lógica de decisão
+   isolada em `AvailablePaymentGatewaysFilter::apply()` (pura, sem tocar em funções do WP) para
+   ficar testável sem shims; `filter()` é só o wrapper fino que resolve o pedido atual via
+   `is_wc_endpoint_url('order-pay')` + `get_query_var('order-pay')` + `wc_get_order()`.
+   **Limitação conhecida e aceita:** se um pedido já tiver as duas metas (só possível em pedidos
+   criados antes deste fix), nenhum gateway é escondido — caso raro, tratado manualmente pelo
+   admin, não autocorrigido.
+3. **Decisão confirmada: não implementar limpeza automática de meta do gateway anterior.** O meta
+   órfão de tentativas anteriores permanece no pedido (dado histórico); os fixes 1 e 2 já
+   previnem tanto a duplicidade visual quanto o pagamento duplo daqui para frente.
+4. Testes adicionados: `OrderGatewayMatcherTest.php` (novo), `AvailablePaymentGatewaysFilterTest.php`
+   (novo), e `OrderDisplayArgsTest.php` estendido com casos de mismatch de `payment_method`
+   (cobre o cenário exato do bug: pedido com meta de um gateway mas `payment_method` do outro não
+   deve renderizar) e da variante `_express` (evita regressão no Express Checkout).
+   `tests/_support/wp-helpers.php` ganhou `get_payment_method()` no shim `WC_Order`.
+5. Suíte PHPUnit completa rodada após a correção — ver `pre-release-progress.md`.
 
 ## Verificação final (escopo deste plano — antes de seguir para `docs/RELEASE.md`)
 - Suíte PHPUnit 100% verde (rodar via Docker), confirmando inclusive a correção do

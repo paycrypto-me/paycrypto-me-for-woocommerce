@@ -39,12 +39,11 @@ class PaymentOrderValidator
         }
 
         // Accept the gateway's own ID or the express block variant (gateway_id . '_express').
-        $order_payment_method = $order->get_payment_method();
-        if ($order_payment_method !== $gateway->id && $order_payment_method !== $gateway->id . '_express') {
+        if (!OrderGatewayMatcher::matches($order, $gateway->id)) {
             throw new \InvalidArgumentException(
                     \sprintf(
                         'Payment method (%s) of order #%s is incompatible to payment gateway (%s).',
-                        esc_html( (string) $order_payment_method ),
+                        esc_html( (string) $order->get_payment_method() ),
                         esc_html( (string) $order->get_id() ),
                         esc_html( (string) $gateway->id )
                     ) );

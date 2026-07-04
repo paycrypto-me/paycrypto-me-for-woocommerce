@@ -332,7 +332,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
     {
         $payment_request = $order->get_meta('_paycrypto_me_payment_request');
 
-        if (!$payment_request) {
+        if (!$payment_request || !OrderGatewayMatcher::matches($order, $this->id)) {
             return null;
         }
 

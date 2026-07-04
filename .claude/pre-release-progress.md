@@ -17,8 +17,8 @@
 | 6 | Guia de captura de screenshots | 0/2 |
 | 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 0/2 |
 | 8 | Fechamento do plano | 0/2 |
-| 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 0/6 |
-| **Total** | | **2/31** |
+| 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
+| **Total** | | **10/33** |
 
 > ⚠️ O passo 9 foi achado via teste manual em 2026-07-04, depois do plano original — é bug
 > funcional com risco de pagamento duplo (não só metadados/conteúdo). Recomenda-se priorizá-lo
@@ -101,21 +101,31 @@
 > mostrando endereço on-chain E invoice Lightning ao mesmo tempo — risco de pagamento duplo, não
 > só bug visual.
 
-- [ ] Decidir escopo do fix: só corrigir a renderização (mínimo) ou também impedir a troca de
-      gateway via `woocommerce_available_payment_gateways` (estrutural, previne o pagamento
-      duplo em si).
-- [ ] Corrigir o guard de `build_order_display_args()` nos dois gateways para exigir também
-      `$order->get_payment_method() === $this->id`.
-- [ ] (se decidido) Implementar filtro `woocommerce_available_payment_gateways` escondendo o
-      gateway alternativo quando o pedido já tiver meta de pagamento de qualquer um dos dois.
-- [ ] (se decidido) Avaliar limpeza do meta do gateway anterior em reprocessamento.
-- [ ] Adicionar teste(s) cobrindo o cenário de dupla seção / troca de gateway.
-- [ ] Rodar suíte PHPUnit completa após a correção.
+- [x] Decidir escopo do fix — confirmado com o mantenedor: guard de render + filtro estrutural
+      (não só o mínimo); limpeza automática de meta do gateway anterior **não** será implementada.
+- [x] Novo helper `OrderGatewayMatcher::matches()` (`includes/utils/class-order-gateway-matcher.php`)
+      e `PaymentOrderValidator` refatorado para usá-lo.
+- [x] Guard de `build_order_display_args()` nos dois gateways exige também
+      `OrderGatewayMatcher::matches($order, $this->id)`.
+- [x] Filtro `woocommerce_available_payment_gateways` implementado
+      (`includes/class-available-payment-gateways-filter.php`, `AvailablePaymentGatewaysFilter`)
+      e registrado em `WC_PayCryptoMe::__construct()`.
+- [x] Confirmado: limpeza de meta do gateway anterior fica fora de escopo (decisão do mantenedor).
+- [x] Testes adicionados: `OrderGatewayMatcherTest.php`, `AvailablePaymentGatewaysFilterTest.php`,
+      `OrderDisplayArgsTest.php` estendido (mismatch de `payment_method` + variante `_express`),
+      shim `WC_Order::get_payment_method()` adicionado em `tests/_support/wp-helpers.php`.
+- [x] Rodar suíte PHPUnit completa após a correção — 232 testes, 515 assertions, 0 erros (era
+      218/495 antes; +14 testes novos/estendidos deste passo).
+- [x] Verificação manual fim-a-fim (ver `pre-release-plan.md` § passo 9 / verificação final) —
+      confirmada pelo usuário: pedido pago via um gateway não oferece mais o outro em
+      "Pay for order"; pedido legado com as duas metas mostra só a seção do gateway atual;
+      pedido pago via Express continua exibindo a seção normalmente.
 
 ---
 
 ## Verificação final (antes de seguir para `docs/RELEASE.md`)
-- [x] Suíte PHPUnit 100% verde (218/218, confirmado nesta sessão).
+- [x] Suíte PHPUnit 100% verde (232/232, confirmado nesta sessão — subiu de 218 após o fix do
+      passo 9).
 - [ ] `npm run build` sem erros (não rodado nesta sessão).
 - [ ] `License:` e `Donate link:` decididos e sem divergência entre `readme.txt` e o cabeçalho.
 - [ ] `readme.txt` com `== Privacy ==` e contagem de screenshots batendo com os arquivos reais.
