@@ -1,9 +1,9 @@
 <?php
 // Minimal WP helper fallbacks for unit tests (global namespace)
 
-// apply_filters()/do_action() stay no-ops (no real filter/action dispatch — that
-// remains out of scope, see docs/architecture-audit-plan.md), but every call is
-// recorded so tests can assert a hook fired without a full WP hook system.
+// apply_filters()/do_action() stay no-ops (no real filter/action dispatch — deliberately
+// out of scope), but every call is recorded so tests can assert a hook fired without a
+// full WP hook system.
 // Query via hook_spy_calls()/hook_spy_reset() below instead of poking the global.
 if (!function_exists('apply_filters')) {
     function apply_filters($tag, $value, ...$args) {

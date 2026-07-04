@@ -5,11 +5,9 @@
 Detailed context is split into topic files under `.claude/memory/`:
 
 - [project-overview.md](.claude/memory/project-overview.md) — propósito, dois gateways, stack, estrutura de pastas
-- [architecture.md](.claude/memory/architecture.md) — hierarquia de classes, fluxo On-Chain, serviços, tabelas DB, blocos Gutenberg, hooks
-- [project-wip.md](.claude/memory/project-wip.md) — Lightning core implementado (M1–M5); webhook REST e conversão fiat→sats reservados de propósito para o add-on premium (não são WIP)
+- [architecture.md](.claude/memory/architecture.md) — hierarquia de classes, fluxo On-Chain e Lightning, serviços, tabelas DB, blocos Gutenberg, hooks
 - [dev-workflow.md](.claude/memory/dev-workflow.md) — build JS, PHPUnit, traduções, release, Docker, dependências Composer forked
 - [user-lucas.md](.claude/memory/user-lucas.md) — perfil do autor/mantenedor
-- [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) — auditoria SOLID/DRY e de cobertura de testes, com roteiro faseado de remediação (testes críticos antes de quebrar as god classes)
 - [docs/adding-a-new-gateway.md](docs/adding-a-new-gateway.md) — checklist mecânico para implementar um terceiro gateway (registro no bootstrap, métodos abstratos obrigatórios, dispatch do processor, persistência, validação de settings, blocos Gutenberg, testes)
 
 ---
@@ -18,9 +16,11 @@ Detailed context is split into topic files under `.claude/memory/`:
 
 WordPress plugin (GPL-3.0) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.1.0**. Author: Lucas Rosa (lucas.rosa95br@gmail.com).
 
-**Two registered gateways:**
-- `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet). **Fully functional.**
-- `paycrypto_me_lightning` — Bitcoin Lightning Network (BTCPay Server or lnd REST). **Core invoice flow fully implemented** (invoice creation, resolution, persistence, order-details rendering). Remaining gaps: webhook REST endpoint for async status updates, fiat→sats conversion — see "What is NOT yet implemented" below.
+**Two registered gateways, both fully functional:**
+- `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).
+- `paycrypto_me_lightning` — Bitcoin Lightning Network (BTCPay Server or lnd REST): invoice creation, resolution, persistence, order-details rendering.
+
+Async webhook status updates and fiat→sats conversion are deliberately out of scope for this free plugin — see "Premium add-on" below.
 
 ---
 
@@ -73,7 +73,7 @@ WC_Payment_Gateway  (WooCommerce core)
 
 Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `includes/` and `exceptions/`.
 
-### Payment flow (On-Chain, fully implemented)
+### Payment flow (On-Chain)
 
 1. `WC_Gateway_PayCryptoMe::process_payment($order_id)` → `PaymentProcessor::process_payment()`
 2. `PaymentProcessor` validates order + gateway (via `PaymentOrderValidator`), fires hooks, calls `ProcessorStrategiesFactory::create($gateway)`
@@ -85,7 +85,7 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
    - Persists via `PayCryptoMeDBStatementsService`
 5. `PaymentProcessor` saves `_paycrypto_me_*` order meta and sets status to `pending`
 
-### Payment flow (Lightning, fully implemented)
+### Payment flow (Lightning)
 
 1. `WC_Gateway_PayCryptoMe_Lightning::process_payment($order_id)` → `PaymentProcessor::process_payment()` → `ProcessorStrategiesFactory::create($gateway)`
 2. Factory maps `paycrypto_me_lightning` → `LightningProcessorStrategiesFactory` (composition root), which routes by the `node_type` setting (`btcpay` or `lnd_rest`) and builds `new BtcpayLightningProcessor($gateway, new BtcpayInvoiceService($http, $gateway), $db)` or the lnd equivalent — both processors extend `AbstractLightningProcessor`. Same nullable-with-fallback constructor pattern as the Bitcoin side.
@@ -160,7 +160,7 @@ composer install
 ./vendor/bin/phpunit
 ```
 
-Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`.
+Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`. Current suite: 218 tests, 0 errors.
 
 ### Translations
 
@@ -180,25 +180,28 @@ Running `composer install` in a fresh environment requires access to these GitHu
 
 ---
 
-## Scope boundaries: premium roadmap vs. active WIP
+## Premium add-on: scope boundaries and extension points
 
-The Lightning invoice flow itself (BTCPay + lnd REST, creation/resolution/persistence/order-details rendering) is **done** — see "Payment flow (Lightning, fully implemented)" above. Two capabilities are **intentionally absent from this free version and reserved for a future premium/freemium tier** — they are deliberate product-scope decisions, **not development gaps**. Do not treat them as unfinished work or "fix" them into the free version.
+Two capabilities are **intentionally absent from this free plugin and reserved for a separate premium add-on plugin** — deliberate product-scope decisions, not development gaps. Do not treat them as unfinished work or "fix" them into the free version.
 
-### Reserved for the premium/freemium version (intentional, NOT a gap)
+- **Webhook REST endpoint + async status updates.** The Lightning settings UI references `rest_url('paycrypto-me/v1/webhook')`, but there is deliberately no `register_rest_route()` here. Automatic/async invoice-status confirmation (BTCPay webhook push; lnd polling via `wp_schedule_event`) is a premium-tier feature.
+- **Fiat → sats conversion.** Invoices are created zero-amount on purpose. Converting the order's fiat total into an `amount_sats` is a premium-tier feature.
 
-**Delivery model:** these are shipped as a **separate premium add-on plugin** that depends on this base plugin and plugs in via hooks/filters — never as `if (is_premium())` gating inside this repo. The base only needs to expose a few additive extension points to make the add-on zero-core-edit; those are tracked in [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) under "Costuras para o add-on premium (zero-core-edit)".
+**Delivery model:** the premium features ship as a separate plugin that depends on this base and plugs in via hooks/filters — never as `if (is_premium())` gating inside this repo. The base exposes these extension points so the add-on is zero-core-edit:
 
-**Webhook REST endpoint + async status updates.** The Lightning settings UI references `rest_url('paycrypto-me/v1/webhook')`, but there is deliberately no `register_rest_route()` in the free version. Automatic/async invoice-status confirmation (BTCPay webhook push; lnd polling via `wp_schedule_event`) is a premium-tier feature. The seam exists (the settings reference, the DB `status` column) so the premium layer can plug in without core changes.
+| Extension point | How the add-on uses it |
+|---|---|
+| `PayCryptoMeLightningDBStatementsService::get_by_invoice_id()` | Look up an order when a webhook payload only carries the invoice id (`get_by_order_id()` covers the other case) |
+| `paycryptome_lightning_status_changed` action (see "Public hooks") | React to a status change (e.g. call `$order->payment_complete()`) without monkey-patching |
+| `paycryptome_lightning_btcpay_invoice_args` / `_lnd_invoice_args` filters | Already receive `$order` + `$gateway` — the add-on computes `amount` in sats here for fiat→sats |
+| `woocommerce_settings_api_form_fields_paycrypto_me_lightning` (native WooCommerce filter) | Append settings fields (e.g. webhook secret) without touching `init_form_fields()` |
+| Dependency guard (`class_exists()` + min-version check) | Add-on's own responsibility, not a base concern |
 
-**Fiat → sats conversion.** Invoices are created zero-amount on purpose in the free version. Converting the order's fiat total into an `amount_sats` is a premium-tier feature, designed to plug in via the `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args` filters — no core change required.
+---
 
-### Active WIP (genuine in-progress development, free version)
+## Known follow-ups
 
-None currently. The Lightning Gutenberg blocks (`includes/blocks/js/paycrypto_me_lightning-blocks.js` + compiled output) were previously tracked here as active WIP; verified 2026-07-02 against the code — the file mirrors the mature On-Chain block (`paycrypto_me-blocks.js`) structurally, registers both the regular and express payment methods via the shared `createPaymentComponents()` helper, has no `TODO`/`FIXME` markers, and has had no commits since the express-button feature landed. Treat as done unless new work resumes on it.
-
-### Known architectural debt
-
-See [docs/architecture-audit-plan.md](docs/architecture-audit-plan.md) for a full SOLID/DRY audit and test-coverage gap analysis. Phases 0–2 are done, and **Phase 3+ (the god-class breakup) has now executed** (2026-07-03) — **218 tests, 0 errors** (up from 173). Landed: `PaymentProcessor` singleton/dead-code cleanup, `PaymentDisplayDataBuilder` (DRY between gateways' order-details rendering), `AbstractLightningInvoiceService` (DRY between BTCPay/lnd invoice services), constructor DI on all 3 processors (composition root moved to the two `*ProcessorStrategiesFactory` classes), and `LightningConfigValidator` (extracted from the Lightning gateway, which kept public one-line stubs for WooCommerce's settings-field dispatch). Line counts dropped accordingly: `WC_Gateway_PayCryptoMe_Lightning` 647→438, `PaymentProcessor` 280→206. Deliberately deferred as low-priority follow-ups (low value relative to churn, zero test coverage as views/config): `init_form_fields()` (Lightning, ~114 lines) and `enqueue_checkout_styles()` (abstract gateway, ~49 lines) long-method cleanup, plus moving the Lightning gateway's 3 HTML generator methods (`generate_node_type_html`/`generate_btcpay_test_button_html`/`generate_lnd_test_button_html`) to a render helper. **Outstanding before Phase 3+ can be marked fully closed:** manual smoke test (On-Chain static + xPub, Lightning BTCPay, express on both) — see the plan doc's exit criteria.
+Two low-value, low-risk cleanups are deliberately deferred (pure extract-method, no duplication reduction, zero test coverage as view/config code — not release blockers): `init_form_fields()` (Lightning gateway, long method) and `enqueue_checkout_styles()` (abstract gateway, long method). The Lightning gateway's 3 HTML generator methods (`generate_node_type_html`/`generate_btcpay_test_button_html`/`generate_lnd_test_button_html`) could similarly move to a render helper if ever prioritized.
 
 ---
 

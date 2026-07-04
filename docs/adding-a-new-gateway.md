@@ -1,6 +1,6 @@
 # Adicionando um novo gateway de pagamento
 
-> Checklist mecânico, verificado direto no código em 2026-07-03 (após a Fase 3+ do `architecture-audit-plan.md`). Existe porque um audit de completude de documentação mostrou que várias peças obrigatórias só existiam implícitas no código-fonte de `WC_Gateway_PayCryptoMe`/`WC_Gateway_PayCryptoMe_Lightning`, sem estarem documentadas em lugar nenhum — este documento fecha essa lacuna. Convenção: `<X>` = nome do novo gateway (ex. `paycrypto_me_<x>`), `PayCryptoMe<X>` = prefixo de classe.
+> Checklist mecânico, verificado direto no código-fonte. Implementar um terceiro gateway toca vários arquivos que não ficam óbvios lendo só uma classe (`WC_Gateway_PayCryptoMe`/`WC_Gateway_PayCryptoMe_Lightning`) — este documento reúne os pontos de edição obrigatórios. Convenção: `<X>` = nome do novo gateway (ex. `paycrypto_me_<x>`), `PayCryptoMe<X>` = prefixo de classe.
 
 ## 1. Registro no bootstrap (`src/trunk/paycrypto-me-for-woocommerce.php`)
 
@@ -92,7 +92,7 @@ Se o novo gateway precisar de `validate_<key>_field()` customizados, siga o padr
 
 Sem framework de scaffolding — replicar convenções existentes:
 
-- Shims WP/WC centralizados em `tests/_support/wp-helpers.php` — **não redeclare shims por arquivo de teste** (foi uma causa raiz real de 2 testes quebrados na Fase 1, ver `architecture-audit-plan.md`). Se faltar um shim (`wp_cache_get`, `wc_price`, etc.), adicione lá.
+- Shims WP/WC centralizados em `tests/_support/wp-helpers.php` — **não redeclare shims por arquivo de teste**: shims duplicados com aridade divergente entre arquivos já causaram testes falsos-positivos aqui, porque o PHPUnit gera mocks pela assinatura da classe que "venceu" a ordem de carregamento. Se faltar um shim (`wp_cache_get`, `wc_price`, etc.), adicione lá.
 - Mock de HTTP: `FakeHttpClient`/`http_ok()`/`http_error()` em `tests/_support/fake-http-client.php` (para qualquer service que implemente `HttpClientContract`).
 - Spy de hooks: `hook_spy_calls()`/`hook_spy_reset()` — para asserir que `do_action`/`apply_filters` foram chamados (sem dispatch real).
 - DI real (desde a Fase 3+): construa processors via `new <X>PaymentProcessor($gateway, $fakeService, $fakeDb)` diretamente, não via `disableOriginalConstructor()` + reflection (isso era necessário antes da DI, não é mais o padrão a seguir).
