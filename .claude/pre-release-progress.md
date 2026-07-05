@@ -14,11 +14,11 @@
 | 3 | Traduções — regenerar catálogo e completar 7 locales | 0/6 |
 | 4 | Documentar persistência de dados na desinstalação | 0/1 |
 | 5 | `debug_log` default `yes` → `no` | 3/3 ✅ |
-| 6 | Guia de captura de screenshots | 0/2 |
+| 6 | Guia de captura de screenshots | 2/2 ✅ |
 | 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 0/2 |
 | 8 | Fechamento do plano | 0/2 |
 | 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
-| **Total** | | **13/33** |
+| **Total** | | **15/33** |
 
 > ⚠️ O passo 9 foi achado via teste manual em 2026-07-04, depois do plano original — é bug
 > funcional com risco de pagamento duplo (não só metadados/conteúdo). Recomenda-se priorizá-lo
@@ -81,12 +81,17 @@
 - [x] Suíte PHPUnit completa rodada após a mudança — **232 tests, 515 assertions, OK** (mesmo
       resultado de antes, confirmando que nada depende do default antigo).
 
-### 6. Guia de captura de screenshots (execução manual do usuário)
-- [ ] Preparar o guia (página/URL, estado prévio, orientação/dimensão) para as 6 imagens listadas
-      no `readme.txt` — ainda não produzido.
-- [ ] Resolver a discrepância confirmada: `readme.txt` lista **6** screenshots, mas
-      `src/assets/` só tem **5** arquivos (`screenshot-1.jpg` a `screenshot-5.jpg`) —
-      falta `screenshot-6.jpg` ou ajustar a lista no `readme.txt`.
+### 6. Guia de captura de screenshots (execução manual do usuário) ✅ concluído (2026-07-04)
+- [x] Guia entregue interativamente (página/URL, estado prévio, orientação/dimensão), um
+      screenshot por vez, com o usuário capturando no ambiente Docker local
+      (`http://localhost:8080`) e cada imagem revisada antes de aprovar — não foi produzido como
+      arquivo novo no repo, conforme a própria nota do plano ("o usuário mesmo fará a captura").
+- [x] Discrepância resolvida: os 6 screenshots agora existem em `src/assets/`
+      (`screenshot-1.png` … `screenshot-6.png`, incluindo o que faltava). Arquivos antigos
+      (`.jpg`, de 12–14/jan, UI desatualizada) removidos. Rebrand completo também aplicado aos
+      ícones (`icon-128x128.png`, `icon-256x256.png`, `paycrypto-me-icon.png`,
+      `paycrypto-me-lightning-icon.png`) e banners (`banner-772x250.png`, `banner-1544x500.png`)
+      nesta mesma sessão — ver `.claude/memory/brand-assets-rewrite.md`.
 
 ### 7. Documentar envio de `src/assets/` ao SVN e limpar redundância de scripts
 - [ ] Adicionar subseção em `docs/RELEASE.md` (próxima à "5. Submissão ao WordPress.org") sobre
@@ -135,7 +140,8 @@
       passo 9).
 - [ ] `npm run build` sem erros (não rodado nesta sessão).
 - [ ] `License:` e `Donate link:` decididos e sem divergência entre `readme.txt` e o cabeçalho.
-- [ ] `readme.txt` com `== Privacy ==` e contagem de screenshots batendo com os arquivos reais.
+- [ ] `readme.txt` com `== Privacy ==` (ainda pendente — a contagem de screenshots já bate: 6
+      listados no `readme.txt`, 6 arquivos reais em `src/assets/`, ver passo 6).
 - [x] `debug_log` com default `no`, sem quebrar testes existentes (confirmado — ver passo 5).
 - [ ] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
       `docs/TRANSLATION.md` corrigido.

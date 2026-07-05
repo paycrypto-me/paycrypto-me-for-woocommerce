@@ -54,7 +54,9 @@ Scripts shell em `scripts/`. Documentação em `docs/TRANSLATION.md`.
 ./scripts/release.sh
 ```
 
-Releases ficam em `releases/`. Artefatos de banner/favicon em `artifacts/` e `src/assets/`.
+Releases ficam em `releases/`. Artes finais de banner/ícone/screenshots ficam em `src/assets/`
+(pasta `artifacts/` com a arte-fonte da marca antiga foi descartada após o rebrand de
+2026-07-04 — ver `.claude/memory/brand-assets-rewrite.md`).
 
 ### Ambiente local
 

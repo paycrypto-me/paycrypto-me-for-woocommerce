@@ -1,2 +1,0 @@
-composer update --no-dev --prefer-dist --no-interaction --optimize-autoloader --classmap-authoritative
-composer dump-autoload -o

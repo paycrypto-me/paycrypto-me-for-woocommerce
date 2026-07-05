@@ -27,11 +27,12 @@ PayCrypto.Me for WooCommerce offers a complete solution that allows your custome
 
 ## Screenshots & Assets
 
-Images are included in the `source/assets` folder:
+Images are included in the `src/assets` folder:
 
 - `banner-1544x500.png` — plugin banner
 - `banner-772x250.png` — small banner
-- `screenshot-1.jpg` … `screenshot-5.jpg` — admin and checkout screenshots
+- `icon-128x128.png` / `icon-256x256.png` — plugin directory icon
+- `screenshot-1` … `screenshot-6` — admin and checkout screenshots (extension varies, `.png` or `.jpg`)
 
 ## Development & Testing
 

@@ -39,9 +39,8 @@ si, que já está documentado separadamente em [`docs/RELEASE.md`](./RELEASE.md)
   precisa de arquivo) — vale corrigir isso também no passo 3.
 - [`.claude/memory/dev-workflow.md`](../.claude/memory/dev-workflow.md) — cheatsheet rápido dos
   mesmos comandos de build/teste/tradução/release, útil como referência secundária mais curta.
-- `artifacts/` (raiz do repositório) — contém a arte fonte em alta resolução do banner
-  (`paycrypto-me-banner-1544x500`) e do favicon (`PayCrypto.Me-favicon.svg`), caso seja preciso
-  regenerar os banners/ícone de `src/assets/` mencionados no passo 6.
+- ~~`artifacts/` (raiz do repositório) — arte fonte da marca antiga~~ — descartada em
+  2026-07-04 após o rebrand completo dos assets em `src/assets/` (passo 6); não referenciar mais.
 
 ## Contexto
 
@@ -81,12 +80,15 @@ usuário:
   strings novas (prováveis fontes: `templates/checkout/`, `templates/order-details/`, e
   includes adicionados nas últimas fases do refactor) nunca foram extraídas para o `.pot`/`.po`.
   Não existe `.pot` versionado no repo — é gerado sob demanda via `npm run translate:pot`.
-- Screenshots e banners **já existem** em `src/assets/` (sibling de `src/trunk/`, layout estilo
-  SVN do WP.org): `screenshot-1.jpg` a `screenshot-5.jpg`, `banner-772x250.png`,
-  `banner-1544x500.png`, `icon.svg`. Datados de 12–14/jan — anteriores a boa parte do refactor
-  recente. `docs/RELEASE.md` já documenta o envio desses arquivos ao WP.org como manual (não é
-  responsabilidade do `scripts/release.sh`, que só cuida de `trunk/`) — o que falta é o passo a
-  passo desse envio manual, que hoje não está escrito em lugar nenhum (ver passo 7).
+- ~~Screenshots e banners **já existem** em `src/assets/`~~ (achado original, datado de 12–14/jan
+  — `screenshot-1.jpg` a `screenshot-5.jpg`, `banner-772x250.png`, `banner-1544x500.png`,
+  `icon.svg`). **Superado em 2026-07-04:** rebrand completo — todos os arquivos foram
+  substituídos pela marca nova (banners, `icon-128x128.png`/`icon-256x256.png` no lugar do
+  `icon.svg`, e os 6 screenshots recapturados na UI atual). Ver
+  `.claude/memory/brand-assets-rewrite.md`. `docs/RELEASE.md` já documenta o envio desses
+  arquivos ao WP.org como manual (não é responsabilidade do `scripts/release.sh`, que só cuida de
+  `trunk/`) — o que falta é o passo a passo desse envio manual, que hoje não está escrito em
+  lugar nenhum (ver passo 7, ainda pendente).
 - Não existe `uninstall.php` nem `register_uninstall_hook` — as 4 tabelas customizadas
   (`paycrypto_me_bitcoin_wallet_xpubkeys`, `paycrypto_me_bitcoin_derivation_indexes`,
   `paycrypto_me_bitcoin_transactions_data`, `paycrypto_me_lightning_invoices`) e as duas linhas
@@ -213,7 +215,7 @@ dentro de `init_form_fields()`).
 - Suíte PHPUnit completa rodada após a mudança: **232 tests, 515 assertions, OK** (mesmo
   resultado de antes da mudança, confirmando que nada dependia do default antigo).
 
-### 6. Guia de captura de screenshots (para o usuário executar manualmente)
+### 6. Guia de captura de screenshots (para o usuário executar manualmente) ✅ concluído (2026-07-04)
 Preparar um guia separado e objetivo com, para cada uma das 6 imagens referenciadas hoje no
 `readme.txt` (`== Screenshots ==`):
 - Página/URL exata a abrir (ex.: checkout com os dois gateways habilitados, tela de "Thank you"
@@ -231,6 +233,12 @@ Preparar um guia separado e objetivo com, para cada uma das 6 imagens referencia
 
 Esse guia será entregue como lista objetiva (não necessariamente como arquivo novo no repo) —
 o usuário mesmo fará a captura.
+
+> ✅ **Resolvido em 2026-07-04:** guia entregue interativamente, screenshot por screenshot, no
+> ambiente Docker local. Os 6 arquivos existem hoje em `src/assets/` (`screenshot-1.png` …
+> `screenshot-6.png`), incluindo o `screenshot-6` que faltava — `readme.txt` já batia com 6 itens
+> desde antes, só o arquivo é que precisava ser criado. Detalhes em
+> `.claude/memory/brand-assets-rewrite.md`.
 
 ### 7. Documentar o envio de `src/assets/` ao SVN e limpar redundância de scripts
 Arquivos: `docs/RELEASE.md` e `scripts/release.sh` (raiz).
