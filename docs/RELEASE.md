@@ -330,6 +330,31 @@ svn commit -m "Release 1.2.0"
 
 Após o commit SVN, o WP.org processa a nova versão em alguns minutos e ela aparece disponível para atualização nos sites que têm o plugin instalado.
 
+##### Enviando banner, ícone e screenshots (`src/assets/`) ao SVN
+
+A pasta `assets/` do SVN (banner, ícone e screenshots exibidos na página do plugin no WP.org) é
+**independente** do ciclo de release de código: não faz parte do build (`trunk/`) e por isso
+`scripts/release.sh` não mexe nela. Só é preciso repetir estes passos quando os arquivos em
+`src/assets/` realmente mudarem (não é obrigatório em todo release):
+
+```bash
+# 1. O checkout do --svn já existe em /caminho/exibido/svn-checkout (populado só com trunk/)
+# Copiar os assets atuais do repositório para a pasta assets/ do checkout SVN
+cp src/assets/* /caminho/exibido/svn-checkout/assets/
+
+cd /caminho/exibido/svn-checkout
+
+# 2. Verificar o que vai ser enviado
+svn status assets/
+
+# 3. Adicionar arquivos novos/alterados
+svn add --force assets/
+
+# 4. Commitar (pode ser no mesmo commit do trunk/tags, se ambos mudaram na mesma sessão,
+#    ou em um commit separado se só os assets mudaram sem bump de versão de código)
+svn commit -m "Update plugin assets (banner/icon/screenshots)"
+```
+
 ---
 
 ## Cenários Comuns

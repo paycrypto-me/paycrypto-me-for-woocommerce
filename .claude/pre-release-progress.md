@@ -15,10 +15,17 @@
 | 4 | Documentar persistência de dados na desinstalação | 1/1 ✅ |
 | 5 | `debug_log` default `yes` → `no` | 3/3 ✅ |
 | 6 | Guia de captura de screenshots | 2/2 ✅ |
-| 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 0/2 |
+| 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 2/2 ✅ |
 | 8 | Fechamento do plano | 0/2 |
 | 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
-| **Total** | | **23/34** |
+| **Total** | | **25/34** |
+
+> **Atualização 2026-07-06:** revisão de sessão confirmou que o commit do Passo 8 (mudanças dos
+> passos 2, 4, 5, 6 e 9) já havia acontecido em commits anteriores (`git status` limpo antes desta
+> sessão) — o item "commitar" do Passo 8 permanece `[ ]` porque esta mesma revisão fechou o Passo 7
+> e corrigiu um achado novo (`package.json` com `license` divergente, ver Passo 7 abaixo), que
+> ainda precisam ser commitados. Suíte PHPUnit/`npm run build` também ainda não foram re-rodados
+> após essas mudanças.
 
 > Passo 2 ganhou +1 item no denominador (`WC requires at least`) em relação à contagem original de
 > 7 — já resolvido, ver detalhes no próprio passo (teste manual em 4 versões de WooCommerce).
@@ -103,12 +110,15 @@
       `paycrypto-me-lightning-icon.png`) e banners (`banner-772x250.png`, `banner-1544x500.png`)
       nesta mesma sessão — ver `.claude/memory/brand-assets-rewrite.md`.
 
-### 7. Documentar envio de `src/assets/` ao SVN e limpar redundância de scripts
-- [ ] Adicionar subseção em `docs/RELEASE.md` (próxima à "5. Submissão ao WordPress.org") sobre
-      copiar `src/assets/*` para `svn-checkout/assets/` — hoje o fluxo SVN documentado
-      (linhas 298–333) só cobre `svn-checkout/trunk/`, nada sobre a pasta `assets/`.
-- [ ] Avaliar remover ou anotar `src/trunk/scripts/release.sh` (19 linhas, redundante, não
-      referenciado por nenhum script `npm`/`composer`) — ainda existe sem anotação.
+### 7. Documentar envio de `src/assets/` ao SVN e limpar redundância de scripts ✅ concluído (2026-07-06)
+- [x] Subseção "Enviando banner, ícone e screenshots (`src/assets/`) ao SVN" adicionada em
+      `docs/RELEASE.md`, dentro de "5. Submissão ao WordPress.org" → "Opção B — SVN", logo após o
+      bloco de comandos manuais existente para `trunk/`.
+- [x] `src/trunk/scripts/release.sh` removido — confirmado sem nenhuma referência em
+      `package.json`, `composer.json` ou qualquer `.md` do repositório antes da remoção.
+- [x] Achado extra fora do escopo original: `src/trunk/package.json` tinha `"license": "GPL-3.0"`
+      (linha 26), divergente de `composer.json`/`readme.txt`/cabeçalho do plugin (já unificados em
+      `GPL-3.0-or-later` no Passo 2) — corrigido junto.
 
 ### 8. Fechamento deste plano
 - [ ] Commitar todas as mudanças dos passos 2–7.
@@ -155,5 +165,5 @@
 - [x] `debug_log` com default `no`, sem quebrar testes existentes (confirmado — ver passo 5).
 - [ ] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
       `docs/TRANSLATION.md` corrigido.
-- [ ] `docs/RELEASE.md` com a subseção nova de envio de `src/assets/` ao SVN.
+- [x] `docs/RELEASE.md` com a subseção nova de envio de `src/assets/` ao SVN.
 - [ ] Working tree limpo, pronto para `scripts/release.sh --dry-run`.

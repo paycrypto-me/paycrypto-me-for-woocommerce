@@ -244,23 +244,24 @@ o usuário mesmo fará a captura.
 > desde antes, só o arquivo é que precisava ser criado. Detalhes em
 > `.claude/memory/brand-assets-rewrite.md`.
 
-### 7. Documentar o envio de `src/assets/` ao SVN e limpar redundância de scripts
+### 7. Documentar o envio de `src/assets/` ao SVN e limpar redundância de scripts ✅ concluído (2026-07-06)
 Arquivos: `docs/RELEASE.md` e `scripts/release.sh` (raiz).
 
-- `docs/RELEASE.md` já trata "Atualizar screenshots no WP.org" como responsabilidade manual
-  (tabela "O Que o Script NÃO Faz") — isso está correto e **não é um bug a corrigir**: banner,
-  ícone e screenshots (pasta `assets/` do SVN) são atualizados independentemente do ciclo de
-  release de código, então não precisam entrar no `scripts/release.sh`. O que falta é o
-  **passo a passo** desse envio, que hoje não existe em lugar nenhum: adicionar uma subseção em
-  `docs/RELEASE.md` (próxima à seção "Submissão ao WordPress.org") explicando como copiar
-  `src/assets/*` para `assets/` dentro do checkout SVN (`svn-checkout/assets/`, ao lado do
-  `svn-checkout/trunk/` que o script já popula), com `svn add --force` + `svn commit` — o mesmo
-  padrão manual já documentado para `trunk/`, só que apontando para a pasta `src/assets/`.
-- Automatizar isso dentro de `scripts/release.sh --svn` é opcional (nice-to-have), não
-  obrigatório para o release — priorizar a documentação acima primeiro.
-- Avaliar remover `src/trunk/scripts/release.sh` (19 linhas, redundante e não referenciado por
-  nenhum script `npm`/`composer`) ou deixar claro em comentário que é um helper local diferente
-  do `scripts/release.sh` da raiz — para não confundir quem for rodar o release.
+- ✅ Subseção "Enviando banner, ícone e screenshots (`src/assets/`) ao SVN" adicionada em
+  `docs/RELEASE.md`, dentro de "5. Submissão ao WordPress.org" → "Opção B — SVN", logo após o
+  bloco de comandos manuais já existente para `trunk/`: explica copiar `src/assets/*` para
+  `svn-checkout/assets/` (ao lado do `svn-checkout/trunk/` que o `--svn` do script já popula), com
+  `svn add --force` + `svn commit` — mesmo padrão manual já documentado para `trunk/`. Deixado
+  claro que só é necessário quando os arquivos de `src/assets/` mudarem, não em todo release.
+- ✅ `src/trunk/scripts/release.sh` (19 linhas) removido — confirmado sem nenhuma referência em
+  `package.json`, `composer.json` ou qualquer `.md` do repositório antes da remoção (resíduo
+  introduzido no commit `8c1f528`, não relacionado ao seu próprio conteúdo).
+- Automatizar o envio de `src/assets/` dentro de `scripts/release.sh --svn` continua opcional
+  (nice-to-have), não obrigatório para o release — não implementado.
+- **Achado novo durante a execução, fora do escopo original:** `src/trunk/package.json` tinha
+  `"license": "GPL-3.0"` (linha 26), divergente de `composer.json`/`readme.txt`/cabeçalho do
+  plugin (unificados em `GPL-3.0-or-later` no Passo 2, que não havia verificado `package.json`) —
+  corrigido junto por ser a mesma classe de inconsistência de metadados de release.
 
 ### 8. Fechamento deste plano
 - Revisar e commitar todas as mudanças pendentes no working tree (`.claude/memory/*`,
