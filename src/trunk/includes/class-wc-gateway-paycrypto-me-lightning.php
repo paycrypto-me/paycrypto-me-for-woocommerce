@@ -271,13 +271,16 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $data = wp_parse_args($data, array('title' => '', 'description' => '', 'desc_tip' => false));
 
         $html = '<tr valign="top">';
-        $html .= '<td class="forminp" style="padding-top:0; padding-left:0;">';
+        $html .= '<th scope="row" class="titledesc">';
         $html .= '<button id="paycrypto-btcpay-test" type="button" class="button paycrypto-btcpay-field">' . esc_html__('🔌 Test connection', 'paycrypto-me-for-woocommerce') . '</button> ';
-        $html .= '<span id="paycrypto-btcpay-test-result" style="margin-left:10px"></span>';
+        $html .= '</th>';
+        $html .= '<td class="forminp">';
+        $html .= '<span id="paycrypto-btcpay-test-result"></span>';
         if (!empty($data['description'])) {
             $html .= '<p class="description">' . wp_kses_post($data['description']) . '</p>';
         }
-        $html .= '</td></tr>';
+        $html .= '</td>';
+        $html .= '</tr>';
 
         return $html;
     }
