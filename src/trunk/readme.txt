@@ -1,11 +1,14 @@
 === PayCrypto.Me for WooCommerce ===
 Contributors: lucasrosa95
-Tags: woocommerce, payments, crypto, bitcoin, cryptocurrencies
-Donate link: https://paycrypto.me/
+Tags: woocommerce, payments, crypto, bitcoin, lightning-network
+Donate link: bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation
 Requires at least: 5.0
 Tested up to: 6.9
-Stable tag: 0.1.0
 Requires PHP: 7.4
+Requires Plugins: woocommerce
+WC requires at least: 6.5
+WC tested up to: 10.9
+Stable tag: 0.1.0
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -92,6 +95,18 @@ Through the native WooCommerce logger, source `paycrypto_me`. Access them via Wo
 
 = Does the order status update automatically once the customer pays? =
 Not in the free plugin — see "What this plugin intentionally does not do" in the description. Automatic confirmation is planned for a future premium add-on.
+
+== Privacy ==
+
+This plugin stores the following data needed to process Bitcoin payments:
+
+- Your wallet's extended public key (xPub/yPub/zPub) or single receiving address, and every address derived from it, in dedicated database tables (`{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`, `{prefix}paycrypto_me_bitcoin_derivation_indexes`, `{prefix}paycrypto_me_bitcoin_transactions_data`).
+- Lightning node connection details you provide (BTCPay Server or lnd URL, API key/macaroon, optional TLS certificate) in the gateway settings (`wp_options`), and every created invoice in `{prefix}paycrypto_me_lightning_invoices`.
+- No customer personal data beyond what WooCommerce already stores with the order — the plugin only attaches the payment address/invoice details as order meta.
+
+None of this data leaves your WordPress installation: the plugin only talks to your own wallet-derivation logic and to the BTCPay Server/lnd node you configure, never to a third-party API.
+
+**Uninstalling the plugin does not remove this data.** The custom database tables and both gateways' settings remain in your database after deactivation/uninstallation, so historical order data stays intact. Remove them manually (via your database) if you no longer need them.
 
 == Changelog ==
 

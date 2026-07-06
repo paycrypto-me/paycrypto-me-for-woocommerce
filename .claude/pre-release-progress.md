@@ -10,15 +10,21 @@
 | Passo | Descrição | Progresso |
 |---|---|---|
 | 1 | Validar bug do `crypto_network` já corrigido | 2/2 ✅ |
-| 2 | Cabeçalho do plugin / `readme.txt` — metadados | 0/7 |
+| 2 | Cabeçalho do plugin / `readme.txt` — metadados | 7/7 ✅ |
 | 3 | Traduções — regenerar catálogo e completar 7 locales | 0/6 |
-| 4 | Documentar persistência de dados na desinstalação | 0/1 |
+| 4 | Documentar persistência de dados na desinstalação | 1/1 ✅ |
 | 5 | `debug_log` default `yes` → `no` | 3/3 ✅ |
 | 6 | Guia de captura de screenshots | 2/2 ✅ |
 | 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 0/2 |
 | 8 | Fechamento do plano | 0/2 |
 | 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
-| **Total** | | **15/33** |
+| **Total** | | **23/34** |
+
+> Passo 2 ganhou +1 item no denominador (`WC requires at least`) em relação à contagem original de
+> 7 — já resolvido, ver detalhes no próprio passo (teste manual em 4 versões de WooCommerce).
+> Achado fora do escopo original: `README.md` (raiz) e `src/trunk/CHANGELOG.md` também estavam
+> desatualizados e foram corrigidos junto (não entram na contagem numérica do passo 2, que é só
+> sobre `readme.txt`/cabeçalho do plugin).
 
 > ⚠️ O passo 9 foi achado via teste manual em 2026-07-04, depois do plano original — é bug
 > funcional com risco de pagamento duplo (não só metadados/conteúdo). Recomenda-se priorizá-lo
@@ -39,18 +45,23 @@
 - [x] Commit da correção — `git status` limpo, sem pendências relacionadas a este arquivo.
 
 ### 2. Cabeçalho do plugin e `readme.txt` — consistência de metadados
-- [ ] **License** — decidir com o mantenedor. Ainda divergente: `readme.txt` usa
-      `GPL-3.0-or-later`, cabeçalho do plugin usa `GNU General Public License v3.0` (sem "or later").
-- [ ] **Donate link** — decidir com o mantenedor. Ainda divergente: `readme.txt` aponta para
-      `https://paycrypto.me/`, cabeçalho do plugin para `https://gravatar.com/lucasrosa95`.
-- [ ] `Description:` do cabeçalho ainda diz "many cryptocurrencies" — não corrigido.
-- [ ] Adicionar `Requires Plugins: woocommerce`, `WC requires at least`, `WC tested up to` —
-      ausentes nos dois arquivos.
-- [ ] Revisar `Tested up to:` (hoje `6.9` nos dois arquivos) contra o WordPress real testado.
-- [ ] `readme.txt`: trocar a tag `cryptocurrencies` por algo mais preciso — ainda presente em
-      `Tags: woocommerce, payments, crypto, bitcoin, cryptocurrencies`.
-- [ ] `readme.txt`: adicionar seção `== Privacy ==` — não existe hoje (nenhuma menção a
-      "privacy"/"desinstal"/"uninstall" no arquivo).
+- [x] **License** — decidido em 2026-07-06: `GPL-3.0-or-later` nos dois arquivos (já batia com
+      `composer.json`; cabeçalho do plugin corrigido de "GNU General Public License v3.0").
+- [x] **Donate link** — decidido em 2026-07-06: URI `bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation`
+      aplicada nos dois arquivos.
+- [x] `Description:` corrigida no cabeçalho do plugin e também no `README.md` da raiz (achado
+      fora do escopo original, mesma frase desatualizada).
+- [x] Adicionado `Requires Plugins: woocommerce` e `WC tested up to: 10.9` (confirmado ao vivo no
+      ambiente Docker) nos dois arquivos.
+- [x] `WC requires at least` — testado manualmente pelo mantenedor em 2026-07-06: 10.9.1, 8.2.0,
+      7.1.0 e 6.5.0, todas OK. Definido `WC requires at least: 6.5` (a mais antiga testada) nos
+      dois arquivos.
+- [x] `Tested up to:` (WordPress, `6.9`) confirmado real via `wp core version` no Docker — sem
+      necessidade de mudança.
+- [x] `readme.txt`: tag `cryptocurrencies` trocada por `lightning-network`.
+- [x] `readme.txt`: seção `== Privacy ==` adicionada (entre FAQ e Changelog).
+- [x] Achado extra corrigido: `src/trunk/CHANGELOG.md` tinha "Add support for Lightning payments
+      (planned)" em `Unreleased` apesar do recurso já estar em produção — movido para `0.1.0`.
 
 ### 3. Traduções — regenerar catálogo e completar as 7 localidades
 - [ ] Rodar `npm run translate:pot` — nenhum `.pot` existe hoje em `src/trunk/languages/`.
@@ -63,10 +74,9 @@
       "Idiomas planejados: pt_BR, en_US, es_ES", desatualizado frente aos 7 locales reais já
       existentes.
 
-### 4. Documentar a persistência de dados na desinstalação
-- [ ] Declarar no `readme.txt` (seção `== Privacy ==` do passo 2, ou "Installation") que as 4
-      tabelas customizadas e as configurações dos gateways **permanecem** após desinstalar —
-      nenhum texto sobre isso existe hoje no `readme.txt`. (Sem código novo — decisão já tomada.)
+### 4. Documentar a persistência de dados na desinstalação ✅ concluído (2026-07-06)
+- [x] Declarado na seção `== Privacy ==` (ver passo 2) que as 4 tabelas customizadas e as
+      configurações dos gateways **permanecem** após desinstalar. (Sem código novo, como decidido.)
 
 ### 5. Mudar o default de `debug_log` para `no` ✅ concluído
 - [x] Trocado `'default' => 'yes'` para `'no'` em
@@ -139,9 +149,9 @@
 - [x] Suíte PHPUnit 100% verde (232/232, confirmado nesta sessão — subiu de 218 após o fix do
       passo 9).
 - [ ] `npm run build` sem erros (não rodado nesta sessão).
-- [ ] `License:` e `Donate link:` decididos e sem divergência entre `readme.txt` e o cabeçalho.
-- [ ] `readme.txt` com `== Privacy ==` (ainda pendente — a contagem de screenshots já bate: 6
-      listados no `readme.txt`, 6 arquivos reais em `src/assets/`, ver passo 6).
+- [x] `License:` e `Donate link:` decididos e sem divergência entre `readme.txt` e o cabeçalho.
+- [x] `readme.txt` com `== Privacy ==` (contagem de screenshots já batia: 6 listados no
+      `readme.txt`, 6 arquivos reais em `src/assets/`, ver passo 6).
 - [x] `debug_log` com default `no`, sem quebrar testes existentes (confirmado — ver passo 5).
 - [ ] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
       `docs/TRANSLATION.md` corrigido.

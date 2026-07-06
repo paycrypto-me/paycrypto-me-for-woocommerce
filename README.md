@@ -1,6 +1,6 @@
 # PayCrypto.Me Payments for WooCommerce
 
-PayCrypto.Me for WooCommerce offers a complete solution that allows your customers to pay using many cryptocurrencies in your store.
+PayCrypto.Me for WooCommerce lets your customers pay with Bitcoin — On-Chain and Lightning Network — directly into wallets and nodes you control.
 
 ![alt text](src/assets/banner-1544x500.png)
 ## Highlights
@@ -49,4 +49,4 @@ Visit https://paycrypto.me/ for documentation and support. For repository issues
 
 ## License
 
-GPLv3 — see `LICENSE` for details.
+GPL-3.0-or-later — see `LICENSE` for details.

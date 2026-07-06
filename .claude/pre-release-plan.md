@@ -60,9 +60,15 @@ usuário:
 - **Screenshots**: fornecer um guia de captura (páginas, dimensões, orientação); o usuário
   captura manualmente (as 5 imagens atuais em `src/assets/` são de 14/jan e a UI evoluiu desde
   então — Fase 3 do refactor, novos botões de teste de conexão, etc.).
-- **License / Donate link**: **decisão ainda em aberto** — não há certeza de qual dos dois
-  valores divergentes (readme.txt vs. cabeçalho do plugin) é o correto/pretendido. Ver passo 2
-  para a discussão e as opções.
+- **License**: ✅ decidido em 2026-07-06 — `GPL-3.0-or-later` (já era o valor em `composer.json`
+  e `readme.txt`; só o cabeçalho do plugin divergia com "GNU General Public License v3.0" sem
+  "or later" — corrigido para bater com os outros dois).
+- **Donate link**: ✅ decidido em 2026-07-06 — URI `bitcoin:` com endereço dedicado do
+  mantenedor (`bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation`),
+  on-brand para um plugin de pagamentos Bitcoin. Aplicado nos dois arquivos (`readme.txt` e
+  cabeçalho do plugin), substituindo os dois valores antigos divergentes
+  (`https://paycrypto.me/` e `https://gravatar.com/lucasrosa95`).
+- **`WC requires at least`**: decisão pendente de teste manual — ver nota no passo 2.
 
 ## Achados que sustentam o plano
 
@@ -131,39 +137,40 @@ usuário:
   (`test_process_exposes_node_type_under_its_own_key`) passa.
 - Commitar essa correção junto com as demais mudanças pendentes do working tree (ver passo 8).
 
-### 2. Cabeçalho do plugin e `readme.txt` — consistência de metadados
+### 2. Cabeçalho do plugin e `readme.txt` — consistência de metadados ✅ concluído (2026-07-06)
 Arquivo principal: `src/trunk/paycrypto-me-for-woocommerce.php` (cabeçalho, linhas 1–18).
 
-- **`License:` e `Donate link:` — decidir com o mantenedor antes de editar qualquer arquivo.**
-  Não há confirmação de qual versão de cada campo é a pretendida; não assumir nenhum dos dois
-  lados como "correto" por já estar em um dos dois arquivos. Levar para discussão:
-  - `License:` — hoje é `GPL-3.0-or-later` no `readme.txt` vs. `GNU General Public License v3.0`
-    (sem "or later") no cabeçalho do plugin. São licenças diferentes na prática (a segunda não
-    permite migrar para uma versão futura da GPL); confirmar qual reflete a intenção real de
-    licenciamento antes de padronizar os dois arquivos.
-  - `Donate link:` — hoje é `https://paycrypto.me/` no `readme.txt` vs.
-    `https://gravatar.com/lucasrosa95` no cabeçalho do plugin. Confirmar qual URL é a que
-    deveria receber doações (site institucional do produto vs. perfil pessoal do mantenedor)
-    antes de padronizar.
-  - Só depois de decidido, aplicar o mesmo valor nos dois arquivos (`readme.txt` e o cabeçalho
-    de `paycrypto-me-for-woocommerce.php`) — o ponto crítico é que os dois batam entre si, não
-    qual dos dois valores atuais "vence".
-- `Description:` do cabeçalho ainda diz "many cryptocurrencies" — corrigir para refletir que
-  hoje é só Bitcoin (On-Chain + Lightning), no mesmo espírito da correção já feita no
-  `readme.txt`.
-- Adicionar (aditivo, não quebra nada existente): `Requires Plugins: woocommerce`,
-  `WC requires at least: <versão mínima testada>`, `WC tested up to: <versão WC testada>` —
-  confirmar essas duas versões com o ambiente de testes/Docker do projeto antes de preencher
-  (não assumir um número).
-- Revisar `Tested up to:` (hoje `6.9`) contra a versão do WordPress realmente testada no
-  ambiente de dev atual antes do release.
-- `readme.txt`: trocar a tag `cryptocurrencies` por algo mais preciso (ex.: `lightning-network`
-  ou `btcpay-server`), mantendo o limite usual de 5 tags do WP.org.
-- `readme.txt`: adicionar uma seção curta `== Privacy ==` (ou um parágrafo dentro de
-  "Installation" / FAQ, seguindo o padrão já usado) explicando: (a) quais dados sensíveis o
-  plugin armazena (xPub, endereços derivados, credenciais de nó Lightning) e onde
-  (`wp_options` da loja + tabelas customizadas), e (b) que esses dados **não são removidos**
-  na desinstalação do plugin (documentando a decisão tomada no passo 4).
+- ✅ **`License:`** — decidido: `GPL-3.0-or-later` nos dois arquivos (já era o valor de
+  `composer.json` e `readme.txt`; só o cabeçalho do plugin divergia — corrigido).
+- ✅ **`Donate link:`** — decidido: URI `bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation`
+  (endereço dedicado do mantenedor, on-brand para um plugin de pagamentos Bitcoin), substituindo
+  os dois valores divergentes anteriores nos dois arquivos.
+- ✅ `Description:` corrigida nos dois arquivos (cabeçalho do plugin e `README.md` da raiz — este
+  último não estava no escopo original do plano, mas tinha a mesma frase desatualizada
+  "many cryptocurrencies"; ver também nota sobre `CHANGELOG.md` abaixo).
+- ✅ Adicionado `Requires Plugins: woocommerce` e `WC tested up to: 10.9` (confirmado ao vivo via
+  `docker exec ... wp plugin get woocommerce --field=version` no ambiente Docker do projeto) nos
+  dois arquivos.
+- ✅ **`WC requires at least`** — testado manualmente pelo mantenedor em 2026-07-06: `10.9.1` (OK),
+  `8.2.0` (OK), `7.1.0` (OK), `6.5.0` (OK) — todas as 4 versões sugeridas para bisecção
+  funcionaram sem problemas. Definido `WC requires at least: 6.5` (a mais antiga testada) nos
+  dois arquivos. Não foi testado abaixo de `6.5.0` — se o header precisar baixar mais no futuro,
+  exige nova rodada de teste manual, não extrapolar.
+- ✅ `Tested up to:` (WordPress) confirmado `6.9` — bate com a versão real do ambiente Docker
+  (`wp core version`), nenhuma mudança necessária.
+- ✅ `readme.txt`: tag `cryptocurrencies` trocada por `lightning-network`.
+- ✅ `readme.txt`: seção `== Privacy ==` adicionada (entre FAQ e Changelog), documentando os dados
+  sensíveis armazenados (xPub/endereços derivados, credenciais de nó Lightning) e a persistência
+  na desinstalação — isso também resolve o passo 4 abaixo.
+- **Achado novo durante a execução, fora do escopo original:** `README.md` (raiz) e
+  `src/trunk/CHANGELOG.md` também estavam desatualizados e não eram mencionados neste plano.
+  `README.md` tinha a mesma frase "many cryptocurrencies" do cabeçalho do plugin (corrigido, ver
+  acima, e a linha de `License` também foi ajustada de "GPLv3" para "GPL-3.0-or-later" por
+  consistência). `CHANGELOG.md` listava "Add support for Lightning payments (planned)" em
+  `## Unreleased` apesar de Lightning já estar totalmente implementado e presente no próprio
+  `0.1.0`, e a entrada `## 0.1.0` nem mencionava Lightning — corrigido (bullet de Lightning
+  movido para `## 0.1.0`, restando em `Unreleased` só os itens genuinamente futuros: outras
+  redes, confirmação automática e conversão fiat→sats, ambos reservados para o add-on premium).
 
 ### 3. Traduções — regenerar catálogo e completar as 7 localidades
 Diretório: `src/trunk/languages/`. Scripts existentes: `npm run translate:pot`,
@@ -191,15 +198,12 @@ Diretório: `src/trunk/languages/`. Scripts existentes: `npm run translate:pot`,
    (`de_DE, es_ES, fr_FR, it_IT, pt_BR, ru_RU, zh_CN`) já existentes em `src/trunk/languages/`
    (e `en_US` não se aplica, por ser o idioma-fonte do próprio código).
 
-### 4. Documentar a persistência de dados na desinstalação (sem código novo)
-- No `readme.txt`, dentro da nova seção `== Privacy ==` (ver passo 2) ou em "Installation",
-  declarar explicitamente: ao desinstalar o plugin, as 4 tabelas customizadas
-  (`{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`, `{prefix}paycrypto_me_bitcoin_derivation_indexes`,
-  `{prefix}paycrypto_me_bitcoin_transactions_data`, `{prefix}paycrypto_me_lightning_invoices`) e
-  as configurações salvas dos dois gateways **permanecem no banco de dados** e precisam ser
-  removidas manualmente pelo administrador, se desejado.
+### 4. Documentar a persistência de dados na desinstalação (sem código novo) ✅ concluído (2026-07-06)
+- Resolvido junto com o passo 2: a seção `== Privacy ==` adicionada ao `readme.txt` já declara
+  explicitamente que as 4 tabelas customizadas e as configurações salvas dos dois gateways
+  **permanecem no banco de dados** após a desinstalação e precisam ser removidas manualmente.
 - Nenhuma mudança de código nesta etapa — decisão consciente de não implementar
-  `uninstall.php`/`register_uninstall_hook` agora.
+  `uninstall.php`/`register_uninstall_hook` agora, mantida.
 
 ### 5. Mudar o default de `debug_log` para `no` ✅ concluído (2026-07-04)
 Arquivo: `src/trunk/includes/abstract-class-wc-gateway-paycrypto-me.php` (campo `debug_log`
