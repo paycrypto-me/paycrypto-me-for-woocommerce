@@ -88,7 +88,7 @@ class LightningConnectionTesterTest extends TestCase
         $http = FakeHttpClient::respondingToGet(http_ok(['ok' => true]));
         $tester = new LightningConnectionTester($http, $this->make_gateway(['btcpay_url' => '']));
 
-        $this->expectJsonError('BTCPay URL is required for test.');
+        $this->expectJsonError('BTCPay Server URL is required for test.');
         $tester->test_btcpay_connection();
     }
 

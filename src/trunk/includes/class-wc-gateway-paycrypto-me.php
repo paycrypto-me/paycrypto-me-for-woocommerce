@@ -167,9 +167,9 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
                 'title' => __('Danger Area', 'paycrypto-me-for-woocommerce'),
                 'description' => '
                 <div class="paycrypto-danger-box">
-                    <strong>Warning:</strong> ' . __('Resetting the payment derivation index will lead to the reuse of addresses and loss of past data. Proceed with caution and ensure you understand the implications.', 'paycrypto-me-for-woocommerce') . '
+                    <strong>' . esc_html__('Warning:', 'paycrypto-me-for-woocommerce') . '</strong> ' . __('Resetting the payment derivation index will lead to the reuse of addresses and loss of past data. Proceed with caution and ensure you understand the implications.', 'paycrypto-me-for-woocommerce') . '
                     <br>
-                    <button type="button" id="paycrypto-me-reset-derivation-index" class="button paycrypto-danger-btn" style="margin-top: 8px;">Reset payment address derivation index</button>
+                    <button type="button" id="paycrypto-me-reset-derivation-index" class="button paycrypto-danger-btn" style="margin-top: 8px;">' . esc_html__('Reset payment address derivation index', 'paycrypto-me-for-woocommerce') . '</button>
                 </div>
                 ',
             ),
@@ -224,7 +224,7 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             'crypto_network'         => $crypto_network,
             'network_label'          => match ($crypto_network) {
                 'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),
-                'testnet' => 'Testnet',
+                'testnet' => __('Testnet', 'paycrypto-me-for-woocommerce'),
                 default   => $crypto_network,
             },
             'crypto_amount'          => $order->get_meta('_paycrypto_me_crypto_amount'),

@@ -35,7 +35,8 @@ class LightningConnectionTester
         $store = esc_attr($this->gateway->get_option('btcpay_store_id', ''));
 
         if (empty($url)) {
-            wp_send_json_error(array('message' => __('BTCPay URL is required for test.', 'paycrypto-me-for-woocommerce')));
+            /* translators: %s: field label, e.g. "BTCPay Server URL". */
+            wp_send_json_error(array('message' => sprintf(__('%s is required for test.', 'paycrypto-me-for-woocommerce'), __('BTCPay Server URL', 'paycrypto-me-for-woocommerce'))));
         }
 
         // Build endpoint to check: prefer store endpoint if provided, else list stores.
@@ -65,7 +66,8 @@ class LightningConnectionTester
         $verify_ssl = isset($_POST['lnd_verify_ssl']) ? sanitize_text_field(wp_unslash($_POST['lnd_verify_ssl'])) : 'yes';
 
         if (empty($url)) {
-            wp_send_json_error(array('message' => __('lnd REST URL is required for test.', 'paycrypto-me-for-woocommerce')));
+            /* translators: %s: field label, e.g. "BTCPay Server URL". */
+            wp_send_json_error(array('message' => sprintf(__('%s is required for test.', 'paycrypto-me-for-woocommerce'), __('lnd REST URL', 'paycrypto-me-for-woocommerce'))));
         }
 
         $endpoint = rtrim($url, '/') . '/v1/getinfo';

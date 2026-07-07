@@ -44,7 +44,8 @@ class LightningConfigValidator
         }
         $parts = wp_parse_url($url);
         if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(esc_html__('BTCPay URL must use HTTPS.', 'paycrypto-me-for-woocommerce'));
+            /* translators: %s: field label, e.g. "BTCPay Server URL". */
+            \WC_Admin_Settings::add_error(sprintf(esc_html__('%s must use HTTPS.', 'paycrypto-me-for-woocommerce'), esc_html__('BTCPay Server URL', 'paycrypto-me-for-woocommerce')));
             return '';
         }
         return $url;
@@ -54,7 +55,8 @@ class LightningConfigValidator
     {
         $val = $this->sanitize_text_val($value);
         if (!$is_lnd_rest_selected && $val !== '' && strlen($val) < 20) {
-            \WC_Admin_Settings::add_error(esc_html__('BTCPay API key must be at least 20 characters.', 'paycrypto-me-for-woocommerce'));
+            /* translators: 1: field label, e.g. "BTCPay API Key". 2: minimum length. */
+            \WC_Admin_Settings::add_error(sprintf(esc_html__('%1$s must be at least %2$d characters.', 'paycrypto-me-for-woocommerce'), esc_html__('BTCPay API Key', 'paycrypto-me-for-woocommerce'), 20));
             return '';
         }
         return $val;
@@ -92,7 +94,8 @@ class LightningConfigValidator
         }
         $parts = wp_parse_url($url);
         if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(esc_html__('lnd REST URL must use HTTPS.', 'paycrypto-me-for-woocommerce'));
+            /* translators: %s: field label, e.g. "BTCPay Server URL". */
+            \WC_Admin_Settings::add_error(sprintf(esc_html__('%s must use HTTPS.', 'paycrypto-me-for-woocommerce'), esc_html__('lnd REST URL', 'paycrypto-me-for-woocommerce')));
             return '';
         }
         return $url;
@@ -104,7 +107,8 @@ class LightningConfigValidator
         $val = preg_replace('/\s+/', '', $val);
         if ($is_lnd_rest_selected && $val !== '') {
             if (strlen($val) < 100) {
-                \WC_Admin_Settings::add_error(esc_html__('lnd Macaroon must be at least 100 characters.', 'paycrypto-me-for-woocommerce'));
+                /* translators: 1: field label, e.g. "BTCPay API Key". 2: minimum length. */
+                \WC_Admin_Settings::add_error(sprintf(esc_html__('%1$s must be at least %2$d characters.', 'paycrypto-me-for-woocommerce'), esc_html__('lnd Macaroon (hex)', 'paycrypto-me-for-woocommerce'), 100));
                 return '';
             }
             if (!ctype_xdigit($val)) {

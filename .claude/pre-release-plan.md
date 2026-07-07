@@ -176,19 +176,58 @@ Arquivo principal: `src/trunk/paycrypto-me-for-woocommerce.php` (cabeçalho, lin
 Diretório: `src/trunk/languages/`. Scripts existentes: `npm run translate:pot`,
 `npm run translate`, `scripts/build-translations.sh`.
 
-1. Rodar `npm run translate:pot` (ou o script equivalente) a partir de `src/trunk/` para gerar
-   um `.pot` atualizado a partir do código atual — isso vai capturar as ~60+ strings que hoje
-   não estão no catálogo (prováveis fontes: `templates/checkout/`, `templates/order-details/`,
-   settings do gateway Lightning adicionados nas últimas fases do refactor).
+0. ✅ **Pré-fase de normalização concluída (2026-07-06)** — antes de gerar o `.pot`, foi feita
+   uma varredura exaustiva das ~118 strings com o text domain do plugin para achar
+   duplicatas/quase-duplicatas unificáveis via `sprintf` (sem perda de contexto) e nomes
+   próprios de produto que nunca são traduzidos em nenhum idioma (candidatos a remover o wrap
+   de tradução), além de 2 gaps de i18n genuínos (texto HTML nunca passado por `__()`).
+   - Unificadas via `sprintf` (reaproveitando labels de campo já existentes, sem strings
+     novas): mensagens de validação "must use HTTPS" (BTCPay/lnd), "must be at least N
+     characters" (BTCPay API Key/lnd Macaroon), e "is required for test" (BTCPay/lnd) em
+     `class-lightning-config-validator.php` e `class-lightning-connection-tester.php`.
+     Fallback JS de título do gateway Lightning (`paycrypto_me_lightning-blocks.js`) alinhado
+     ao mesmo fallback do gateway On-Chain. **-4 strings.**
+   - Removido o wrap de tradução de `"BTCPay Server"`/`"lnd REST"` (nomes próprios de
+     software, nunca traduzidos em nenhum idioma — confirmado por comparação empírica com
+     `"On-Chain"`, que É traduzido em `zh_CN`) em
+     `class-wc-gateway-paycrypto-me-lightning.php`. **-2 strings.**
+   - Corrigidos 2 gaps de i18n (texto HTML cru, nunca traduzível): box de doação e "Danger
+     Area" (`abstract-class-wc-gateway-paycrypto-me.php`, `class-wc-gateway-paycrypto-me.php`)
+     e `'testnet' => 'Testnet'` sem `__()` ao lado de `'mainnet' => __('On-Chain', ...)`
+     traduzido. **+5 strings.**
+   - Saldo líquido: **-1 string** (confirmado via `wp i18n make-pot` de teste: **123** msgids
+     únicos no catálogo atual, contra 124 que existiriam sem a normalização/limpeza do item 0 —
+     a estimativa "~118" das seções acima deste plano era uma aproximação de leitura manual,
+     não uma contagem exata). 1 teste
+     (`LightningConnectionTesterTest::test_btcpay_missing_url_returns_error_without_http_call`)
+     atualizado para a nova mensagem exata. Suíte completa: 232 testes, 515 assertions, OK.
+   - **Achado adicional (fora do escopo desta pré-fase, não corrigido):** o
+     `wp i18n make-pot` avisou de 5 strings pré-existentes com placeholder (`%s`/`%d`) sem
+     comentário `/* translators: ... */` — `"Configure this webhook URL...%s..."`
+     (`class-wc-gateway-paycrypto-me-lightning.php:163`), `"Node: %s"`, `"Connection OK (HTTP
+     %d)."`, `"Request failed (HTTP %d)."` (`class-lightning-connection-tester.php`) e
+     `"%d confirmation required"` (`paycrypto-me-order-details.php:35`). Não bloqueia a
+     tradução, mas vale adicionar os comentários antes do release para ajudar os tradutores.
+   - `npm run build` não foi rodado manualmente nesta sessão, mas um watcher (`npm run dev`)
+     já ativo no ambiente Docker recompilou `assets/blocks/paycrypto_me_lightning-blocks.js`
+     automaticamente ao salvar a fonte — confirmado via `git diff`, o bundle já reflete
+     "Pay with Bitcoin" em vez de "Pay with Bitcoin Lightning". Nada pendente aqui.
+1. Rodar `npm run translate:pot` (ou o script equivalente) a partir de `src/trunk/`, no host
+   (fora do container Docker — dentro do container `wordpress` só o próprio `src/trunk/` é
+   montado, então `./scripts/build-translations.sh`, que vive na raiz do repositório, não é
+   alcançável de lá; a verificação acima usou `wp i18n make-pot` diretamente por esse motivo)
+   para gerar o `.pot` definitivo a partir do código atual (123 strings, confirmado acima) e
+   seguir para os passos abaixo.
 2. Sincronizar (`msgmerge` ou equivalente, via `npm run translate`) os 7 arquivos `.po`
    (`de_DE`, `es_ES`, `fr_FR`, `it_IT`, `pt_BR`, `ru_RU`, `zh_CN`) contra o novo `.pot` — isso
    vai marcar as novas strings como não traduzidas (`msgstr ""`) sem perder as 52 já existentes.
 3. Traduzir as novas strings em cada uma das 7 localidades (tradução assistida, com atenção a:
    termos técnicos que não devem ser traduzidos literalmente — "xPub", "Lightning Network",
-   "BTCPay Server", "lnd", "mainnet"/"testnet" — e consistência com os termos já usados nas
-   strings existentes de cada idioma). Sinalizar ao final que uma revisão por falante nativo é
-   recomendada antes do release, especialmente para pt_BR (idioma principal do mantenedor, mas
-   ainda assim vale conferência) e para os demais 6 idiomas.
+   "mainnet"/"testnet" (esta última agora traduzida, ver item 0) — e consistência com os termos
+   já usados nas strings existentes de cada idioma; "BTCPay Server"/"lnd REST" não aparecem
+   mais como strings próprias, ver item 0). Sinalizar ao final que uma revisão por falante
+   nativo é recomendada antes do release, especialmente para pt_BR (idioma principal do
+   mantenedor, mas ainda assim vale conferência) e para os demais 6 idiomas.
 4. Revisar as 52 strings já traduzidas quanto a strings **obsoletas** — texto de UI que mudou
    de redação ou foi removido no refactor recente, mas cujo msgid antigo ainda está no catálogo
    (`msgmerge` normalmente já move essas para comentários `#~`, mas vale checar).

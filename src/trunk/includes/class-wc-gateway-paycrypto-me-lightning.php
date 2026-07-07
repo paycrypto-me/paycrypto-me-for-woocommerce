@@ -239,8 +239,8 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $html = '<tr valign="top">';
         $html .= '<th scope="row" class="titledesc"><label for="' . esc_attr($field_key) . '">' . esc_html($data['title']) . ' ' . $this->get_tooltip_html($data) . '</label></th>';
         $html .= '<td class="forminp"><fieldset style="display:flex; align-items:center; gap:12px;"><legend class="screen-reader-text"><span>' . esc_html($data['title']) . '</span></legend>';
-        $html .= '<label><input type="radio" name="' . esc_attr($field_key) . '" value="btcpay" ' . checked($value, 'btcpay', false) . '> ' . esc_html__('BTCPay Server', 'paycrypto-me-for-woocommerce') . '</label> ';
-        $html .= '<label><input type="radio" name="' . esc_attr($field_key) . '" value="lnd_rest" ' . checked($value, 'lnd_rest', false) . '> ' . esc_html__('lnd REST', 'paycrypto-me-for-woocommerce') . '</label>';
+        $html .= '<label><input type="radio" name="' . esc_attr($field_key) . '" value="btcpay" ' . checked($value, 'btcpay', false) . '> BTCPay Server</label> ';
+        $html .= '<label><input type="radio" name="' . esc_attr($field_key) . '" value="lnd_rest" ' . checked($value, 'lnd_rest', false) . '> lnd REST</label>';
         if (!empty($data['description'])) {
             $html .= '<p class="description">' . wp_kses_post($data['description']) . '</p>';
         }

@@ -252,10 +252,10 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                         <img src="' . WC_PayCryptoMe::plugin_url() . '/assets/wallet_address_qrcode.png">
                     </div>
                     <div>
-                        <strong>Enjoying the plugin?</strong> Send some BTC to support:
+                        ' . __('<strong>Enjoying the plugin?</strong> Send some BTC to support:', 'paycrypto-me-for-woocommerce') . '
                         <div style="display: flex; align-items: center; margin-top: 8px;">
                             <span id="btc-address-admin" class="support-content">' . esc_html($this->support_btc_address) . '</span>
-                            <button type="button" id="copy-btc-admin" class="support-btn">Copy</button>
+                            <button type="button" id="copy-btc-admin" class="support-btn">' . esc_html__('Copy', 'paycrypto-me-for-woocommerce') . '</button>
                         </div>
                     </div>
                 </div>',

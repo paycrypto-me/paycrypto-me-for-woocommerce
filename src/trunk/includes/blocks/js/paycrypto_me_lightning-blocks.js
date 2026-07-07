@@ -6,7 +6,7 @@ import { createElement } from '@wordpress/element';
 import { isCheckoutPage, createPaymentComponents } from './paycrypto-blocks-shared.js';
 
 const settings = getSetting('paycrypto_me_lightning_data', {});
-const label = decodeEntities(settings.title) || __('Pay with Bitcoin Lightning', 'paycrypto-me-for-woocommerce');
+const label = decodeEntities(settings.title) || __('Pay with Bitcoin', 'paycrypto-me-for-woocommerce');
 
 const { Content, ExpressContent } = createPaymentComponents(settings, label);
 
