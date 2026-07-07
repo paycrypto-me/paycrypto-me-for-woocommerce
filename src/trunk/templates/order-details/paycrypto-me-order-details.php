@@ -33,7 +33,9 @@ if ($payment_display_data['payment_identifier']): ?>
                         <p class="paycrypto-me-order-details__confirmations-hint">
                             <?php printf(
                                 esc_html( _n(
+                                    /* translators: %d: number of confirmations required */
                                     '%d confirmation required',
+                                    /* translators: %d: number of confirmations required */
                                     '%d confirmations required',
                                     (int) $payment_display_data['confirmations_required'],
                                     'paycrypto-me-for-woocommerce'

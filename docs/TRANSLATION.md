@@ -177,8 +177,8 @@ sudo apt-get install gettext
 - ✅ Domain Path: `/languages/`
 - ✅ Função load_textdomain implementada
 - ✅ Strings usando funções corretas de tradução
-- ✅ Scripts de automação criados
-- 🔄 Idiomas planejados: pt_BR, en_US, es_ES
+- ✅ Scripts de automação criados (incluindo `Plural-Forms` e headers corretos por locale)
+- ✅ Idiomas traduzidos (125/125 strings, 100%): `pt_BR`, `es_ES`, `de_DE`, `fr_FR`, `it_IT`, `ru_RU`, `zh_CN`
 
 ## 🤝 Contribuindo com Traduções
 

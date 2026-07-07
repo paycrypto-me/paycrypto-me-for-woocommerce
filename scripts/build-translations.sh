@@ -64,7 +64,7 @@ generate_pot_wp_cli() {
     if docker_exec "wp i18n make-pot . \"$POT_FILE\" \
         --domain=\"$TEXT_DOMAIN\" \
         --package-name=\"PayCrypto.Me for WooCommerce\" \
-        --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/issues\",\"Language-Team\":\"PayCrypto.Me Team <support@paycrypto.me>\"}' \
+        --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/issues\",\"Language-Team\":\"PayCrypto.Me Team <contact@paycrypto.me>\"}' \
         --exclude=\"node_modules,vendor,.git,assets/js,webpack.config.js\" \
         --skip-js" 2>/dev/null; then
         log "Arquivo POT gerado: $POT_FILE"
@@ -85,6 +85,36 @@ generate_pot_xgettext() {
         error "Falha ao gerar arquivo POT com xgettext."
         exit 1
     fi
+}
+
+# Plural-Forms correto por locale (gettext exige isso quando há entradas com _n())
+plural_forms_for_locale() {
+    case "$1" in
+        de_DE|es_ES|it_IT) echo 'nplurals=2; plural=(n != 1);' ;;
+        fr_FR|pt_BR) echo 'nplurals=2; plural=(n > 1);' ;;
+        ru_RU) echo 'nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);' ;;
+        zh_CN) echo 'nplurals=1; plural=0;' ;;
+        *) echo 'nplurals=2; plural=(n != 1);' ;;
+    esac
+}
+
+# Garante Plural-Forms (obrigatório para as entradas _n()) e limpa os placeholders
+# padrão do WP-CLI (Last-Translator/PO-Revision-Date) sem sobrescrever valores já preenchidos
+fix_po_headers() {
+    local locale=$1
+    local po_file="$LANGUAGES_DIR/$PLUGIN_SLUG-$locale.po"
+    local plural_forms
+    plural_forms=$(plural_forms_for_locale "$locale")
+    local revision_date
+    revision_date=$(date -u '+%Y-%m-%d %H:%M')
+
+    if ! docker_exec "grep -q '^\"Plural-Forms:' \"$po_file\""; then
+        docker_exec "sed -i '/^\"Language: $locale/ a\\
+\"Plural-Forms: $plural_forms\\\\n\"' \"$po_file\""
+    fi
+
+    docker_exec "sed -i 's/\"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\\\\n\"/\"PO-Revision-Date: $revision_date+0000\\\\n\"/' \"$po_file\""
+    docker_exec "sed -i 's/\"Last-Translator: FULL NAME <EMAIL@ADDRESS>\\\\n\"/\"Last-Translator: PayCrypto.Me Team <contact@paycrypto.me>\\\\n\"/' \"$po_file\""
 }
 
 # Criar arquivo PO para um idioma específico
@@ -116,6 +146,8 @@ create_po_file() {
             warn "msgmerge não encontrado. Arquivo PO não foi atualizado automaticamente."
         fi
     fi
+
+    fix_po_headers "$locale"
 }
 
 # Compilar arquivo MO

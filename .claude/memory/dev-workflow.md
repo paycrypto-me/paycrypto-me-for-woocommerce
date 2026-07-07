@@ -56,7 +56,8 @@ Scripts shell em `scripts/`. Documentação em `docs/TRANSLATION.md`.
 
 Releases ficam em `releases/`. Artes finais de banner/ícone/screenshots ficam em `src/assets/`
 (pasta `artifacts/` com a arte-fonte da marca antiga foi descartada após o rebrand de
-2026-07-04 — ver `.claude/memory/brand-assets-rewrite.md`).
+2026-07-04 — detalhes na memória cross-sessão do agente, não neste repo; ver histórico de commits
+de 2026-07-04 se precisar do antes/depois).
 
 ### Ambiente local
 

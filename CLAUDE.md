@@ -14,7 +14,7 @@ Detailed context is split into topic files under `.claude/memory/`:
 
 ## What this project is
 
-WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.1.0**. Author: Lucas Rosa (lucas.rosa95br@gmail.com).
+WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.1.0**. Author: PayCrypto.Me (contact@paycrypto.me).
 
 **Two registered gateways, both fully functional:**
 - `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).
@@ -162,7 +162,7 @@ composer install
 ./vendor/bin/phpunit
 ```
 
-Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`. Current suite: 218 tests, 0 errors.
+Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`. Current suite: 232 tests, 515 assertions, 0 errors.
 
 ### Translations
 

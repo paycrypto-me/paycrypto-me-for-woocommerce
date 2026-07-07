@@ -1,18 +1,19 @@
 # Copyright (C) 2026 PayCrypto.Me
-# This file is distributed under the GNU General Public License v3.0.
+# This file is distributed under the GPL-3.0-or-later.
 msgid ""
 msgstr ""
 "Project-Id-Version: PayCrypto.Me for WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/paycrypto-me-for-"
 "woocommerce/issues\n"
-"POT-Creation-Date: 2026-01-18T02:41:24+00:00\n"
-"PO-Revision-Date: 2026-01-18T02:21:29+00:00\n"
-"Last-Translator: PayCypto.Me <support@paycrypto.me>\n"
-"Language-Team: PayCrypto.Me Team <support@paycrypto.me>\n"
+"POT-Creation-Date: 2026-07-07T17:53:38+00:00\n"
+"PO-Revision-Date: 2026-07-07 17:52+0000\n"
+"Last-Translator: PayCrypto.Me Team <contact@paycrypto.me>\n"
+"Language-Team: PayCrypto.Me Team <contact@paycrypto.me>\n"
 "Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: paycrypto-me-for-woocommerce\n"
 
@@ -29,11 +30,9 @@ msgstr "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
 #. Description of the plugin
 #: paycrypto-me-for-woocommerce.php
 msgid ""
-"PayCrypto.Me for WooCommerce offers a complete solution that allows your "
-"customers to pay using many cryptocurrencies in your store."
-msgstr ""
-"PayCrypto.Me per WooCommerce offre una soluzione completa che consente ai "
-"tuoi clienti di pagare utilizzando molte criptovalute nel tuo negozio."
+"PayCrypto.Me for WooCommerce lets your store accept Bitcoin payments — On-"
+"Chain and Lightning Network — directly into wallets and nodes you control."
+msgstr "PayCrypto.Me per WooCommerce consente al tuo negozio di accettare pagamenti Bitcoin — On-Chain e Lightning Network — direttamente in portafogli e nodi che controlli."
 
 #. Author of the plugin
 #: paycrypto-me-for-woocommerce.php
@@ -45,244 +44,566 @@ msgstr "PayCrypto.Me"
 msgid "https://paycrypto.me/"
 msgstr "https://paycrypto.me/"
 
-#: includes/blocks/class-wc-gateway-paycrypto-me-blocks.php:72
-#: includes/blocks/class-wc-gateway-paycrypto-me-blocks.php:83
-#: includes/class-wc-gateway-paycrypto-me.php:52
-msgid ""
-"Use directly your Bitcoin wallet to pay. Place the order to view the QR code "
-"and payment instructions."
-msgstr ""
-"Paga direttamente con il tuo portafoglio Bitcoin. Effettua l'ordine per "
-"visualizzare il codice QR e le istruzioni di pagamento."
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:163
+msgid "Network"
+msgstr "Rete"
 
-#: includes/class-payment-processor.php:106
-msgid ""
-"PayCrypto.Me payment initiated. Awaiting cryptocurrency payment confirmation."
-msgstr ""
-"Pagamento PayCrypto.Me avviato. In attesa della conferma del pagamento in "
-"criptovaluta."
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:166
+msgid "Select the network for payments."
+msgstr "Seleziona la rete per i pagamenti."
 
-#: includes/class-payment-processor.php:108
-msgid "Awaiting cryptocurrency payment"
-msgstr "In attesa del pagamento in criptovaluta"
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:175
+msgid "Enable Method"
+msgstr "Abilita Metodo"
 
-#: includes/class-payment-processor.php:148
-msgid ""
-"Selected payment method cannot be processed. Please try choosing another one."
-msgstr ""
-"Il metodo di pagamento selezionato non può essere elaborato. Prova a "
-"sceglierne un altro."
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:176
+msgid "Enable"
+msgstr "Abilita"
 
-#: includes/class-payment-processor.php:160
-msgid ""
-"Selected payment method is not supported. Please try choosing another one."
-msgstr ""
-"Il metodo di pagamento selezionato non è supportato. Prova a sceglierne un "
-"altro."
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:181
+msgid "Title"
+msgstr "Titolo"
 
-#: includes/class-wc-gateway-paycrypto-me.php:42
-msgctxt "Gateway description"
-msgid ""
-"PayCrypto.Me (Bitcoin) introduces a complete solution to receive your "
-"payments directly to your Bitcoin wallet (Non-custodial)."
-msgstr ""
-"PayCrypto.Me (Bitcoin) offre una soluzione completa per ricevere i pagamenti "
-"direttamente nel tuo portafoglio Bitcoin (non custodial)."
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:183
+msgid "Payment method name displayed on Checkout page."
+msgstr "Nome del metodo di pagamento visualizzato nella pagina di Checkout."
 
-#: includes/class-wc-gateway-paycrypto-me.php:51
-#: includes/class-wc-gateway-paycrypto-me.php:200
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:184
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:34
+#: includes/class-wc-gateway-paycrypto-me.php:38
 msgid "Pay with Bitcoin"
 msgstr "Paga con Bitcoin"
 
-#: includes/class-wc-gateway-paycrypto-me.php:74
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:187
+msgid "Description"
+msgstr "Descrizione"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:189
+msgid "Payment method description displayed on Checkout page."
+msgstr "Descrizione del metodo di pagamento visualizzata nella pagina di Checkout."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:190
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:35
+msgid ""
+"Pay directly from your Bitcoin wallet. Place your order to view the QR code "
+"and payment instructions."
+msgstr "Paga direttamente dal tuo portafoglio Bitcoin. Inserisci l'ordine per visualizzare il codice QR e le istruzioni di pagamento."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:194
+msgid "Express Payment (One-Click)"
+msgstr "Pagamento Express (Un Click)"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:195
+msgid ""
+"Enable Express Payment to pay with one click. When enabled, customers are "
+"redirected straight to the payment QR code."
+msgstr "Abilita il Pagamento Express per pagare con un click. Quando abilitato, i clienti vengono reindirizzati direttamente al codice QR di pagamento."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:198
+msgid "Enable Express Payment"
+msgstr "Abilita Pagamento Express"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:204
+msgid "Express Button Label"
+msgstr "Etichetta Pulsante Express"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:205
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:42
+#: includes/class-wc-gateway-paycrypto-me.php:47
+msgid "Buy with"
+msgstr "Acquista con"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:206
+msgid ""
+"Text displayed on the Express Payment button. If empty, the default label "
+"will be used 'Buy with'"
+msgstr "Testo visualizzato sul pulsante Pagamento Express. Se vuoto, verrà utilizzata l'etichetta predefinita 'Acquista con'"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:213
+msgid "Express Button Icon"
+msgstr "Icona Pulsante Express"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:214
+msgid "Show icon on Express Payment button"
+msgstr "Mostra icona sul pulsante Pagamento Express"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:217
+msgid ""
+"When enabled, the payment network icon is displayed alongside the button "
+"label."
+msgstr "Quando abilitato, l'icona della rete di pagamento viene visualizzata accanto all'etichetta del pulsante."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:220
+msgid "Icon Position"
+msgstr "Posizione Icona"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:223
+msgid ""
+"Controls where the icon appears relative to the button label. e.g. \"₿ Pay "
+"with\" (left) or \"Pay with ₿\" (right)."
+msgstr "Controlla dove appare l'icona rispetto all'etichetta del pulsante. Es. \"₿ Paga con\" (sinistra) o \"Paga con ₿\" (destra)."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:225
+msgid "Left — icon before label"
+msgstr "Sinistra — icona prima dell'etichetta"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:226
+msgid "Right — icon after label"
+msgstr "Destra — icona dopo l'etichetta"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:234
+msgid "Hide for Non-Admin Users"
+msgstr "Nascondi per Utenti Non-Admin"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:235
+msgid "Show only for administrators."
+msgstr "Mostra solo agli amministratori."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:238
+msgid ""
+"If enabled, only administrators will see the payment method on Checkout page."
+msgstr "Se abilitato, solo gli amministratori vedranno il metodo di pagamento nella pagina di Checkout."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:241
+msgid "Debug"
+msgstr "Debug"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:242
+msgid "Enable debugging messages"
+msgstr "Abilita messaggi di debug"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:245
+msgid "Debug logs will be saved to WooCommerce > Status > Logs."
+msgstr "I log di debug verranno salvati in WooCommerce > Stato > Log."
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:249
+msgid "Support the development!"
+msgstr "Supporta lo sviluppo!"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:255
+msgid "<strong>Enjoying the plugin?</strong> Send some BTC to support:"
+msgstr "<strong>Ti piace il plugin?</strong> Invia alcuni BTC per supportare:"
+
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:258
+msgid "Copy"
+msgstr "Copia"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:28
+#: includes/class-wc-gateway-paycrypto-me.php:35
+msgid "Bitcoin Payments"
+msgstr "Pagamenti Bitcoin"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:28
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:348
+msgid "Lightning Network"
+msgstr "Lightning Network"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:29
+msgid "Accept Bitcoin payments self-hosted via Lightning Network"
+msgstr "Accetta pagamenti Bitcoin auto-ospitati tramite Lightning Network"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:29
+#: includes/class-wc-gateway-paycrypto-me.php:36
+msgid "Provided by PayCrypto.Me"
+msgstr "Fornito da PayCrypto.Me"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:99
+msgid "Proxy Settings"
+msgstr "Impostazioni Proxy"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:101
+msgid "Configure proxy settings for connecting to your Lightning node."
+msgstr "Configura le impostazioni proxy per il collegamento al tuo nodo Lightning."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:104
+msgid "Lightning Node Type"
+msgstr "Tipo di Nodo Lightning"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:109
+msgid "Invoice Expiry"
+msgstr "Scadenza Fattura"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:111
+msgid ""
+"Time before invoice expires. Min: 300 (5 min), Max: 86400 (24h). Default: "
+"3600 (1 hour)"
+msgstr "Tempo prima della scadenza della fattura. Min: 300 (5 min), Max: 86400 (24h). Predefinito: 3600 (1 ora)"
+
+#. translators: %s: field label, e.g. "BTCPay Server URL".
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:122
+#: includes/services/class-lightning-connection-tester.php:39
+#: includes/validators/class-lightning-config-validator.php:48
+msgid "BTCPay Server URL"
+msgstr "URL BTCPay Server"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:124
+msgid "Full URL to your BTCPay Server (HTTPS required)."
+msgstr "URL completo del tuo BTCPay Server (HTTPS richiesto)."
+
+#. translators: 1: field label, e.g. "BTCPay API Key". 2: minimum length.
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:131
+#: includes/validators/class-lightning-config-validator.php:59
+msgid "BTCPay API Key"
+msgstr "Chiave API BTCPay"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:133
+msgid "API key for BTCPay (min 20 characters)."
+msgstr "Chiave API per BTCPay (min 20 caratteri)."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:139
+msgid "BTCPay Store ID"
+msgstr "ID Negozio BTCPay"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:141
+msgid "Your BTCPay store identifier."
+msgstr "L'identificatore del tuo negozio BTCPay."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:146
+msgid "BTCPay Lightning Payment Method ID (advanced)"
+msgstr "ID Metodo Pagamento Lightning BTCPay (avanzate)"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:148
+msgid ""
+"Only change this if your BTCPay Server version reports a different Lightning "
+"payment method identifier than the default. Leave as \"BTC-LN\" unless "
+"instructed otherwise."
+msgstr "Modifica solo se la tua versione di BTCPay Server riporta un identificatore del metodo di pagamento Lightning diverso da quello predefinito. Lascia come \"BTC-LN\" se non diversamente indicato."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:155
+msgid "BTCPay Connection Test"
+msgstr "Test Connessione BTCPay"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:160
+msgid "Webhook Configuration"
+msgstr "Configurazione Webhook"
+
+#. translators: %s: webhook REST URL
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:164
+#, php-format
+msgid ""
+"Configure this webhook URL in your Lightning node provider dashboard:"
+"<br><code>%s</code>"
+msgstr "Configura questo URL webhook nel dashboard del tuo provider di nodi Lightning:<br><code>%s</code>"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:169
+msgid "BTCPay Webhook Secret"
+msgstr "Segreto Webhook BTCPay"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:171
+msgid "Webhook secret (recommended minimum 16 characters)."
+msgstr "Segreto webhook (minimo consigliato 16 caratteri)."
+
+#. translators: %s: field label, e.g. "BTCPay Server URL".
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:176
+#: includes/services/class-lightning-connection-tester.php:70
+#: includes/validators/class-lightning-config-validator.php:98
+msgid "lnd REST URL"
+msgstr "URL lnd REST"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:178
+msgid "REST API endpoint (HTTPS required)."
+msgstr "Endpoint API REST (HTTPS richiesto)."
+
+#. translators: 1: field label, e.g. "BTCPay API Key". 2: minimum length.
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:185
+#: includes/validators/class-lightning-config-validator.php:111
+msgid "lnd Macaroon (hex)"
+msgstr "Macaroon lnd (hex)"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:187
+msgid "Admin macaroon in hexadecimal format (min 100 characters)."
+msgstr "Macaroon amministratore in formato esadecimale (min 100 caratteri)."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:193
+msgid "SSL Certificate (PEM)"
+msgstr "Certificato SSL (PEM)"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:195
+msgid ""
+"Optional: Paste your SSL certificate in PEM format. If provided, this will "
+"be used for verification instead of disabling SSL checks."
+msgstr "Facoltativo: Incolla il tuo certificato SSL in formato PEM. Se fornito, verrà utilizzato per la verifica invece di disabilitare i controlli SSL."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:201
+msgid "Verify SSL Certificate"
+msgstr "Verifica Certificato SSL"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:203
+msgid "Enable SSL certificate verification"
+msgstr "Abilita verifica certificato SSL"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:204
+msgid ""
+"Enable for production. If disabled and no certificate is provided, SSL "
+"verification is skipped (development only)."
+msgstr "Abilita per la produzione. Se disabilitato e non viene fornito alcun certificato, la verifica SSL viene saltata (solo sviluppo)."
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:209
+msgid "lnd REST Connection Test"
+msgstr "Test Connessione lnd REST"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:276
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:312
+msgid "🔌 Test connection"
+msgstr "🔌 Test connessione"
+
+#: includes/class-wc-gateway-paycrypto-me.php:35
+#: includes/class-wc-gateway-paycrypto-me.php:226
+msgid "On-Chain"
+msgstr "On-Chain"
+
+#: includes/class-wc-gateway-paycrypto-me.php:36
+msgid "Accept Bitcoin payments Non-custodial via On-Chain"
+msgstr "Accetta pagamenti Bitcoin Non-custodial tramite On-Chain"
+
+#: includes/class-wc-gateway-paycrypto-me.php:39
+msgid ""
+"Use directly your Bitcoin wallet to pay. Place the order to view the QR code "
+"and payment instructions."
+msgstr "Usa direttamente il tuo portafoglio Bitcoin per pagare. Inserisci l'ordine per visualizzare il codice QR e le istruzioni di pagamento."
+
+#: includes/class-wc-gateway-paycrypto-me.php:58
+#: includes/services/class-lightning-connection-tester.php:113
 msgid "Permission denied."
 msgstr "Permesso negato."
 
-#: includes/class-wc-gateway-paycrypto-me.php:83
+#: includes/class-wc-gateway-paycrypto-me.php:67
+msgid "Reset failed. Check WooCommerce logs for details."
+msgstr "Reset non riuscito. Controlla i log di WooCommerce per i dettagli."
+
+#: includes/class-wc-gateway-paycrypto-me.php:73
 msgid "Reset request received."
 msgstr "Richiesta di reset ricevuta."
 
-#: includes/class-wc-gateway-paycrypto-me.php:91
-#: includes/class-wc-gateway-paycrypto-me.php:96
+#: includes/class-wc-gateway-paycrypto-me.php:81
+#: includes/class-wc-gateway-paycrypto-me.php:86
 msgid "Security check failed"
-msgstr "Controllo di sicurezza non superato"
+msgstr "Controllo di sicurezza non riuscito"
 
 #. translators: %s is the field label being validated, e.g. "Wallet xPub".
-#: includes/class-wc-gateway-paycrypto-me.php:106
+#: includes/class-wc-gateway-paycrypto-me.php:96
 #, php-format
 msgid "Please enter a valid %s."
-msgstr "Inserisci un %s valido."
+msgstr "Per favore, inserisci un %s valido."
 
 #. translators: %s is the field label being validated, e.g. "Wallet xPub".
-#: includes/class-wc-gateway-paycrypto-me.php:113
+#: includes/class-wc-gateway-paycrypto-me.php:103
 #, php-format
 msgid "The %s provided is not valid for the selected network."
 msgstr "Il %s fornito non è valido per la rete selezionata."
 
-#: includes/class-wc-gateway-paycrypto-me.php:130
+#: includes/class-wc-gateway-paycrypto-me.php:120
 msgid "Wallet xPub"
-msgstr "Wallet xPub"
+msgstr "xPub Portafoglio"
 
-#: includes/class-wc-gateway-paycrypto-me.php:139
+#: includes/class-wc-gateway-paycrypto-me.php:129
 msgid "Testnet Wallet xPub"
-msgstr "Testnet Wallet xPub"
+msgstr "xPub Portafoglio Testnet"
 
-#: includes/class-wc-gateway-paycrypto-me.php:191
-msgid "Enable/Disable"
-msgstr "Abilita/Disabilita"
-
-#: includes/class-wc-gateway-paycrypto-me.php:192
-msgid "Enable PayCrypto.Me."
-msgstr "Abilita PayCrypto.Me."
-
-#: includes/class-wc-gateway-paycrypto-me.php:197
-msgid "Title"
-msgstr "Titolo"
-
-#: includes/class-wc-gateway-paycrypto-me.php:199
-msgid "Payment method name displayed on Checkout page."
-msgstr "Nome del metodo di pagamento visualizzato nella pagina di pagamento."
-
-#: includes/class-wc-gateway-paycrypto-me.php:203
-msgid "Description"
-msgstr "Descrizione"
-
-#: includes/class-wc-gateway-paycrypto-me.php:205
-msgid "Payment method description displayed on Checkout page."
-msgstr ""
-"Descrizione del metodo di pagamento visualizzata nella pagina di pagamento."
-
-#: includes/class-wc-gateway-paycrypto-me.php:206
-msgid ""
-"Pay directly from your Bitcoin wallet. Place your order to view the QR code "
-"and payment instructions."
-msgstr ""
-"Paga direttamente dal tuo portafoglio Bitcoin. Effettua l'ordine per "
-"visualizzare il codice QR e le istruzioni di pagamento."
-
-#: includes/class-wc-gateway-paycrypto-me.php:210
-msgid "Network"
-msgstr "Rete"
-
-#: includes/class-wc-gateway-paycrypto-me.php:213
-msgid "Select the network for payments."
-msgstr "Seleziona la rete per i pagamenti."
-
-#: includes/class-wc-gateway-paycrypto-me.php:219
+#: includes/class-wc-gateway-paycrypto-me.php:144
 msgid "Network Identifier"
-msgstr "Identificatore della rete"
+msgstr "Identificatore Rete"
 
-#: includes/class-wc-gateway-paycrypto-me.php:223
+#: includes/class-wc-gateway-paycrypto-me.php:148
 msgid ""
 "Tip: It is always preferable to use the wallet xPub rather than a wallet "
 "address for Bitcoin payments."
-msgstr ""
-"Suggerimento: è sempre preferibile utilizzare l'xPub del portafoglio anziché "
-"un indirizzo per i pagamenti in Bitcoin."
+msgstr "Consiglio: È sempre preferibile utilizzare l'xPub del portafoglio piuttosto che un indirizzo portafoglio per i pagamenti Bitcoin."
 
-#: includes/class-wc-gateway-paycrypto-me.php:227
+#: includes/class-wc-gateway-paycrypto-me.php:152
 msgid "Payment Timeout (hours)"
-msgstr "Timeout di pagamento (ore)"
+msgstr "Timeout Pagamento (ore)"
 
-#: includes/class-wc-gateway-paycrypto-me.php:229
+#: includes/class-wc-gateway-paycrypto-me.php:154
 msgid ""
 "Max time (in hours) to wait to confirm payment before the order expires."
-msgstr ""
-"Tempo massimo (in ore) per attendere la conferma del pagamento prima che "
-"l'ordine scada."
+msgstr "Tempo massimo (in ore) di attesa per confermare il pagamento prima della scadenza dell'ordine."
 
-#: includes/class-wc-gateway-paycrypto-me.php:234
+#: includes/class-wc-gateway-paycrypto-me.php:159
 msgid "Payment number of confirmations"
-msgstr "Numero di conferme del pagamento"
+msgstr "Numero di conferme di pagamento"
 
-#: includes/class-wc-gateway-paycrypto-me.php:236
+#: includes/class-wc-gateway-paycrypto-me.php:161
 msgid ""
 "Tip: To ensure the Bitcoin payment has been made, recommended wait for 3 "
 "confirmations."
-msgstr ""
-"Suggerimento: per assicurarsi che il pagamento Bitcoin sia stato effettuato, "
-"si consiglia di attendere 3 conferme."
+msgstr "Consiglio: Per assicurarsi che il pagamento Bitcoin sia stato effettuato, è consigliato attendere 3 conferme."
 
-#: includes/class-wc-gateway-paycrypto-me.php:241
-msgid "Hide for Non-Admin Users"
-msgstr "Nascondi agli utenti non amministratori"
-
-#: includes/class-wc-gateway-paycrypto-me.php:242
-msgid "Show only for administrators."
-msgstr "Mostra solo agli amministratori."
-
-#: includes/class-wc-gateway-paycrypto-me.php:245
-msgid ""
-"If enabled, only administrators will see the payment method on Checkout page."
-msgstr ""
-"Se abilitato, solo gli amministratori vedranno il metodo di pagamento nella "
-"pagina di pagamento."
-
-#: includes/class-wc-gateway-paycrypto-me.php:248
-msgid "Debug"
-msgstr "Debug"
-
-#: includes/class-wc-gateway-paycrypto-me.php:249
-msgid "Enable debugging messages"
-msgstr "Abilita i messaggi di debug"
-
-#: includes/class-wc-gateway-paycrypto-me.php:252
-msgid "Debug logs will be saved to WooCommerce > Status > Logs."
-msgstr "I log di debug saranno salvati in WooCommerce > Stato > Log."
-
-#: includes/class-wc-gateway-paycrypto-me.php:256
+#: includes/class-wc-gateway-paycrypto-me.php:167
 msgid "Danger Area"
-msgstr "Area pericolosa"
+msgstr "Area Pericolosa"
 
-#: includes/class-wc-gateway-paycrypto-me.php:259
+#: includes/class-wc-gateway-paycrypto-me.php:170
+msgid "Warning:"
+msgstr "Avviso:"
+
+#: includes/class-wc-gateway-paycrypto-me.php:170
 msgid ""
 "Resetting the payment derivation index will lead to the reuse of addresses "
 "and loss of past data. Proceed with caution and ensure you understand the "
 "implications."
-msgstr ""
-"Il ripristino dell'indice di derivazione dei pagamenti porterà al riutilizzo "
-"degli indirizzi e alla perdita dei dati precedenti. Procedi con cautela e "
-"assicurati di comprendere le implicazioni."
+msgstr "Il ripristino dell'indice di derivazione del pagamento comporterà il riutilizzo degli indirizzi e la perdita dei dati passati. Procedere con cautela e assicurarsi di comprendere le implicazioni."
 
-#: includes/class-wc-gateway-paycrypto-me.php:267
-msgid "Support the development!"
-msgstr "Supporta lo sviluppo!"
+#: includes/class-wc-gateway-paycrypto-me.php:172
+msgid "Reset payment address derivation index"
+msgstr "Ripristina indice di derivazione indirizzo di pagamento"
 
-#: includes/class-wc-gateway-paycrypto-me.php:325
-msgid "On-Chain"
-msgstr "On-Chain"
+#: includes/class-wc-gateway-paycrypto-me.php:227
+msgid "Testnet"
+msgstr "Testnet"
+
+#: includes/processors/abstract-class-lightning-processor.php:118
+msgid ""
+"Your Lightning invoice is taking longer than expected to generate. Please "
+"try again in a moment."
+msgstr "La tua fattura Lightning sta impiegando più tempo del previsto per generarsi. Per favore, riprova tra un momento."
 
 #. translators: 1: payment address, 2: order reference number.
-#: includes/processors/class-bitcoin-payment-processor.php:52
-#: includes/processors/class-bitcoin-payment-processor.php:113
+#: includes/processors/class-bitcoin-payment-processor.php:148
 #, php-format
 msgid "Payment sent to %1$s, Order Reference #%2$s"
-msgstr "Pagamento inviato a %1$s, riferimento ordine #%2$s"
+msgstr "Pagamento inviato a %1$s, Riferimento Ordine #%2$s"
 
-#: templates/order-details/paycrypto-me-order-details.php:8
+#: includes/processors/class-payment-processor.php:119
+msgid ""
+"PayCrypto.Me payment initiated. Awaiting cryptocurrency payment confirmation."
+msgstr "Pagamento PayCrypto.Me avviato. In attesa della conferma del pagamento in criptovaluta."
+
+#: includes/processors/class-payment-processor.php:121
+msgid "Awaiting cryptocurrency payment"
+msgstr "In attesa del pagamento in criptovaluta"
+
+#: includes/processors/class-payment-processor.php:164
+msgid ""
+"Selected payment method cannot be processed. Please try choosing another one."
+msgstr "Il metodo di pagamento selezionato non può essere elaborato. Per favore, prova a sceglierne un altro."
+
+#: includes/processors/class-payment-processor.php:176
+msgid ""
+"Selected payment method is not supported. Please try choosing another one."
+msgstr "Il metodo di pagamento selezionato non è supportato. Per favore, prova a sceglierne un altro."
+
+#: includes/services/class-btcpay-invoice-service.php:143
+msgid "Payment via BTCPay Server failed. Please try again."
+msgstr "Pagamento tramite BTCPay Server non riuscito. Per favore, riprova."
+
+#. translators: %s: field label, e.g. "BTCPay Server URL".
+#: includes/services/class-lightning-connection-tester.php:39
+#: includes/services/class-lightning-connection-tester.php:70
+#, php-format
+msgid "%s is required for test."
+msgstr "%s è richiesto per il test."
+
+#. translators: %s: node alias returned by the Lightning node
+#: includes/services/class-lightning-connection-tester.php:106
+#, php-format
+msgid "Node: %s"
+msgstr "Nodo: %s"
+
+#. translators: %d: HTTP status code
+#: includes/services/class-lightning-connection-tester.php:132
+#, php-format
+msgid "Connection OK (HTTP %d)."
+msgstr "Connessione OK (HTTP %d)."
+
+#. translators: %d: HTTP status code
+#: includes/services/class-lightning-connection-tester.php:146
+#, php-format
+msgid "Request failed (HTTP %d)."
+msgstr "Richiesta non riuscita (HTTP %d)."
+
+#: includes/services/class-lnd-rest-invoice-service.php:106
+msgid "Payment via Lightning node failed. Please try again."
+msgstr "Pagamento tramite nodo Lightning non riuscito. Per favore, riprova."
+
+#. translators: %s: field label, e.g. "BTCPay Server URL".
+#: includes/validators/class-lightning-config-validator.php:48
+#: includes/validators/class-lightning-config-validator.php:98
+#, php-format
+msgid "%s must use HTTPS."
+msgstr "%s deve utilizzare HTTPS."
+
+#. translators: 1: field label, e.g. "BTCPay API Key". 2: minimum length.
+#: includes/validators/class-lightning-config-validator.php:59
+#: includes/validators/class-lightning-config-validator.php:111
+#, php-format
+msgid "%1$s must be at least %2$d characters."
+msgstr "%1$s deve avere almeno %2$d caratteri."
+
+#: includes/validators/class-lightning-config-validator.php:80
+msgid "BTCPay webhook secret is shorter than the recommended 16 characters."
+msgstr "Il segreto webhook di BTCPay è più breve dei 16 caratteri consigliati."
+
+#: includes/validators/class-lightning-config-validator.php:115
+msgid "lnd Macaroon must be a valid hexadecimal string."
+msgstr "Il Macaroon lnd deve essere una stringa esadecimale valida."
+
+#: includes/validators/class-lightning-config-validator.php:129
+msgid ""
+"Invalid certificate format. Must be valid PEM format starting with -----"
+"BEGIN CERTIFICATE-----."
+msgstr "Formato certificato non valido. Deve essere un formato PEM valido che inizia con -----BEGIN CERTIFICATE-----."
+
+#: includes/validators/class-lightning-config-validator.php:139
+msgid "Invoice Expiry must be at least 300 seconds (5 minutes)."
+msgstr "La scadenza della fattura deve essere di almeno 300 secondi (5 minuti)."
+
+#: includes/validators/class-lightning-config-validator.php:143
+msgid "Invoice Expiry cannot exceed 86400 seconds (24 hours)."
+msgstr "La scadenza della fattura non può superare 86400 secondi (24 ore)."
+
+#: templates/order-details/paycrypto-me-order-details.php:10
 msgid "Payment Details"
-msgstr "Dettagli del pagamento"
+msgstr "Dettagli Pagamento"
 
-#: templates/order-details/paycrypto-me-order-details.php:12
+#: templates/order-details/paycrypto-me-order-details.php:14
 msgid "Fiat Amount:"
-msgstr "Importo in valuta fiat:"
+msgstr "Importo Fiat:"
 
-#: templates/order-details/paycrypto-me-order-details.php:20
+#: templates/order-details/paycrypto-me-order-details.php:19
 msgid "Crypto Amount:"
-msgstr "Importo in criptovaluta:"
+msgstr "Importo Crypto:"
 
-#: templates/order-details/paycrypto-me-order-details.php:29
+#: templates/order-details/paycrypto-me-order-details.php:25
+msgid "Expires at:"
+msgstr "Scade a:"
+
+#: templates/order-details/paycrypto-me-order-details.php:30
+msgid "Status:"
+msgstr "Stato:"
+
+#. translators: %d: number of confirmations required
+#: templates/order-details/paycrypto-me-order-details.php:35
+#, php-format
+msgid "%d confirmation required"
+msgid_plural "%d confirmations required"
+msgstr[0] "%d conferma richiesta"
+msgstr[1] "%d conferme richieste"
+
+#: templates/order-details/paycrypto-me-order-details.php:49
+msgid "Awaiting Payment"
+msgstr "In Attesa di Pagamento"
+
+#: templates/order-details/paycrypto-me-order-details.php:54
 msgid "Crypto Network:"
-msgstr "Rete crypto:"
+msgstr "Rete Crypto:"
 
-#: templates/order-details/paycrypto-me-order-details.php:41
+#: templates/order-details/paycrypto-me-order-details.php:67
 msgid "Scan QR Code to Pay:"
-msgstr "Scansiona il codice QR per pagare:"
+msgstr "Scansiona Codice QR per Pagare:"
 
-#: templates/order-details/paycrypto-me-order-details.php:45
+#: templates/order-details/paycrypto-me-order-details.php:71
 msgid "QR Code for Payment"
-msgstr "Codice QR per il pagamento"
+msgstr "Codice QR per Pagamento"
 
-#: templates/order-details/paycrypto-me-order-details.php:53
-msgid "Payment address copied to clipboard."
-msgstr "Indirizzo di pagamento copiato negli appunti."
+#: templates/order-details/paycrypto-me-order-details.php:78
+msgid "Copy to clipboard"
+msgstr "Copia negli appunti"
+
+#: templates/order-details/paycrypto-me-order-details.php:82
+msgid "Copied!"
+msgstr "Copiato!"
+
+#: templates/order-details/paycrypto-me-order-details.php:87
+msgid "Pay Using Wallet"
+msgstr "Paga con Portafoglio"

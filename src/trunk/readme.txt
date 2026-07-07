@@ -1,5 +1,5 @@
 === PayCrypto.Me for WooCommerce ===
-Contributors: lucasrosa95
+Contributors: paycryptome, lucasrosa95
 Tags: woocommerce, payments, crypto, bitcoin, lightning-network
 Donate link: bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation
 Requires at least: 5.0
@@ -34,7 +34,7 @@ Connect the plugin straight to your own BTCPay Server instance or lnd node (REST
 - **QR code everywhere it matters** — a scannable payment QR (with copy-to-clipboard and "Open in wallet" deep link) on the Thank You page, in My Account → Orders, and on the admin order screen, so both you and the customer always see the same payment details.
 - **Non-custodial by design** — the plugin never takes possession of funds; it only derives addresses and requests invoices from infrastructure you own.
 - **Debug logging** — every payment attempt is logged through the native WooCommerce logger (WooCommerce → Status → Logs, source `paycrypto_me`), so troubleshooting a stuck order doesn't require guesswork.
-- **Translation-ready** — text domain `paycrypto-me-for-woocommerce`, with community translations already started for Portuguese (Brazil), Spanish, French, German, Italian, Russian and Chinese (Simplified).
+- **Translation-ready** — text domain `paycrypto-me-for-woocommerce`, with complete translations included for Portuguese (Brazil), Spanish, French, German, Italian, Russian and Chinese (Simplified).
 - **Developer-friendly** — before/after payment hooks, filters over the invoice arguments sent to BTCPay/lnd, and a filter over the final payment data, so custom logic can hook in without touching plugin code.
 
 = What this plugin intentionally does not do =

@@ -160,6 +160,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
                 'title' => __('Webhook Configuration', 'paycrypto-me-for-woocommerce'),
                 'type' => 'title',
                 'description' => sprintf(
+                    /* translators: %s: webhook REST URL */
                     __('Configure this webhook URL in your Lightning node provider dashboard:<br><code>%s</code>', 'paycrypto-me-for-woocommerce'),
                     esc_url(rest_url('paycrypto-me/v1/webhook'))
                 ),

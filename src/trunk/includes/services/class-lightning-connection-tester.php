@@ -102,6 +102,7 @@ class LightningConnectionTester
 
         $this->respond_from_http_result($response, 'lnd REST connection test failed', function (array $data) {
             $alias = $data['alias'] ?? '';
+            /* translators: %s: node alias returned by the Lightning node */
             return $alias ? ' - ' . sprintf(__('Node: %s', 'paycrypto-me-for-woocommerce'), esc_html($alias)) : '';
         });
     }
@@ -127,6 +128,7 @@ class LightningConnectionTester
         $body = (string) ($response['body'] ?? '');
 
         if ($code >= 200 && $code < 300) {
+            /* translators: %d: HTTP status code */
             $message = sprintf(__('Connection OK (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
             if ($success_suffix) {
                 $data = json_decode($body, true);
@@ -140,6 +142,7 @@ class LightningConnectionTester
             'error'
         );
 
+        /* translators: %d: HTTP status code */
         $message = sprintf(__('Request failed (HTTP %d).', 'paycrypto-me-for-woocommerce'), $code);
         if (!empty($body)) {
             $message .= ' ' . wp_strip_all_tags(wp_trim_words($body, 40));

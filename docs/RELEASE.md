@@ -373,13 +373,12 @@ Os assets JS/CSS não mudaram, apenas PHP:
 
 ### Beta / RC (zip de teste local)
 
-Para gerar um zip de teste sem commitar, taguear ou bumpar versão nos arquivos:
+Para gerar um zip de teste sem commitar nem taguear (git é desligado por padrão — só liga com `--git`; os arquivos de versão são bumpados de qualquer forma, com ou sem esse flag):
 
 ```bash
 ./scripts/release.sh \
   -v 1.2.0 \
-  -s paycrypto-me-for-woocommerce \
-  --no-git
+  -s paycrypto-me-for-woocommerce
 ```
 
 > **Nota:** o script aceita apenas semver puro (`X.Y.Z`). Strings como `1.2.0-beta.1` são rejeitadas na validação. Para testes locais, use a versão final sem sufixo e simplesmente não suba o zip ao WP.org até estar pronto.
@@ -510,7 +509,7 @@ Se `assets/blocks/paycrypto_me_lightning-blocks.js` estiver ausente no zip, sign
 ls src/trunk/assets/blocks/
 
 # Rodar apenas o build para verificar
-./scripts/release.sh -v 0.0.0 -s teste --no-tests --no-zip --no-git
+./scripts/release.sh -v 0.0.0 -s teste --no-tests --no-zip
 ```
 
 ---

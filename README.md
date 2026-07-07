@@ -9,7 +9,7 @@ PayCrypto.Me for WooCommerce lets your customers pay with Bitcoin — On-Chain a
 - Non-custodial — funds go directly to merchant wallets
 - Seamless checkout integration with QR code support
 - Compatible with WooCommerce Blocks and Custom Order Tables
-- Translation-ready and includes sample translations
+- Translation-ready, with complete translations for 7 locales (pt_BR, es_ES, fr_FR, de_DE, it_IT, ru_RU, zh_CN)
 - Debug logging via WooCommerce logger
 
 ## Quick Start

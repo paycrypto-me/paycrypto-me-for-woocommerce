@@ -11,14 +11,14 @@
 |---|---|---|
 | 1 | Validar bug do `crypto_network` já corrigido | 2/2 ✅ |
 | 2 | Cabeçalho do plugin / `readme.txt` — metadados | 7/7 ✅ |
-| 3 | Traduções — regenerar catálogo e completar 7 locales | 0/6 |
+| 3 | Traduções — regenerar catálogo e completar 7 locales | 6/6 ✅ |
 | 4 | Documentar persistência de dados na desinstalação | 1/1 ✅ |
 | 5 | `debug_log` default `yes` → `no` | 3/3 ✅ |
 | 6 | Guia de captura de screenshots | 2/2 ✅ |
 | 7 | Documentar envio de `src/assets/` ao SVN + limpar redundância | 2/2 ✅ |
 | 8 | Fechamento do plano | 0/2 |
 | 9 | 🔴 **Crítico** — Impedir seções de pagamento duplicadas ao trocar de gateway | 8/8 ✅ |
-| **Total** | | **25/34** |
+| **Total** | | **31/34** |
 
 > **Atualização 2026-07-06:** revisão de sessão confirmou que o commit do Passo 8 (mudanças dos
 > passos 2, 4, 5, 6 e 9) já havia acontecido em commits anteriores (`git status` limpo antes desta
@@ -70,16 +70,34 @@
 - [x] Achado extra corrigido: `src/trunk/CHANGELOG.md` tinha "Add support for Lightning payments
       (planned)" em `Unreleased` apesar do recurso já estar em produção — movido para `0.1.0`.
 
-### 3. Traduções — regenerar catálogo e completar as 7 localidades
-- [ ] Rodar `npm run translate:pot` — nenhum `.pot` existe hoje em `src/trunk/languages/`.
-- [ ] Sincronizar os 7 `.po` (`de_DE, es_ES, fr_FR, it_IT, pt_BR, ru_RU, zh_CN`) via `npm run translate` —
-      depende do `.pot` acima.
-- [ ] Traduzir as novas strings nas 7 localidades.
-- [ ] Revisar strings obsoletas (`#~`) nos `.po` existentes.
-- [ ] Rodar `npm run translate:mo` para regerar os binários.
-- [ ] Corrigir "📊 Status Atual" em `docs/TRANSLATION.md` (linha ~176) — ainda lista
-      "Idiomas planejados: pt_BR, en_US, es_ES", desatualizado frente aos 7 locales reais já
-      existentes.
+### 3. Traduções — regenerar catálogo e completar as 7 localidades ✅ concluído (2026-07-07)
+> Nota: o `.pot` estava ausente do repo (removido em commits antigos, dez/2025–jan/2026) e os 7
+> `.po` existentes tinham traduções antigas (53 `msgid`s) que não cobriam as ~131 chamadas de
+> tradução já presentes no código. Regenerado o `.pot` via WP-CLI (5 warnings de
+> "translators:" ausente corrigidos no código-fonte antes da regeneração final — ver
+> `class-wc-gateway-paycrypto-me-lightning.php`, `class-lightning-connection-tester.php`,
+> `paycrypto-me-order-details.php`). Decisão do mantenedor: descartar as traduções antigas e
+> retraduzir os 125 `msgid`s do zero nas 7 localidades, em vez de aproveitar via `msgmerge`
+> (que teria preservado ~40 strings antigas, mas com risco de fuzzy-match desatualizado dado o
+> volume de mudanças na fase de pré-release).
+- [x] Rodar `npm run translate:pot` — `.pot` gerado com 125 `msgid`s, todos com comentário
+      `translators:` correto onde há placeholder `%s`/`%d`.
+- [x] Sincronizar os 7 `.po` (`de_DE, es_ES, fr_FR, it_IT, pt_BR, ru_RU, zh_CN`) — regenerados do
+      zero a partir do `.pot` (decisão do mantenedor, ver nota acima).
+- [x] Traduzir as novas strings nas 7 localidades — 125/125 em cada idioma, 0 vazias.
+- [x] Revisar strings obsoletas (`#~`) — N/A, não existem porque os `.po` foram regenerados do
+      zero (regeneração fresca não produz entradas `#~`/`fuzzy`, só `msgmerge` produziria).
+- [x] Rodar `npm run translate:mo` para regerar os binários — `.mo` compilados e validados
+      (`msgfmt --check`) para os 7 idiomas.
+- [x] Corrigir "📊 Status Atual" em `docs/TRANSLATION.md` (linha ~176) — atualizado para refletir
+      os 7 locales reais, 100% traduzidos.
+- [x] **Achado extra corrigido no script**: `scripts/build-translations.sh` nunca escrevia o
+      header `Plural-Forms`, causando erro fatal no `msgfmt --check` para qualquer locale com
+      entrada `_n()` (plural) — `msgfmt` sem `--check` compilava mesmo assim, mas sem garantia de
+      runtime correto. Adicionadas `plural_forms_for_locale()` (mapeia os 7 locales, incluindo a
+      regra de 3 formas do `ru_RU` e a de 1 forma do `zh_CN`) e `fix_po_headers()`, chamadas a
+      cada `create_po_file()` — também substitui os placeholders padrão do WP-CLI
+      (`Last-Translator`/`PO-Revision-Date`) sem sobrescrever valores já preenchidos.
 
 ### 4. Documentar a persistência de dados na desinstalação ✅ concluído (2026-07-06)
 - [x] Declarado na seção `== Privacy ==` (ver passo 2) que as 4 tabelas customizadas e as
@@ -163,7 +181,7 @@
 - [x] `readme.txt` com `== Privacy ==` (contagem de screenshots já batia: 6 listados no
       `readme.txt`, 6 arquivos reais em `src/assets/`, ver passo 6).
 - [x] `debug_log` com default `no`, sem quebrar testes existentes (confirmado — ver passo 5).
-- [ ] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
-      `docs/TRANSLATION.md` corrigido.
+- [x] 7 `.po`/`.mo` regenerados a partir de `.pot` atualizado, sem `msgstr ""` pendente, e
+      `docs/TRANSLATION.md` corrigido (ver passo 3).
 - [x] `docs/RELEASE.md` com a subseção nova de envio de `src/assets/` ao SVN.
 - [ ] Working tree limpo, pronto para `scripts/release.sh --dry-run`.

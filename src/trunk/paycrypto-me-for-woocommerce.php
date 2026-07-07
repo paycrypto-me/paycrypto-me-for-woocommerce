@@ -10,7 +10,7 @@
  * Requires Plugins: woocommerce
  * WC requires at least: 6.5
  * WC tested up to: 10.9
- * Contributors: lucasrosa95
+ * Contributors: paycryptome, lucasrosa95
  * Donate link: bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation
  * Author: PayCrypto.Me
  * Author URI: https://paycrypto.me/

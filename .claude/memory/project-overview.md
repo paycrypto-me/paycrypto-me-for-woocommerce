@@ -9,7 +9,7 @@ metadata:
 
 ## PayCrypto.Me for WooCommerce
 
-Plugin WordPress GPL-3.0-or-later que adiciona gateways de pagamento em Bitcoin ao WooCommerce. Versão atual: **0.1.0**. Autor: Lucas Rosa (lucasrosa95 / lucas.rosa95br@gmail.com).
+Plugin WordPress GPL-3.0-or-later que adiciona gateways de pagamento em Bitcoin ao WooCommerce. Versão atual: **0.1.0**. Autor (branding público, pós-rebrand): PayCrypto.Me (contact@paycrypto.me). Mantenedor: [[user-lucas]].
 
 **Por que existe:** Permitir lojas WooCommerce aceitarem Bitcoin de forma non-custodial, sem intermediários.
 
