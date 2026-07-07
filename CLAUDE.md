@@ -1,14 +1,12 @@
 # PayCrypto.Me for WooCommerce — Context for Agents
 
-## Memory files
+## Context and guides
 
-Detailed context is split into topic files under `.claude/memory/`:
+- [docs/RELEASE.md](docs/RELEASE.md) — how to submit to WordPress.org (SVN or direct upload)
+- [docs/TRANSLATION.md](docs/TRANSLATION.md) — translation commands and status (7 locales, 100%)
+- [docs/ADD-NEW-GATEWAY.md](docs/ADD-NEW-GATEWAY.md) — checklist to implement a third gateway
 
-- [project-overview.md](.claude/memory/project-overview.md) — propósito, dois gateways, stack, estrutura de pastas
-- [architecture.md](.claude/memory/architecture.md) — hierarquia de classes, fluxo On-Chain e Lightning, serviços, tabelas DB, blocos Gutenberg, hooks
-- [dev-workflow.md](.claude/memory/dev-workflow.md) — build JS, PHPUnit, traduções, release, Docker, dependências Composer forked
-- [user-lucas.md](.claude/memory/user-lucas.md) — perfil do autor/mantenedor
-- [docs/adding-a-new-gateway.md](docs/adding-a-new-gateway.md) — checklist mecânico para implementar um terceiro gateway (registro no bootstrap, métodos abstratos obrigatórios, dispatch do processor, persistência, validação de settings, blocos Gutenberg, testes)
+**Status:** v0.1.0 ready for WordPress.org. All gateways functional, 232 tests passing, translations complete. Premium features (webhook/fiat→sats) reserved for add-on plugin — see "Premium add-on" section below.
 
 ---
 

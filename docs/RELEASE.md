@@ -74,7 +74,12 @@ O script valida que a versão passada é um semver válido (`X.Y.Z`). Não use p
 
 ## Atualizando o Changelog Antes do Release
 
-**Antes de rodar o script**, atualize o `src/trunk/readme.txt` com as mudanças da nova versão. O WP.org exibe esse changelog publicamente na página do plugin.
+**Antes de rodar o script**, atualize o changelog em **dois arquivos**:
+
+1. **`src/trunk/readme.txt`** — changelog oficial exibido no WP.org
+2. **`src/trunk/CHANGELOG.md`** — changelog estilo GitHub/Keep a Changelog (usado no repositório)
+
+As mudanças devem ser idênticas em ambos os arquivos para manter sincronização. Atualize os dois de uma vez.
 
 ### Formato do changelog em `readme.txt`
 
@@ -108,6 +113,29 @@ Initial release.
 ```
 
 > O `Upgrade Notice` aparece no painel do WP para quem já tem o plugin instalado e está prestes a atualizar. Mantenha-o em uma linha curta e objetiva.
+
+### Formato do changelog em `src/trunk/CHANGELOG.md`
+
+O arquivo usa o formato **Keep a Changelog** (https://keepachangelog.com/). Localize a seção `## Unreleased` e mova os items relevantes para uma **nova seção com a versão**:
+
+```markdown
+## Unreleased
+
+ - (itens realmente futuros/planejados)
+
+## X.Y.Z
+
+- Descrição curta da mudança 1.
+- Descrição curta da mudança 2.
+- Fix: descrição do bug corrigido.
+
+## 0.1.0
+
+- Initial public release.
+...
+```
+
+> **Importante:** O conteúdo bullet-point de `CHANGELOG.md` e `readme.txt` deve ser **idêntico** (ou equivalente) para ambos os formatos. Atualize os dois ao mesmo tempo para evitar drift.
 
 ---
 
@@ -524,6 +552,7 @@ PRÉ-RELEASE
 [ ] Branch main limpa: git status
 [ ] Versão determinada (ver seção "Determinando a Próxima Versão")
 [ ] src/trunk/readme.txt atualizado: nova entrada em == Changelog == e == Upgrade Notice ==
+[ ] src/trunk/CHANGELOG.md sincronizado: movido item de Unreleased para nova seção de versão
 [ ] Docker rodando: docker compose ps
 
 BUILD E VALIDAÇÃO
