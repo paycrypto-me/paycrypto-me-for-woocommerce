@@ -20,6 +20,9 @@ RUN docker-php-ext-install bcmath exif gd intl mysqli opcache zip sodium gmp
 RUN apt-get update && apt-get install -y imagemagick pkg-config \
     && docker-php-ext-enable imagick
 
+# Custom PHP limits (raises upload_max_filesize/post_max_size for plugin uploads)
+COPY ./docker/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 RUN groupadd -g 1000 app \
     && useradd -m -u 1000 -g app -s /bin/bash app
 
