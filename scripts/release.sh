@@ -266,7 +266,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
     --exclude='*.map' \
     --exclude='webpack.config.js' \
     --exclude='package-lock.json' \
-    --exclude='composer.lock' \
+    --exclude='/includes/blocks/js/' \
+    --exclude='/includes/blocks/scss/' \
     "$TRUNK/" "$BUILD_DIR/$SLUG/"
 else
   step "[dry-run] rsync $TRUNK/ → $BUILD_DIR/$SLUG/ (without vendor/)"
@@ -301,7 +302,8 @@ if [[ -d "$BUILD_DIR/$SLUG/vendor" && $DRY_RUN -eq 0 ]]; then
 
   find "$BUILD_DIR/$SLUG/vendor" -type d -name '.git' -prune -exec rm -rf {} + || true
   find "$BUILD_DIR/$SLUG/vendor" -type f \( -name '.git*' -o -name '.gitignore' \) -delete || true
-  find "$BUILD_DIR/$SLUG/vendor" -type f -iname 'phpunit.xml*' -delete || true
+  find "$BUILD_DIR/$SLUG/vendor" -type f \( -iname 'phpunit*.xml*' -o -iname 'psalm*.xml*' -o -iname 'phpstan*.neon*' -o -iname 'build.xml' -o -iname '*.dist' \) -delete || true
+  find "$BUILD_DIR/$SLUG/vendor" -type f \( -name 'composer.lock' -o -name 'composer-php52.json' -o -name '.editorconfig' -o -name '.php_cs*' -o -name '.php-cs-fixer*' \) -delete || true
   find "$BUILD_DIR/$SLUG/vendor" -type f -iname '.travis.yml' -delete || true
   find "$BUILD_DIR/$SLUG/vendor" -type d -name '.github' -prune -exec rm -rf {} + || true
   find "$BUILD_DIR/$SLUG/vendor" -type d \( -iname 'tests' -o -iname 'test' -o -iname 'Tests' \) -prune -exec rm -rf {} + || true
@@ -326,6 +328,12 @@ if [[ -d "$BUILD_DIR/$SLUG/vendor" && $DRY_RUN -eq 0 ]]; then
   # Remove root-level non-distributable files
   rm -f "$BUILD_DIR/$SLUG/LICENSE" || true
   rm -rf "$BUILD_DIR/$SLUG/examples" || true
+
+  # Remove build/dev metadata not needed at runtime (the optimized
+  # vendor/autoload.php is self-contained; nothing reads these at runtime)
+  rm -f "$BUILD_DIR/$SLUG/composer.json" \
+        "$BUILD_DIR/$SLUG/composer.lock" \
+        "$BUILD_DIR/$SLUG/package.json" || true
 
   # Remove leftover backup and temp files
   find "$BUILD_DIR/$SLUG" -name '*~' -type f -delete || true

@@ -111,3 +111,4 @@ wp-content/wp-cache-config.php
 debug-paycrypto.php
 releases/*
 !releases/.gitkeep
+auth.json
