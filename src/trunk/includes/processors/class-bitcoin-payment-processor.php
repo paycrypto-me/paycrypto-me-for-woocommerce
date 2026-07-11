@@ -50,7 +50,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             $payment_data['payment_address'] = $xPub;
             $payment_data['payment_uri']     = $this->build_payment_uri($order, $xPub, $payment_data['crypto_amount']);
 
-            return $payment_data;
+            return $this->finalize($payment_data, $order);
         }
 
         $xpub_logger = fn($message, $level) => $this->gateway->register_paycrypto_me_log($message, $level);
@@ -79,7 +79,16 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             );
         }
 
-        return $payment_data;
+        return $this->finalize($payment_data, $order);
+    }
+
+    /**
+     * Single exit point for the on-chain payment_data — third-party seam mirroring
+     * paycryptome_lightning_payment_data (add-on adjusts the final on-chain data here).
+     */
+    private function finalize(array $payment_data, \WC_Order $order): array
+    {
+        return apply_filters('paycryptome_bitcoin_payment_data', $payment_data, $order, $this->gateway);
     }
 
     private function resolve_bitcoin_network($network): \BitWasp\Bitcoin\Network\NetworkInterface
@@ -150,11 +159,13 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             $order->get_order_number()
         );
 
-        return $this->bitcoin_address_service->build_bitcoin_payment_uri(
+        $uri = $this->bitcoin_address_service->build_bitcoin_payment_uri(
             message: $message,
             address: $payment_address,
             amount: $crypto_amount,
             label: $order->get_billing_first_name(),
         );
+
+        return apply_filters('paycryptome_bitcoin_payment_uri', $uri, $order, $payment_address, $crypto_amount, $this->gateway);
     }
 }

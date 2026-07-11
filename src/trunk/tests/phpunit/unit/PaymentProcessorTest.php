@@ -134,7 +134,7 @@ class PaymentProcessorTest extends TestCase
         try {
             $m1 = new \ReflectionMethod(PaymentProcessor::class, 'apply_filter_payment_amount');
             $m1->setAccessible(true);
-            $final_amount = $m1->invoke($processor, $order);
+            $final_amount = $m1->invoke($processor, $order, $gateway);
 
             $m2 = new \ReflectionMethod(PaymentProcessor::class, 'apply_filter_payment_data');
             $m2->setAccessible(true);
@@ -211,6 +211,24 @@ class PaymentProcessorTest extends TestCase
 
         $this->assertNotEmpty($order->notes);
         $this->assertSame([['pending', 'Awaiting cryptocurrency payment']], $order->status_updates);
+    }
+
+    public function test_generic_filters_receive_gateway_for_third_party_branching()
+    {
+        $gateway = new GatewayStub();
+        $processor = new PaymentProcessor();
+
+        $processor->process_payment(123, $gateway);
+
+        $amount_calls = hook_spy_calls('paycryptome_payment_amount');
+        $this->assertCount(1, $amount_calls);
+        // args = [value, order_id, gateway]
+        $this->assertSame($gateway, $amount_calls[0]['args'][2], 'paycryptome_payment_amount must pass the gateway');
+
+        $data_calls = hook_spy_calls('paycryptome_payment_data');
+        $this->assertCount(1, $data_calls);
+        // args = [payment_data, order_id, gateway]
+        $this->assertSame($gateway, $data_calls[0]['args'][2], 'paycryptome_payment_data must pass the gateway');
     }
 
     public function test_process_payment_accepts_express_payment_method_variant()

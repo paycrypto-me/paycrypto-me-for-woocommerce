@@ -53,6 +53,29 @@ class LndRestInvoiceServiceTest extends TestCase
         $this->assertSame($expected_id, $response->invoice_id);
     }
 
+    public function test_create_invoice_includes_value_in_sats_when_set(): void
+    {
+        // Premium fiat→sats seam: when the invoice-args filter provides `value`, the lnd
+        // invoice must request that amount (sats) so the payment is enforced, not zero-amount.
+        $http = FakeHttpClient::respondingToPost(http_ok(['payment_request' => 'lnbc1', 'r_hash' => 'aGVsbG8']));
+
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600, 'value' => 5000]);
+
+        $this->assertSame('5000', $http->lastPostBody()['value']);
+    }
+
+    public function test_create_invoice_omits_value_when_not_set(): void
+    {
+        // Free path is unchanged: no `value` → zero-amount invoice (no value key in the body).
+        $http = FakeHttpClient::respondingToPost(http_ok(['payment_request' => 'lnbc1', 'r_hash' => 'aGVsbG8']));
+
+        (new LndRestInvoiceService($http, $this->default_gateway()))
+            ->create_invoice(['memo' => 'test', 'expiry' => 3600]);
+
+        $this->assertArrayNotHasKey('value', $http->lastPostBody());
+    }
+
     public function test_r_hash_base64url_to_hex_conversion(): void
     {
         // Verify the conversion with a known value:

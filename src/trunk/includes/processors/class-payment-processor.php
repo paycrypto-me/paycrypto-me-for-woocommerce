@@ -26,7 +26,7 @@ class PaymentProcessor
     {
         try {
             $order = wc_get_order($order_id);
-            $final_amount = $this->apply_filter_payment_amount($order);
+            $final_amount = $this->apply_filter_payment_amount($order, $gateway);
             $payment_data = $this->apply_filter_payment_data($order, $gateway, $final_amount);
 
             $this->validator->validate_order($order, $payment_data, $gateway);
@@ -129,9 +129,9 @@ class PaymentProcessor
 
         return $order->get_checkout_order_received_url();
     }
-    private function apply_filter_payment_amount($order)
+    private function apply_filter_payment_amount($order, \WC_Payment_Gateway $gateway)
     {
-        $final_amount = apply_filters('paycryptome_payment_amount', $order->get_total(), $order->get_id());
+        $final_amount = apply_filters('paycryptome_payment_amount', $order->get_total(), $order->get_id(), $gateway);
         return $final_amount;
     }
 
@@ -178,11 +178,14 @@ class PaymentProcessor
         }
 
         $payment_data = apply_filters('paycryptome_payment_data', [
-            'crypto_amount'      => null, //TODO: Calculate crypto amount based on fiat amount and current exchange rate
+            // Stays null in the free plugin. Third parties fill crypto_amount via this filter — it
+            // flows into the on-chain BIP21 URI amount and is persisted as order meta; the display
+            // can also be set via paycryptome_order_display_args. Fiat→crypto is add-on scope.
+            'crypto_amount'      => null,
             'fiat_amount'        => $payment_amount,
             'fiat_currency'      => $fiat_currency,
             'payment_expires_at' => $payment_expires_at,
-        ], $order->get_id());
+        ], $order->get_id(), $gateway);
 
         $payment_data['crypto_currency'] = $selected_crypto;
 

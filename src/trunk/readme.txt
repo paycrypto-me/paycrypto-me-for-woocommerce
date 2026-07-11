@@ -119,6 +119,7 @@ None of this data leaves your WordPress installation: the plugin only talks to y
 * Payment QR code with copy-to-clipboard and "open in wallet" link on the Thank You page, My Account and admin order screens.
 * Debug logging via the WooCommerce logger.
 * Initial translations for pt_BR, es_ES, fr_FR, de_DE, it_IT, ru_RU and zh_CN.
+* Developer extension points reserved for the upcoming premium add-on, with no effect on the free plugin: amount-enforced lnd invoices, an on-chain confirmation-tracking hook, order-details display filters, and dedicated on-chain payment filters.
 
 == Upgrade Notice ==
 

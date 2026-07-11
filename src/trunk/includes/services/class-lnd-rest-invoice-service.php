@@ -26,6 +26,12 @@ class LndRestInvoiceService extends AbstractLightningInvoiceService
             'expiry' => (string) ((int) abs((int) ($args['expiry'] ?? 3600))),
         ];
 
+        // Free version creates zero-amount invoices; the premium add-on's fiat→sats filter
+        // (paycryptome_lightning_lnd_invoice_args) sets `value` in sats to enforce the amount.
+        if (isset($args['value'])) {
+            $body['value'] = (string) ((int) abs((int) $args['value']));
+        }
+
         $data = $this->request_with_cert('post', $url, [
             'headers' => [
                 'Grpc-Metadata-macaroon' => $macaroon,

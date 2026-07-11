@@ -6,7 +6,7 @@
 - [docs/TRANSLATION.md](docs/TRANSLATION.md) — translation commands and status (7 locales, 100%)
 - [docs/ADD-NEW-GATEWAY.md](docs/ADD-NEW-GATEWAY.md) — checklist to implement a third gateway
 
-**Status:** v0.1.0 ready for WordPress.org. All gateways functional, 232 tests passing, translations complete. Premium features (webhook/fiat→sats) reserved for add-on plugin — see "Premium add-on" section below.
+**Status:** v0.1.0 ready for WordPress.org. All gateways functional, 243 tests passing, translations complete. Premium features (webhook/fiat→sats) reserved for add-on plugin — see "Premium add-on" section below.
 
 ---
 
@@ -130,14 +130,19 @@ All prefixed with `{$wpdb->prefix}`:
 |------|------|------|
 | `paycryptome_before_payment` | action | Before processor runs |
 | `paycryptome_after_payment` | action | After processor runs |
-| `paycryptome_payment_amount` | filter | Modify order total before payment |
-| `paycryptome_payment_data` | filter | Modify payment data array before processing |
+| `paycryptome_payment_amount` | filter | Modify order total before payment. Args: `($amount, $order_id, $gateway)` |
+| `paycryptome_payment_data` | filter | Modify payment data array before processing. Args: `($payment_data, $order_id, $gateway)`. This is where a third party fills `crypto_amount` (fiat→crypto) — it flows into the on-chain BIP21 URI and is persisted as order meta |
 | `paycryptome_for_woocommerce_gateway_loaded` | action | When a gateway instance is constructed |
+| `paycryptome_order_display_args` | filter | Order-details render, **pre-build**: `($args, $order, $gateway)` — augment the gateway's display args before `PaymentDisplayDataBuilder::build()` (e.g. flip `show_expiry`, set `crypto_amount`) |
+| `paycryptome_order_display_data` | filter | Order-details render, **post-build**: `($display_data, $order, $gateway)` — adjust already-computed display fields (QR, labels) |
+| `paycryptome_bitcoin_payment_uri` | filter | On-chain BIP21 URI: `($uri, $order, $payment_address, $crypto_amount, $gateway)` |
+| `paycryptome_bitcoin_payment_data` | filter | Final `$payment_data` returned by the Bitcoin processor: `($payment_data, $order, $gateway)` — on-chain analogue of `paycryptome_lightning_payment_data` (fires on both static-address and derived-address paths) |
 | `paycryptome_lightning_invoice_memo` / `paycryptome_lightning_invoice_expiry` | filter | Customize the Lightning invoice memo/expiry before creation |
-| `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args` | filter | Full invoice args array before `create_invoice()` (includes `amount`/`currency` already merged) |
+| `paycryptome_lightning_btcpay_invoice_args` / `paycryptome_lightning_lnd_invoice_args` | filter | Full invoice args array before `create_invoice()` (includes `amount`/`currency` already merged). `LndRestInvoiceService::create_invoice()` also honors an optional `value` key (sats) — free plugin never sets it; the premium fiat→sats add-on sets it here to enforce the invoice amount. |
 | `paycryptome_lightning_payment_data` | filter | Final `$payment_data` returned by the Lightning processor |
 | `paycryptome_lightning_btcpay_payment_method_id` / `paycryptome_lightning_btcpay_speed_policy` | filter | BTCPay protocol constants that don't flow through the args array |
 | `paycryptome_lightning_status_changed` | action | Fired inside `PayCryptoMeLightningDBStatementsService::update_status($order_id, $old_status, $new_status)` after a successful, actual status change — premium add-on seam (webhook/polling consumers react here instead of monkey-patching) |
+| `paycryptome_bitcoin_status_changed` | action | On-chain analogue: fired inside `PayCryptoMeDBStatementsService::update_transaction_confirmations($order_id, $old_confirmations, $new_confirmations)` when the confirmation count actually changes — premium add-on seam (confirmation poller consumers react here). No production caller in the free plugin. |
 
 **Note:** before adding a new filter for Lightning, check whether the value already flows through `base_invoice_args()`/the `invoice_args_filter()` array — only add a dedicated filter for values hardcoded inside a service that never reach that array.
 
@@ -160,7 +165,7 @@ composer install
 ./vendor/bin/phpunit
 ```
 
-Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`. Current suite: 232 tests, 515 assertions, 0 errors.
+Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`. Current suite: 243 tests, 550 assertions, 0 errors.
 
 ### Translations
 
@@ -193,7 +198,8 @@ Two capabilities are **intentionally absent from this free plugin and reserved f
 |---|---|
 | `PayCryptoMeLightningDBStatementsService::get_by_invoice_id()` | Look up an order when a webhook payload only carries the invoice id (`get_by_order_id()` covers the other case) |
 | `paycryptome_lightning_status_changed` action (see "Public hooks") | React to a status change (e.g. call `$order->payment_complete()`) without monkey-patching |
-| `paycryptome_lightning_btcpay_invoice_args` / `_lnd_invoice_args` filters | Already receive `$order` + `$gateway` — the add-on computes `amount` in sats here for fiat→sats |
+| `paycryptome_lightning_btcpay_invoice_args` / `_lnd_invoice_args` filters | Already receive `$order` + `$gateway` — the add-on computes `amount` in sats here for fiat→sats. For lnd, set the `value` key (sats) to enforce the amount on the invoice (BTCPay converts fiat itself, so it needs no `value`). |
+| `PayCryptoMeDBStatementsService::update_transaction_confirmations()` + `paycryptome_bitcoin_status_changed` action | On-chain confirmation poller persists confirmations/amount/tx via this method and reacts to the action (e.g. `$order->payment_complete()` once required confirmations are reached) — mirrors the Lightning `update_status()` seam |
 | `woocommerce_settings_api_form_fields_paycrypto_me_lightning` (native WooCommerce filter) | Append settings fields (e.g. webhook secret) without touching `init_form_fields()` |
 | Dependency guard (`class_exists()` + min-version check) | Add-on's own responsibility, not a base concern |
 

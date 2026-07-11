@@ -11,6 +11,11 @@ use PayCryptoMe\WooCommerce\BitcoinPaymentProcessor;
 
 class BitcoinPaymentProcessorTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        hook_spy_reset();
+    }
+
     public function test_process_uses_existing_address()
     {
         $gateway = $this->createMock(\WC_Payment_Gateway::class);
@@ -88,6 +93,48 @@ class BitcoinPaymentProcessorTest extends TestCase
         $this->assertArrayHasKey('payment_uri', $out, 'processor output: ' . var_export($out, true));
         $this->assertEquals('bitcoin:1NewAddr?amount=0.123', $out['payment_uri']);
         $this->assertArrayHasKey('derivation_index', $out, 'processor output: ' . var_export($out, true));
+
+        // F4: derived branch must expose the on-chain seams for third parties.
+        $this->assertCount(1, hook_spy_calls('paycryptome_bitcoin_payment_uri'));
+        $data_calls = hook_spy_calls('paycryptome_bitcoin_payment_data');
+        $this->assertCount(1, $data_calls);
+        $this->assertSame($order, $data_calls[0]['args'][1]);
+        $this->assertSame($gateway, $data_calls[0]['args'][2]);
+    }
+
+    public function test_static_address_branch_fires_bitcoin_filters()
+    {
+        $gateway = $this->createMock(\WC_Payment_Gateway::class);
+        $gateway->method('get_option')->willReturnCallback(fn ($key, $empty_value = null) => match ($key) {
+            'network_identifier' => '1StaticAddr',
+            'selected_network'   => 'mainnet',
+            default              => $empty_value,
+        });
+
+        $order = $this->createMock(\WC_Order::class);
+        $order->method('get_id')->willReturn(11);
+        $order->method('get_billing_first_name')->willReturn('Carol');
+        $order->method('get_order_number')->willReturn('11');
+
+        $db = $this->createMock(\PayCryptoMe\WooCommerce\PayCryptoMeDBStatementsService::class);
+
+        $btcSvc = $this->createMock(\PayCryptoMe\WooCommerce\BitcoinAddressService::class);
+        // Static address path: validated as an address (not an xpub), no derivation/persistence.
+        $btcSvc->method('validate_bitcoin_address')->willReturn(true);
+        $btcSvc->expects($this->never())->method('generate_address_from_xPub');
+        $btcSvc->method('build_bitcoin_payment_uri')->willReturn('bitcoin:1StaticAddr');
+
+        $processor = new BitcoinPaymentProcessor($gateway, $btcSvc, $db);
+        $out = $processor->process($order, ['crypto_amount' => 0.5]);
+
+        $this->assertSame('1StaticAddr', $out['payment_address']);
+
+        // F4: static branch must expose the same on-chain seams as the derived branch.
+        $uri_calls = hook_spy_calls('paycryptome_bitcoin_payment_uri');
+        $this->assertCount(1, $uri_calls);
+        $data_calls = hook_spy_calls('paycryptome_bitcoin_payment_data');
+        $this->assertCount(1, $data_calls);
+        $this->assertSame($gateway, $data_calls[0]['args'][2]);
     }
 
     public function test_process_preserves_original_exception_as_previous()

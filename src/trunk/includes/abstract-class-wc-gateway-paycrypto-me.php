@@ -84,7 +84,17 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
             return;
         }
 
-        $payment_display_data = $this->display_data_builder->build($order, $args);
+        // Third-party seam (pre-build): lets an add-on flip show_expiry, set crypto_amount, etc.
+        // before PaymentDisplayDataBuilder computes the final display array.
+        $args = apply_filters('paycryptome_order_display_args', $args, $order, $this);
+
+        // Third-party seam (post-build): lets an add-on adjust already-computed fields (QR, labels).
+        $payment_display_data = apply_filters(
+            'paycryptome_order_display_data',
+            $this->display_data_builder->build($order, $args),
+            $order,
+            $this
+        );
 
         wc_get_template(
             'order-details/paycrypto-me-order-details.php',

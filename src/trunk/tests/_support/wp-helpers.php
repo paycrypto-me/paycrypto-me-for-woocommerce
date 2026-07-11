@@ -95,6 +95,10 @@ if (!function_exists('wc_price')) {
 if (!function_exists('wp_json_encode')) {
     function wp_json_encode($data, $options = 0, $depth = 512) { return json_encode($data, $options, $depth); }
 }
+if (!function_exists('wc_get_template')) {
+    // No-op: tests exercising render paths only assert on data/hooks, not template output.
+    function wc_get_template($template_name, $args = [], $template_path = '', $default_path = '') { return null; }
+}
 // Test-controlled globals ($TEST_CURRENT_USER_CAN / $TEST_CHECK_AJAX_REFERER) let
 // individual tests flip these without redeclaring the function.
 if (!function_exists('current_user_can')) {
