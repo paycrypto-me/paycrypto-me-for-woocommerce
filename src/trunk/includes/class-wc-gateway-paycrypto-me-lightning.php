@@ -159,18 +159,18 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
             'webhook_info' => [
                 'title' => __('Webhook Configuration', 'paycrypto-me-for-woocommerce'),
                 'type' => 'title',
-                'description' => sprintf(
-                    /* translators: %s: webhook REST URL */
-                    __('Configure this webhook URL in your Lightning node provider dashboard:<br><code>%s</code>', 'paycrypto-me-for-woocommerce'),
-                    esc_url(rest_url('paycrypto-me/v1/webhook'))
-                ),
+                'description' => $this->premium_soon_badge() . '<br>' . __('Automatic payment confirmation via webhooks (BTCPay push / lnd polling) ships in the upcoming PayCrypto.Me Premium add-on. In the free version, Lightning payments are confirmed manually — the settings below are a preview and are not editable yet.', 'paycrypto-me-for-woocommerce'),
             ],
             'btcpay_webhook_secret' => [
                 'title' => __('BTCPay Webhook Secret', 'paycrypto-me-for-woocommerce'),
                 'type' => 'password',
-                'description' => __('Webhook secret (recommended minimum 16 characters).', 'paycrypto-me-for-woocommerce'),
+                'description' => __('Reserved for the Premium add-on. Not used by the free version.', 'paycrypto-me-for-woocommerce'),
+                'placeholder' => __('Available in the Premium add-on', 'paycrypto-me-for-woocommerce'),
                 'default' => '',
-                'class' => 'paycrypto-btcpay-field',
+                'class' => 'paycrypto-btcpay-field paycrypto-premium-field',
+                'custom_attributes' => [
+                    'disabled' => 'disabled',
+                ],
             ],
             'lnd_rest_url' => [
                 'title' => __('lnd REST URL', 'paycrypto-me-for-woocommerce'),
@@ -349,6 +349,8 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
             'crypto_amount'          => null,
             'crypto_currency'        => 'BTC',
             'confirmations_required' => 0,
+            // Lightning invoice expiry is enforced by the node (BOLT11), so the countdown is real.
+            'show_expiry'            => true,
         ];
     }
 

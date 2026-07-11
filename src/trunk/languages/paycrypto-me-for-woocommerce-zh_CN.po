@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: PayCrypto.Me for WooCommerce 0.1.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/paycrypto-me-for-"
 "woocommerce/issues\n"
-"POT-Creation-Date: 2026-07-07T17:53:38+00:00\n"
+"POT-Creation-Date: 2026-07-08T20:00:24+00:00\n"
 "PO-Revision-Date: 2026-07-07 17:52+0000\n"
 "Last-Translator: PayCrypto.Me Team <contact@paycrypto.me>\n"
 "Language-Team: PayCrypto.Me Team <contact@paycrypto.me>\n"
@@ -23,26 +23,24 @@ msgid "PayCrypto.Me for WooCommerce"
 msgstr "PayCrypto.Me for WooCommerce"
 
 #. Plugin URI of the plugin
+#. Author URI of the plugin
 #: paycrypto-me-for-woocommerce.php
-msgid "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
-msgstr "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
+msgid "https://paycrypto.me/"
+msgstr "https://paycrypto.me/"
 
 #. Description of the plugin
 #: paycrypto-me-for-woocommerce.php
 msgid ""
 "PayCrypto.Me for WooCommerce lets your store accept Bitcoin payments — On-"
 "Chain and Lightning Network — directly into wallets and nodes you control."
-msgstr "PayCrypto.Me for WooCommerce 让您的商店接受比特币支付 — 链上和闪电网络 — 直接进入您控制的钱包和节点。"
+msgstr ""
+"PayCrypto.Me for WooCommerce 让您的商店接受比特币支付 — 链上和闪电网络 — 直接"
+"进入您控制的钱包和节点。"
 
 #. Author of the plugin
 #: paycrypto-me-for-woocommerce.php
 msgid "PayCrypto.Me"
 msgstr "PayCrypto.Me"
-
-#. Author URI of the plugin
-#: paycrypto-me-for-woocommerce.php
-msgid "https://paycrypto.me/"
-msgstr "https://paycrypto.me/"
 
 #: includes/abstract-class-wc-gateway-paycrypto-me.php:163
 msgid "Network"
@@ -141,7 +139,8 @@ msgstr "图标位置"
 msgid ""
 "Controls where the icon appears relative to the button label. e.g. \"₿ Pay "
 "with\" (left) or \"Pay with ₿\" (right)."
-msgstr "控制图标相对于按钮标签的显示位置。例如\"₿ 支付\"（左）或\"支付 ₿\"（右）。"
+msgstr ""
+"控制图标相对于按钮标签的显示位置。例如\"₿ 支付\"（左）或\"支付 ₿\"（右）。"
 
 #: includes/abstract-class-wc-gateway-paycrypto-me.php:225
 msgid "Left — icon before label"
@@ -188,6 +187,10 @@ msgstr "<strong>喜欢这个插件？</strong>发送一些 BTC 来支持："
 msgid "Copy"
 msgstr "复制"
 
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:387
+msgid "Premium · Coming soon"
+msgstr "高级版 · 即将推出"
+
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:28
 #: includes/class-wc-gateway-paycrypto-me.php:35
 msgid "Bitcoin Payments"
@@ -227,7 +230,9 @@ msgstr "发票过期时间"
 msgid ""
 "Time before invoice expires. Min: 300 (5 min), Max: 86400 (24h). Default: "
 "3600 (1 hour)"
-msgstr "发票过期前的时间。最小：300（5 分钟），最大：86400（24 小时）。默认值：3600（1 小时）"
+msgstr ""
+"发票过期前的时间。最小：300（5 分钟），最大：86400（24 小时）。默认值：3600"
+"（1 小时）"
 
 #. translators: %s: field label, e.g. "BTCPay Server URL".
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:122
@@ -267,7 +272,9 @@ msgid ""
 "Only change this if your BTCPay Server version reports a different Lightning "
 "payment method identifier than the default. Leave as \"BTC-LN\" unless "
 "instructed otherwise."
-msgstr "仅当您的 BTCPay 服务器版本报告的闪电支付方式标识符与默认值不同时才更改此选项。除非另有说明，否则保留为\"BTC-LN\"。"
+msgstr ""
+"仅当您的 BTCPay 服务器版本报告的闪电支付方式标识符与默认值不同时才更改此选"
+"项。除非另有说明，否则保留为\"BTC-LN\"。"
 
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:155
 msgid "BTCPay Connection Test"
@@ -277,21 +284,28 @@ msgstr "BTCPay 连接测试"
 msgid "Webhook Configuration"
 msgstr "Webhook 配置"
 
-#. translators: %s: webhook REST URL
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:164
-#, php-format
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:162
 msgid ""
-"Configure this webhook URL in your Lightning node provider dashboard:"
-"<br><code>%s</code>"
-msgstr "在您的闪电节点提供商仪表板中配置此 webhook URL：<br><code>%s</code>"
+"Automatic payment confirmation via webhooks (BTCPay push / lnd polling) "
+"ships in the upcoming PayCrypto.Me Premium add-on. In the free version, "
+"Lightning payments are confirmed manually — the settings below are a preview "
+"and are not editable yet."
+msgstr ""
+"通过 webhook（BTCPay 推送 / lnd 轮询）自动确认付款将在即将推出的 "
+"PayCrypto.Me 高级版附加组件中提供。在免费版中，闪电网络付款需手动确认——下方设"
+"置仅为预览，暂不可编辑。"
 
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:169
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:165
 msgid "BTCPay Webhook Secret"
 msgstr "BTCPay Webhook 密钥"
 
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:171
-msgid "Webhook secret (recommended minimum 16 characters)."
-msgstr "Webhook 密钥（建议最少 16 个字符）。"
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:167
+msgid "Reserved for the Premium add-on. Not used by the free version."
+msgstr "为高级版附加组件保留。免费版不使用。"
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:168
+msgid "Available in the Premium add-on"
+msgstr "在高级版附加组件中提供"
 
 #. translators: %s: field label, e.g. "BTCPay Server URL".
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:176
@@ -322,7 +336,8 @@ msgstr "SSL 证书（PEM）"
 msgid ""
 "Optional: Paste your SSL certificate in PEM format. If provided, this will "
 "be used for verification instead of disabling SSL checks."
-msgstr "可选：粘贴您的 PEM 格式的 SSL 证书。如果提供，将用于验证而不是禁用 SSL 检查。"
+msgstr ""
+"可选：粘贴您的 PEM 格式的 SSL 证书。如果提供，将用于验证而不是禁用 SSL 检查。"
 
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:201
 msgid "Verify SSL Certificate"
@@ -348,7 +363,7 @@ msgid "🔌 Test connection"
 msgstr "🔌 测试连接"
 
 #: includes/class-wc-gateway-paycrypto-me.php:35
-#: includes/class-wc-gateway-paycrypto-me.php:226
+#: includes/class-wc-gateway-paycrypto-me.php:228
 msgid "On-Chain"
 msgstr "链上"
 
@@ -416,39 +431,46 @@ msgstr "支付超时（小时）"
 
 #: includes/class-wc-gateway-paycrypto-me.php:154
 msgid ""
-"Max time (in hours) to wait to confirm payment before the order expires."
-msgstr "订单过期前等待确认支付的最长时间（小时）。"
+"Automatic order expiry after the timeout ships in the upcoming PayCrypto.Me "
+"Premium add-on. In the free version, on-chain addresses stay valid until "
+"paid."
+msgstr ""
+"超时后订单自动过期将在即将推出的 PayCrypto.Me 高级版附加组件中提供。在免费版"
+"中，链上地址在付款前始终有效。"
 
-#: includes/class-wc-gateway-paycrypto-me.php:159
+#: includes/class-wc-gateway-paycrypto-me.php:160
 msgid "Payment number of confirmations"
 msgstr "支付确认数"
 
-#: includes/class-wc-gateway-paycrypto-me.php:161
+#: includes/class-wc-gateway-paycrypto-me.php:162
 msgid ""
-"Tip: To ensure the Bitcoin payment has been made, recommended wait for 3 "
-"confirmations."
-msgstr "提示：为了确保比特币支付已进行，建议等待 3 个确认。"
+"Automatic on-chain confirmation tracking ships in the upcoming PayCrypto.Me "
+"Premium add-on. In the free version, payments are verified manually."
+msgstr ""
+"链上确认的自动跟踪将在即将推出的 PayCrypto.Me 高级版附加组件中提供。在免费版"
+"中，付款需手动核实。"
 
-#: includes/class-wc-gateway-paycrypto-me.php:167
+#: includes/class-wc-gateway-paycrypto-me.php:169
 msgid "Danger Area"
 msgstr "危险区域"
 
-#: includes/class-wc-gateway-paycrypto-me.php:170
+#: includes/class-wc-gateway-paycrypto-me.php:172
 msgid "Warning:"
 msgstr "警告："
 
-#: includes/class-wc-gateway-paycrypto-me.php:170
+#: includes/class-wc-gateway-paycrypto-me.php:172
 msgid ""
 "Resetting the payment derivation index will lead to the reuse of addresses "
 "and loss of past data. Proceed with caution and ensure you understand the "
 "implications."
-msgstr "重置支付派生索引将导致地址重用和过去数据丢失。谨慎进行，确保您理解其含义。"
+msgstr ""
+"重置支付派生索引将导致地址重用和过去数据丢失。谨慎进行，确保您理解其含义。"
 
-#: includes/class-wc-gateway-paycrypto-me.php:172
+#: includes/class-wc-gateway-paycrypto-me.php:174
 msgid "Reset payment address derivation index"
 msgstr "重置支付地址派生索引"
 
-#: includes/class-wc-gateway-paycrypto-me.php:227
+#: includes/class-wc-gateway-paycrypto-me.php:229
 msgid "Testnet"
 msgstr "测试网"
 
@@ -542,7 +564,8 @@ msgstr "lnd Macaroon 必须是有效的十六进制字符串。"
 msgid ""
 "Invalid certificate format. Must be valid PEM format starting with -----"
 "BEGIN CERTIFICATE-----."
-msgstr "无效的证书格式。必须是有效的 PEM 格式，以 -----BEGIN CERTIFICATE----- 开头。"
+msgstr ""
+"无效的证书格式。必须是有效的 PEM 格式，以 -----BEGIN CERTIFICATE----- 开头。"
 
 #: includes/validators/class-lightning-config-validator.php:139
 msgid "Invoice Expiry must be at least 300 seconds (5 minutes)."
@@ -551,6 +574,26 @@ msgstr "发票过期时间必须至少 300 秒（5 分钟）。"
 #: includes/validators/class-lightning-config-validator.php:143
 msgid "Invoice Expiry cannot exceed 86400 seconds (24 hours)."
 msgstr "发票过期时间不能超过 86400 秒（24 小时）。"
+
+#: paycrypto-me-for-woocommerce.php:99
+msgid "Settings"
+msgstr "设置"
+
+#: paycrypto-me-for-woocommerce.php:104
+msgid "Docs"
+msgstr "文档"
+
+#: paycrypto-me-for-woocommerce.php:109
+msgid "Get Premium"
+msgstr "获取高级版"
+
+#: paycrypto-me-for-woocommerce.php:125
+msgid "Support"
+msgstr "支持"
+
+#: paycrypto-me-for-woocommerce.php:130
+msgid "GitHub"
+msgstr "GitHub"
 
 #: templates/order-details/paycrypto-me-order-details.php:10
 msgid "Payment Details"
@@ -606,3 +649,24 @@ msgstr "已复制！"
 #: templates/order-details/paycrypto-me-order-details.php:87
 msgid "Pay Using Wallet"
 msgstr "使用钱包支付"
+
+#~ msgid "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
+#~ msgstr "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
+
+#, php-format
+#~ msgid ""
+#~ "Configure this webhook URL in your Lightning node provider dashboard:"
+#~ "<br><code>%s</code>"
+#~ msgstr "在您的闪电节点提供商仪表板中配置此 webhook URL：<br><code>%s</code>"
+
+#~ msgid "Webhook secret (recommended minimum 16 characters)."
+#~ msgstr "Webhook 密钥（建议最少 16 个字符）。"
+
+#~ msgid ""
+#~ "Max time (in hours) to wait to confirm payment before the order expires."
+#~ msgstr "订单过期前等待确认支付的最长时间（小时）。"
+
+#~ msgid ""
+#~ "Tip: To ensure the Bitcoin payment has been made, recommended wait for 3 "
+#~ "confirmations."
+#~ msgstr "提示：为了确保比特币支付已进行，建议等待 3 个确认。"

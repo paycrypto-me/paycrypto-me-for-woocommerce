@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-07-07T17:53:38+00:00\n"
+"POT-Creation-Date: 2026-07-08T20:00:24+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: paycrypto-me-for-woocommerce\n"
@@ -20,8 +20,9 @@ msgid "PayCrypto.Me for WooCommerce"
 msgstr ""
 
 #. Plugin URI of the plugin
+#. Author URI of the plugin
 #: paycrypto-me-for-woocommerce.php
-msgid "https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/"
+msgid "https://paycrypto.me/"
 msgstr ""
 
 #. Description of the plugin
@@ -32,11 +33,6 @@ msgstr ""
 #. Author of the plugin
 #: paycrypto-me-for-woocommerce.php
 msgid "PayCrypto.Me"
-msgstr ""
-
-#. Author URI of the plugin
-#: paycrypto-me-for-woocommerce.php
-msgid "https://paycrypto.me/"
 msgstr ""
 
 #: includes/abstract-class-wc-gateway-paycrypto-me.php:163
@@ -172,6 +168,10 @@ msgstr ""
 msgid "Copy"
 msgstr ""
 
+#: includes/abstract-class-wc-gateway-paycrypto-me.php:387
+msgid "Premium · Coming soon"
+msgstr ""
+
 #: includes/class-wc-gateway-paycrypto-me-lightning.php:28
 #: includes/class-wc-gateway-paycrypto-me.php:35
 msgid "Bitcoin Payments"
@@ -256,18 +256,20 @@ msgstr ""
 msgid "Webhook Configuration"
 msgstr ""
 
-#. translators: %s: webhook REST URL
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:164
-#, php-format
-msgid "Configure this webhook URL in your Lightning node provider dashboard:<br><code>%s</code>"
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:162
+msgid "Automatic payment confirmation via webhooks (BTCPay push / lnd polling) ships in the upcoming PayCrypto.Me Premium add-on. In the free version, Lightning payments are confirmed manually — the settings below are a preview and are not editable yet."
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:169
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:165
 msgid "BTCPay Webhook Secret"
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me-lightning.php:171
-msgid "Webhook secret (recommended minimum 16 characters)."
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:167
+msgid "Reserved for the Premium add-on. Not used by the free version."
+msgstr ""
+
+#: includes/class-wc-gateway-paycrypto-me-lightning.php:168
+msgid "Available in the Premium add-on"
 msgstr ""
 
 #. translators: %s: field label, e.g. "BTCPay Server URL".
@@ -321,7 +323,7 @@ msgid "🔌 Test connection"
 msgstr ""
 
 #: includes/class-wc-gateway-paycrypto-me.php:35
-#: includes/class-wc-gateway-paycrypto-me.php:226
+#: includes/class-wc-gateway-paycrypto-me.php:228
 msgid "On-Chain"
 msgstr ""
 
@@ -384,34 +386,34 @@ msgid "Payment Timeout (hours)"
 msgstr ""
 
 #: includes/class-wc-gateway-paycrypto-me.php:154
-msgid "Max time (in hours) to wait to confirm payment before the order expires."
+msgid "Automatic order expiry after the timeout ships in the upcoming PayCrypto.Me Premium add-on. In the free version, on-chain addresses stay valid until paid."
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:159
+#: includes/class-wc-gateway-paycrypto-me.php:160
 msgid "Payment number of confirmations"
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:161
-msgid "Tip: To ensure the Bitcoin payment has been made, recommended wait for 3 confirmations."
+#: includes/class-wc-gateway-paycrypto-me.php:162
+msgid "Automatic on-chain confirmation tracking ships in the upcoming PayCrypto.Me Premium add-on. In the free version, payments are verified manually."
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:167
+#: includes/class-wc-gateway-paycrypto-me.php:169
 msgid "Danger Area"
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:170
+#: includes/class-wc-gateway-paycrypto-me.php:172
 msgid "Warning:"
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:170
+#: includes/class-wc-gateway-paycrypto-me.php:172
 msgid "Resetting the payment derivation index will lead to the reuse of addresses and loss of past data. Proceed with caution and ensure you understand the implications."
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:172
+#: includes/class-wc-gateway-paycrypto-me.php:174
 msgid "Reset payment address derivation index"
 msgstr ""
 
-#: includes/class-wc-gateway-paycrypto-me.php:227
+#: includes/class-wc-gateway-paycrypto-me.php:229
 msgid "Testnet"
 msgstr ""
 
@@ -506,6 +508,26 @@ msgstr ""
 
 #: includes/validators/class-lightning-config-validator.php:143
 msgid "Invoice Expiry cannot exceed 86400 seconds (24 hours)."
+msgstr ""
+
+#: paycrypto-me-for-woocommerce.php:99
+msgid "Settings"
+msgstr ""
+
+#: paycrypto-me-for-woocommerce.php:104
+msgid "Docs"
+msgstr ""
+
+#: paycrypto-me-for-woocommerce.php:109
+msgid "Get Premium"
+msgstr ""
+
+#: paycrypto-me-for-woocommerce.php:125
+msgid "Support"
+msgstr ""
+
+#: paycrypto-me-for-woocommerce.php:130
+msgid "GitHub"
 msgstr ""
 
 #: templates/order-details/paycrypto-me-order-details.php:10

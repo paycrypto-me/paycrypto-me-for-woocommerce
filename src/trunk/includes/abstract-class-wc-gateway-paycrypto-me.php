@@ -378,6 +378,16 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         return $html;
     }
 
+    // Renders the "Premium · Coming soon" badge for settings fields whose behavior belongs to
+    // the Premium add-on (async status updates: Lightning webhooks, on-chain confirmation
+    // tracking). The associated input is disabled so the free version never acts on the value.
+    protected function premium_soon_badge(): string
+    {
+        return '<span class="paycrypto-premium-badge">'
+            . esc_html__('Premium · Coming soon', 'paycrypto-me-for-woocommerce')
+            . '</span>';
+    }
+
     public function get_payment_method_data()
     {
         return [

@@ -31,9 +31,12 @@ class PaymentDisplayDataBuilder
      */
     public function build(\WC_Order $order, array $args): array
     {
+        // Gateways whose expiry isn't actually enforced (on-chain) opt out via show_expiry;
+        // defaults to true so the enforced Lightning countdown still renders.
+        $show_expiry          = $args['show_expiry'] ?? true;
         $expires_hours        = (int) $order->get_meta('_paycrypto_me_payment_expires_at');
         $order_date           = $order->get_date_created();
-        $expires_at_formatted = ($expires_hours > 0 && $order_date)
+        $expires_at_formatted = ($show_expiry && $expires_hours > 0 && $order_date)
             ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $order_date->getTimestamp() + $expires_hours * HOUR_IN_SECONDS)
             : null;
 

@@ -121,6 +121,18 @@ class PaymentDisplayDataBuilderTest extends TestCase
         $this->assertStringContainsString(gmdate('', 2 * HOUR_IN_SECONDS), (string) $data['expires_at_formatted']);
     }
 
+    public function test_expires_at_formatted_null_when_show_expiry_false()
+    {
+        $date = new \DateTime('@0');
+        $data = $this->make_builder()->build(
+            $this->make_order(['_paycrypto_me_payment_expires_at' => '2'], $date),
+            $this->sample_args(['show_expiry' => false])
+        );
+
+        // On-chain opts out: expiry isn't enforced, so it must not be shown.
+        $this->assertNull($data['expires_at_formatted']);
+    }
+
     public function test_crypto_label_maps_btc_to_bitcoin()
     {
         $data = $this->make_builder()->build(

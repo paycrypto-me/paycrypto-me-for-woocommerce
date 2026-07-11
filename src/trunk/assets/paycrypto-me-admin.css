@@ -112,3 +112,39 @@
     display: inline-block;
     margin-right: 12px;
 }
+
+/* Premium (coming soon) settings preview */
+.paycrypto-premium-badge {
+    display: inline-block;
+    background: #f7931a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.9;
+    padding: 0 10px;
+    border-radius: 999px;
+    letter-spacing: .02em;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.paycrypto-premium-badge::before {
+    content: "\1F512";
+    margin-right: 5px;
+}
+
+input.paycrypto-premium-field,
+textarea.paycrypto-premium-field {
+    background-color: #f6f7f7 !important;
+    color: #8c8f94 !important;
+    border-style: dashed !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+}
+
+input.paycrypto-premium-field::placeholder,
+textarea.paycrypto-premium-field::placeholder {
+    color: #a7aaad;
+    font-style: italic;
+}

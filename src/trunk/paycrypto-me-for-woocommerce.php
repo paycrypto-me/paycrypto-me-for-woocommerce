@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: PayCrypto.Me for WooCommerce
- * Plugin URI: https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/
+ * Plugin URI: https://paycrypto.me/
  * Description: PayCrypto.Me for WooCommerce lets your store accept Bitcoin payments — On-Chain and Lightning Network — directly into wallets and nodes you control.
  * Version: 0.1.0
  * Requires at least: 5.0
@@ -36,6 +36,12 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
     class WC_PayCryptoMe
     {
         public const string VERSION = '0.1.0';
+
+        public const string URL_DOCS = 'https://paycrypto.me/docs/';
+        public const string URL_SUPPORT = 'mailto:support@paycrypto.me';
+        public const string URL_PREMIUM = 'https://paycrypto.me/premium/';
+        public const string URL_GITHUB = 'https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/';
+
         protected static $instance = null;
 
         protected function __construct()
@@ -82,6 +88,49 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
             }
 
             return $gateways;
+        }
+
+        public static function add_action_links($links)
+        {
+            $action_links = [
+                sprintf(
+                    '<a href="%s">%s</a>',
+                    esc_url(admin_url('admin.php?page=wc-settings&tab=checkout')),
+                    esc_html__('Settings', 'paycrypto-me-for-woocommerce')
+                ),
+                sprintf(
+                    '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                    esc_url(self::URL_DOCS),
+                    esc_html__('Docs', 'paycrypto-me-for-woocommerce')
+                ),
+                sprintf(
+                    '<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#00a32a;font-weight:600;">%s</a>',
+                    esc_url(self::URL_PREMIUM),
+                    esc_html__('Get Premium', 'paycrypto-me-for-woocommerce')
+                ),
+            ];
+
+            return array_merge($action_links, $links);
+        }
+
+        public static function add_row_meta_links($links, $file)
+        {
+            if (plugin_basename(__FILE__) !== $file) {
+                return $links;
+            }
+
+            $links[] = sprintf(
+                '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                esc_url(self::URL_SUPPORT),
+                esc_html__('Support', 'paycrypto-me-for-woocommerce')
+            );
+            $links[] = sprintf(
+                '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                esc_url(self::URL_GITHUB),
+                esc_html__('GitHub', 'paycrypto-me-for-woocommerce')
+            );
+
+            return $links;
         }
 
         // Translation loading is handled by WordPress when the plugin is hosted on wordpress.org.
@@ -140,4 +189,12 @@ function wc_paycrypto_me_initialize()
 }
 
 add_action('plugins_loaded', __NAMESPACE__ . '\\wc_paycrypto_me_initialize', 10);
+
+// Plugin-list links are registered at file scope (independent of WooCommerce being active)
+// so they always show while the plugin itself is active.
+add_filter(
+    'plugin_action_links_' . plugin_basename(__FILE__),
+    [WC_PayCryptoMe::class, 'add_action_links']
+);
+add_filter('plugin_row_meta', [WC_PayCryptoMe::class, 'add_row_meta_links'], 10, 2);
 
