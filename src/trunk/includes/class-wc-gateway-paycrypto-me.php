@@ -281,10 +281,12 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             ? NetworkFactory::bitcoinTestnet()
             : NetworkFactory::bitcoin();
 
-        $logger = fn($message, $level) => $this->register_paycrypto_me_log($message, $level);
-
+        // No logger passed on purpose: a failure here just means the identifier
+        // isn't an extended pubkey (it may be a valid static address), so the
+        // internal parse error would only be noise. A genuine failure is still
+        // reported by validate_network_identifier's final `error` log.
         try {
-            if ($ok = $this->bitcoin_address_service->validate_extended_pubkey($identifier, $network, $logger)) {
+            if ($ok = $this->bitcoin_address_service->validate_extended_pubkey($identifier, $network)) {
                 return $ok;
             }
         } catch (\Throwable $th) {
@@ -308,6 +310,11 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         $logger = fn($message, $level) => $this->register_paycrypto_me_log($message, $level);
 
         if ($this->bitcoin_address_service->validate_bitcoin_address($identifier, $network, $logger)) {
+            $this->register_paycrypto_me_log(
+                esc_html__('A fixed Bitcoin address was saved. Payments will work, but every order is paid to this same address. For better privacy, we recommend using an extended public key (xpub/ypub/zpub) instead, which automatically creates a new address for each order.', 'paycrypto-me-for-woocommerce'),
+                'notice'
+            );
+
             return true;
         }
 
