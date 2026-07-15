@@ -37,9 +37,8 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
     {
         public const string VERSION = '0.1.0';
 
-        public const string URL_DOCS = 'https://paycrypto.me/docs/';
-        public const string URL_SUPPORT = 'mailto:support@paycrypto.me';
-        public const string URL_PREMIUM = 'https://paycrypto.me/premium/';
+        public const string URL_SUPPORT = 'mailto:contact@paycrypto.me';
+        public const string URL_PREMIUM = 'https://paycrypto.me/';
         public const string URL_GITHUB = 'https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/';
 
         protected static $instance = null;
@@ -97,11 +96,6 @@ if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
                     '<a href="%s">%s</a>',
                     esc_url(admin_url('admin.php?page=wc-settings&tab=checkout')),
                     esc_html__('Settings', 'paycrypto-me-for-woocommerce')
-                ),
-                sprintf(
-                    '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
-                    esc_url(self::URL_DOCS),
-                    esc_html__('Docs', 'paycrypto-me-for-woocommerce')
                 ),
                 sprintf(
                     '<a href="%s" target="_blank" rel="noopener noreferrer" style="color:#00a32a;font-weight:600;">%s</a>',
