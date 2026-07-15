@@ -344,6 +344,15 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
             'payment_identifier'     => $payment_request,
             'payment_uri'            => $order->get_meta('_paycrypto_me_payment_uri'),
             'logo_path'              => WC_PayCryptoMe::plugin_abspath() . 'assets/lightning-network-icon.png',
+            'qr_logo_options'        => [
+                'border' => [
+                    'shape'      => 'circle',
+                    'width'      => 4,
+                    'color'      => '#FFFFFF',
+                    'background' => '#FFFFFF',
+                    'size'       => 48,
+                ],
+            ],
             'crypto_network'         => 'lightning',
             'network_label'          => __('Lightning Network', 'paycrypto-me-for-woocommerce'),
             'crypto_amount'          => null,

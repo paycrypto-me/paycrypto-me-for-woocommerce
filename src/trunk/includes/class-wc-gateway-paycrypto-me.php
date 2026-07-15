@@ -223,6 +223,15 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
             'payment_identifier'     => $payment_address,
             'payment_uri'            => $order->get_meta('_paycrypto_me_payment_uri'),
             'logo_path'              => WC_PayCryptoMe::plugin_abspath() . 'assets/bitcoin-icon.png',
+            'qr_logo_options'        => [
+                'border' => [
+                    'shape'      => 'circle',
+                    'width'      => 4,
+                    'color'      => '#FFFFFF',
+                    'background' => '#FFFFFF',
+                    'size'       => 48,
+                ],
+            ],
             'crypto_network'         => $crypto_network,
             'network_label'          => match ($crypto_network) {
                 'mainnet' => __('On-Chain', 'paycrypto-me-for-woocommerce'),

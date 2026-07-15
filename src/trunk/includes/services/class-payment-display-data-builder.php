@@ -27,7 +27,8 @@ class PaymentDisplayDataBuilder
      *
      * $args carries the gateway-specific values: payment_identifier, payment_uri,
      * logo_path, crypto_network, network_label, crypto_amount, crypto_currency,
-     * confirmations_required.
+     * confirmations_required. Optional qr_logo_options is forwarded verbatim to
+     * QrCodeService (e.g. a 'border' config to draw a ring behind the QR logo).
      */
     public function build(\WC_Order $order, array $args): array
     {
@@ -43,7 +44,7 @@ class PaymentDisplayDataBuilder
         return [
             'payment_identifier'     => $args['payment_identifier'],
             'payment_uri'            => $args['payment_uri'],
-            'payment_qr_code'        => $this->qr_code_service->generate_qr_code_data_uri($args['payment_uri'], $args['logo_path']),
+            'payment_qr_code'        => $this->qr_code_service->generate_qr_code_data_uri($args['payment_uri'], $args['logo_path'], $args['qr_logo_options'] ?? []),
             'fiat_amount'            => $order->get_meta('_paycrypto_me_fiat_amount'),
             'fiat_currency'          => $order->get_meta('_paycrypto_me_fiat_currency'),
             'crypto_amount'          => $args['crypto_amount'],
