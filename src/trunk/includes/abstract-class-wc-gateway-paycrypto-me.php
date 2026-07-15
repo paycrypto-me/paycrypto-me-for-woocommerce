@@ -354,6 +354,22 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         }
     }
 
+    /**
+     * During a settings save, $this->debug_log still holds the value persisted
+     * before this request, so logs emitted while saving (validation notices, the
+     * validate_*_field callbacks) would honor the old value. Re-sync it from the
+     * submitted checkbox so they reflect the value being saved right now.
+     *
+     * Only ever called from process_admin_options(), which runs after the nonce
+     * has already been verified — hence the safe direct $_POST read.
+     */
+    protected function sync_debug_log_from_post()
+    {
+        $field_key = $this->get_field_key('debug_log');
+        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- caller verifies the nonce before dispatching here.
+        $this->debug_log = isset($_POST[$field_key]) ? 'yes' : 'no';
+    }
+
     public function generate_icon_position_html(...$args)
     {
         if (count($args) === 2 && is_array($args[1])) {

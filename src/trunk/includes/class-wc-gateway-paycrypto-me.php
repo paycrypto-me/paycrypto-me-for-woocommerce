@@ -39,7 +39,7 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         $this->description = $this->get_option('description') ?: __('Use directly your Bitcoin wallet to pay. Place the order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
         $this->enabled = $this->get_option('enabled', 'yes');
         $this->hide_for_non_admin_users = $this->get_option('hide_for_non_admin_users', 'no');
-        $this->debug_log = $this->get_option('debug_log', 'yes');
+        $this->debug_log = $this->get_option('debug_log', 'no');
         $this->configured_networks = $this->get_option('configured_networks', array());
         $this->payment_timeout_hours = absint($this->get_option('payment_timeout_hours', 1));
         $this->payment_number_confirmations = absint($this->get_option('payment_number_confirmations', 2));
@@ -86,6 +86,8 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
                 wp_die(esc_html__('Security check failed', 'paycrypto-me-for-woocommerce'));
             }
         }
+
+        $this->sync_debug_log_from_post();
 
         $selected_network = isset($_POST['woocommerce_paycrypto_me_selected_network']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_selected_network'])) : null;
         $network_identifier = isset($_POST['woocommerce_paycrypto_me_network_identifier']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_network_identifier'])) : '';

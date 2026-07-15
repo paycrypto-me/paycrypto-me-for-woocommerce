@@ -35,7 +35,7 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         $this->description = $this->get_option('description') ?: __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce');
         $this->enabled = $this->get_option('enabled', 'yes');
         $this->hide_for_non_admin_users = $this->get_option('hide_for_non_admin_users', 'no');
-        $this->debug_log = $this->get_option('debug_log', 'yes');
+        $this->debug_log = $this->get_option('debug_log', 'no');
         $this->payment_timeout_hours = absint($this->get_option('payment_timeout_hours', 24));
         $this->payment_number_confirmations = absint($this->get_option('payment_number_confirmations', 0));
         $this->enable_express_payment = $this->get_option('enable_express_payment', 'yes') === 'yes';
@@ -51,6 +51,13 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
         add_filter('woocommerce_generate_lnd_test_button_html', [$this, 'generate_lnd_test_button_html'], 10, 4);
         add_action('wp_ajax_paycrypto_test_btcpay_connection', [$this, 'ajax_test_btcpay_connection']);
         add_action('wp_ajax_paycrypto_test_lnd_connection', [$this, 'ajax_test_lnd_connection']);
+    }
+
+    public function process_admin_options()
+    {
+        $this->sync_debug_log_from_post();
+
+        return parent::process_admin_options();
     }
 
     protected function admin_enqueue_scripts_content($screen)
