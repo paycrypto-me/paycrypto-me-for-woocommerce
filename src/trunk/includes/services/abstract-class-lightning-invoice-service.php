@@ -36,8 +36,8 @@ abstract class AbstractLightningInvoiceService implements LightningInvoiceServic
 
         if ($status_code >= 400 || $body === '') {
             throw new PayCryptoMePaymentException(
-                \sprintf('%s HTTP error: status=%d body=%s', $this->error_log_label(), $status_code, substr($body, 0, 500)),
-                $this->payment_failed_message()
+                \sprintf('%s HTTP error: status=%d body=%s', esc_html($this->error_log_label()), esc_html((string) $status_code), esc_html(substr($body, 0, 500))),
+                esc_html($this->payment_failed_message())
             );
         }
 
@@ -45,8 +45,8 @@ abstract class AbstractLightningInvoiceService implements LightningInvoiceServic
 
         if (!is_array($data)) {
             throw new PayCryptoMePaymentException(
-                \sprintf('%s invalid JSON response', $this->error_log_label()),
-                $this->payment_failed_message()
+                \sprintf('%s invalid JSON response', esc_html($this->error_log_label())),
+                esc_html($this->payment_failed_message())
             );
         }
 

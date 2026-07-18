@@ -1,10 +1,10 @@
 === PayCrypto.Me for WooCommerce ===
 Contributors: paycryptome, lucasrosa95
 Tags: woocommerce, payments, crypto, bitcoin, lightning-network
-Donate link: bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation
-Requires at least: 5.0
+Donate link: https://paycrypto.me/
+Requires at least: 5.3
 Tested up to: 6.9
-Requires PHP: 7.4
+Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9

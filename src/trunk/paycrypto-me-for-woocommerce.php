@@ -4,14 +4,14 @@
  * Plugin URI: https://paycrypto.me/
  * Description: PayCrypto.Me for WooCommerce lets your store accept Bitcoin payments — On-Chain and Lightning Network — directly into wallets and nodes you control.
  * Version: 0.1.0
- * Requires at least: 5.0
+ * Requires at least: 5.3
  * Tested up to: 6.9
- * Requires PHP: 7.4
+ * Requires PHP: 8.1
  * Requires Plugins: woocommerce
  * WC requires at least: 6.5
  * WC tested up to: 10.9
  * Contributors: paycryptome, lucasrosa95
- * Donate link: bitcoin:bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw?label=PayCrypto.Me%20Donation
+ * Donate link: https://paycrypto.me/
  * Author: PayCrypto.Me
  * Author URI: https://paycrypto.me/
  * Text Domain: paycrypto-me-for-woocommerce
@@ -35,11 +35,11 @@ register_activation_hook(__FILE__, [PayCryptoMeLightningGatewayActivate::class, 
 if (!class_exists(__NAMESPACE__ . '\\WC_PayCryptoMe')) {
     class WC_PayCryptoMe
     {
-        public const string VERSION = '0.1.0';
+        public const VERSION = '0.1.0';
 
-        public const string URL_SUPPORT = 'mailto:contact@paycrypto.me';
-        public const string URL_PREMIUM = 'https://paycrypto.me/';
-        public const string URL_GITHUB = 'https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/';
+        public const URL_SUPPORT = 'mailto:contact@paycrypto.me';
+        public const URL_PREMIUM = 'https://paycrypto.me/';
+        public const URL_GITHUB = 'https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/';
 
         protected static $instance = null;
 

@@ -97,7 +97,7 @@ class LndRestInvoiceService extends AbstractLightningInvoiceService
             return $this->parse_response($response);
         } finally {
             if (!empty($temp_cert) && file_exists($temp_cert)) {
-                unlink($temp_cert);
+                wp_delete_file($temp_cert);
             }
         }
     }

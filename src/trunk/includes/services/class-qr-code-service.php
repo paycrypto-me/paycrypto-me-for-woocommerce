@@ -228,13 +228,13 @@ class QrCodeService
         $raw = @file_get_contents($path);
 
         if (!is_string($raw)) {
-            throw new \RuntimeException(sprintf('Unable to read logo at "%s"', $path));
+            throw new \RuntimeException(sprintf('Unable to read logo at "%s"', esc_html($path)));
         }
 
         $image = @imagecreatefromstring($raw);
 
         if ($image === false) {
-            throw new \RuntimeException(sprintf('Unable to parse logo at "%s"', $path));
+            throw new \RuntimeException(sprintf('Unable to parse logo at "%s"', esc_html($path)));
         }
 
         return $image;

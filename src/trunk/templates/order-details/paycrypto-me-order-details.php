@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$crypto_label = $payment_display_data['crypto_label'];
+$paycryptome_crypto_label = $payment_display_data['crypto_label'];
 
 if ($payment_display_data['payment_identifier']): ?>
     <section class="wc-block-order-confirmation-billing-address paycrypto-me-order-details paycrypto-me-order-details--<?php echo esc_attr($payment_display_data['crypto_network']); ?>">
@@ -32,10 +32,9 @@ if ($payment_display_data['payment_identifier']): ?>
                     <?php if (!empty($payment_display_data['confirmations_required'])): ?>
                         <p class="paycrypto-me-order-details__confirmations-hint">
                             <?php printf(
+                                /* translators: %d: number of confirmations required */
                                 esc_html( _n(
-                                    /* translators: %d: number of confirmations required */
                                     '%d confirmation required',
-                                    /* translators: %d: number of confirmations required */
                                     '%d confirmations required',
                                     (int) $payment_display_data['confirmations_required'],
                                     'paycrypto-me-for-woocommerce'
@@ -54,7 +53,7 @@ if ($payment_display_data['payment_identifier']): ?>
                 <small><?php esc_html_e('Crypto Network:', 'paycrypto-me-for-woocommerce'); ?></small>
                 <div class="paycrypto-me-network-switch">
                     <label class="paycrypto-me-crypto-label">
-                        <?php echo esc_html($crypto_label); ?>
+                        <?php echo esc_html($paycryptome_crypto_label); ?>
                     </label>
                     <label class="paycrypto-me-network-<?php echo esc_attr($payment_display_data['crypto_network']); ?>-label">
                         <?php echo esc_html($payment_display_data['network_label']); ?>

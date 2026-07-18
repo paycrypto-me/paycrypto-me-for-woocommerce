@@ -75,6 +75,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
             throw new PayCryptoMeException(
                 \sprintf('Bitcoin Payment Processor: %s', esc_html( $clean )),
                 0,
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- $e is the previous Throwable (arg 3), not output; the message above is already escaped.
                 $e
             );
         }
@@ -118,7 +119,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
 
         if (!$wallet_xpub_id) {
             throw new PayCryptoMeException(
-                \sprintf('Failed to persist wallet xPub for order #%s', $order->get_id())
+                \sprintf('Failed to persist wallet xPub for order #%s', esc_html( (string) $order->get_id() ))
             );
         }
 
@@ -143,7 +144,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
                 'error'
             );
             throw new PayCryptoMeException(
-                \sprintf('Failed to persist generated address for order #%s', $order->get_id())
+                \sprintf('Failed to persist generated address for order #%s', esc_html( (string) $order->get_id() ))
             );
         }
 

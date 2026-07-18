@@ -62,6 +62,9 @@ if (!function_exists('get_option')) {
 if (!function_exists('wp_date')) {
     function wp_date($format, $timestamp = null) { return gmdate((string) $format, $timestamp ?? 0); }
 }
+if (!function_exists('wp_delete_file')) {
+    function wp_delete_file($file) { @unlink($file); }
+}
 if (!function_exists('absint')) {
     function absint($value) { return abs((int) $value); }
 }

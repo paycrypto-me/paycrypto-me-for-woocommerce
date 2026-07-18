@@ -180,22 +180,32 @@ if [[ $DO_BUILD -eq 1 ]]; then
 fi
 
 # === TESTS ===
+# The test vendor (phpunit) is provisioned manually and nothing else heals it,
+# so a prior `composer install --no-dev` in the source tree would otherwise make
+# this step abort with "vendor/bin/phpunit: No such file or directory". Restore
+# dev dependencies first so the run is self-sufficient regardless of vendor state.
 if [[ $DO_TESTS -eq 1 ]]; then
   header "PHPUnit"
   if [[ $USE_DOCKER -eq 1 ]]; then
-    log "Running PHPUnit inside Docker container..."
+    log "Ensuring dev dependencies, then running PHPUnit inside Docker container..."
     if [[ $DRY_RUN -eq 0 ]]; then
-      docker_exec "./vendor/bin/phpunit --configuration phpunit.xml.dist"
+      docker_exec "composer install --no-interaction && ./vendor/bin/phpunit --configuration phpunit.xml.dist"
     else
-      step "[dry-run] docker_exec: ./vendor/bin/phpunit --configuration phpunit.xml.dist"
+      step "[dry-run] docker_exec: composer install --no-interaction && ./vendor/bin/phpunit --configuration phpunit.xml.dist"
     fi
   else
-    if [[ -x "$TRUNK/vendor/bin/phpunit" ]]; then
-      log "Running PHPUnit on host..."
-      run bash -c "cd '$TRUNK' && ./vendor/bin/phpunit --configuration phpunit.xml.dist"
-    else
-      warn "phpunit not found in $TRUNK/vendor/bin — skipping tests."
+    if [[ ! -x "$TRUNK/vendor/bin/phpunit" && $DRY_RUN -eq 0 ]]; then
+      if command -v composer &>/dev/null; then
+        log "phpunit missing on host — restoring dev dependencies via composer install..."
+        (cd "$TRUNK" && composer install --no-interaction)
+      else
+        error "phpunit not found in $TRUNK/vendor/bin and composer is unavailable on host."
+        error "Install dev dependencies (composer install) or drop --no-docker to use the container."
+        exit 1
+      fi
     fi
+    log "Running PHPUnit on host..."
+    run bash -c "cd '$TRUNK' && ./vendor/bin/phpunit --configuration phpunit.xml.dist"
   fi
 fi
 

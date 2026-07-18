@@ -28,6 +28,7 @@ abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
     final public function process(\WC_Order $order, array $payment_data): array
     {
         $args = apply_filters(
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- concrete implementations return prefixed 'paycryptome_lightning_*_invoice_args'.
             $this->invoice_args_filter(),
             array_merge($this->base_invoice_args($order), [
                 'order_id' => (string) $order->get_id(),
@@ -110,12 +111,12 @@ abstract class AbstractLightningProcessor extends AbstractPaymentProcessor
         throw new PayCryptoMePaymentException(
             \sprintf(
                 'Lightning payment_request not resolved for invoice %s after %d attempts (node_type=%s, order=%d)',
-                $response->invoice_id,
-                self::RESOLVE_MAX_ATTEMPTS,
-                $this->node_type(),
-                $order->get_id()
+                esc_html($response->invoice_id),
+                esc_html((string) self::RESOLVE_MAX_ATTEMPTS),
+                esc_html($this->node_type()),
+                esc_html((string) $order->get_id())
             ),
-            __('Your Lightning invoice is taking longer than expected to generate. Please try again in a moment.', 'paycrypto-me-for-woocommerce')
+            esc_html__('Your Lightning invoice is taking longer than expected to generate. Please try again in a moment.', 'paycrypto-me-for-woocommerce')
         );
     }
 }

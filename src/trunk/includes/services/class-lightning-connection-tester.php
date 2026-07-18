@@ -96,7 +96,7 @@ class LightningConnectionTester
             $response = $this->http->get($endpoint, $args);
         } finally {
             if (!empty($temp_cert) && file_exists($temp_cert)) {
-                unlink($temp_cert);
+                wp_delete_file($temp_cert);
             }
         }
 

@@ -108,6 +108,7 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     {
         $screen = get_current_screen();
 
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only settings-tab check for asset enqueue; no state change.
         $section = isset($_GET['section']) ? sanitize_text_field(wp_unslash($_GET['section'])) : '';
 
         if ($screen && $screen->id === 'woocommerce_page_wc-settings' && strpos($section, 'paycrypto_me') === 0) {
