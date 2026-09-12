@@ -16,9 +16,6 @@ confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch m
 - **[GUIDE]** [docs/GUIDE-ADD-NEW-GATEWAY.md](docs/GUIDE-ADD-NEW-GATEWAY.md) — checklist to implement a third gateway.
 - **[GUIDE]** [docs/GUIDE-DB-SCHEMA-UPGRADE.md](docs/GUIDE-DB-SCHEMA-UPGRADE.md) — checklist for bumping `DbInstaller::DB_VERSION`: editing the `CREATE TABLE` SQL, freezing a new `tests/schema/v<N>.sql`, running `schema-tests.sh`. Written 2026-08-27 alongside the mechanism itself, before any real bump exercised it — flagged in the doc as open to correction from the first real use.
 
-**Validation in progress**
-- **[VALIDATION]** [docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — Base branch `feat/public-payment-presentation-data` implements the public non-rendering payment presentation data API; unit suite, docs/i18n audits and minimal-host smoke passed on 2026-09-12. Archive as `[DONE]` after merge.
-
 **Executed and verified — archived, may be absent from your checkout**
 
 These records did their job (they got their change built, verified and merged) and are now closed.
@@ -37,6 +34,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 - **[DONE]** [docs/archive/DONE-I18N-CONVENTIONS.md](docs/archive/DONE-I18N-CONVENTIONS.md) — execution record for the i18n retrofit: brand constants, safe templates, JS catalog extraction, 7 locales at 100%, the runtime-only 14-file JSON strategy, and an automated release audit. Completed and verified 2026-08-30; archived/gitignored and therefore potentially absent from a fresh checkout. Durable rules live in `docs/GUIDE-I18N-CONVENTIONS.md`.
 - **[DONE]** [docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION-VALIDATION.md](docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION-VALIDATION.md) — browser acceptance record for the Base projection contract: candidate, published fallback, checkout, coexistence and upgrade paths all passed on 2026-09-07; archived before release preparation, while the formal Pro cross-repo acceptance remains open.
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — pre-release gates for 0.3.0: release commit/tag, ZIP inspection, Plugin Check, host smoke and real-MySQL schema suite all passed on 2026-09-07; external push/publication remains a separate operation.
+- **[DONE]** [docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — exposes the Base's final payment presentation projection via `get_order_display_data()` without rendering/enqueueing, adds `expires_at_timestamp`, and keeps channel presentation in consumer scope. Completed and validated 2026-09-12; archived/gitignored and therefore potentially absent from a fresh checkout.
 
 **Approved plans — not started yet**
 - **[PLAN — NOT STARTED]** [`docs/PREMIUM-ADDON.md`](https://github.com/paycrypto-me/paycrypto-me-pro/blob/main/docs/PREMIUM-ADDON.md) — approved implementation plan for the separate Pro add-on plugin (renamed from "Premium" to "Pro" 2026-08-25). Lives in that add-on's own repo; see "Pro add-on" below for the base's own scope boundaries and extension points.

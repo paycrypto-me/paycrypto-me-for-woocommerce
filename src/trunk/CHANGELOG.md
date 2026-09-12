@@ -5,6 +5,10 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+No changes yet.
+
+## 0.4.0
+
 ### Added
 
 - Added `Abstract_WC_Gateway_PayCryptoMe::get_order_display_data()` as a public, non-rendering

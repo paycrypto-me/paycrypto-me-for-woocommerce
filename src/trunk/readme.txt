@@ -136,6 +136,9 @@ resume derivation from that wallet through this plugin.
 
 == Changelog ==
 
+= 0.4.0 =
+* Added `Abstract_WC_Gateway_PayCryptoMe::get_order_display_data()` as a public, non-rendering payment presentation data API for add-ons, including an `expires_at_timestamp` field in the shared display projection.
+
 = 0.3.0 =
 * Added a versioned payment-status projection capability registry and an invoice-identified, compare-and-swap Lightning status API for the Pro add-on.
 * Fixed concurrent Lightning status write-backs so at most one transition action is published, and delayed updates for expired invoices cannot settle a replacement invoice for the same order.
@@ -186,6 +189,9 @@ resume derivation from that wallet through this plugin.
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.4.0 =
+Adds a public payment presentation data API for add-ons. Existing payment behavior, records and settings are unchanged.
 
 = 0.3.0 =
 Adds the versioned payment-status projection contract used by the Pro add-on and hardens concurrent Lightning status updates. Existing payment records and settings are preserved.
