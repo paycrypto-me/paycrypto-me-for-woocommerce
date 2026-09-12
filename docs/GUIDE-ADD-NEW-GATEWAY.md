@@ -24,7 +24,7 @@ Dois arrays hardcoded precisam de uma linha nova cada — não há mecanismo de 
 
 O construtor (`__construct()`) já é resolvido pela classe abstrata — chama `parent::__construct()` no seu (ele monta `$this->display_data_builder`, registra os hooks de admin/checkout order-details, `init_form_fields()`/`init_settings()`, etc.). Não reimplemente esses hooks.
 
-## 3. `build_order_display_args()` — o hook mais bem coberto, mas os keys exatos só existem no código
+## 3. `build_order_display_args()` — args específicos; a projeção pública é herdada
 
 Retorne `null` quando o pedido não tem pagamento deste gateway (guard de meta). Caso contrário, retorne exatamente estas chaves (consumidas por `PaymentDisplayDataBuilder::build()`, `includes/services/class-payment-display-data-builder.php`):
 
@@ -42,6 +42,8 @@ Retorne `null` quando o pedido não tem pagamento deste gateway (guard de meta).
 ```
 
 `fiat_amount`/`fiat_currency`/`expires_at` são lidos direto da meta do pedido (`_paycrypto_me_fiat_amount`, `_paycrypto_me_fiat_currency`, `_paycrypto_me_payment_expires_at`) pelo builder — seu processor precisa gravar essa meta (ver seção 5), não precisa devolvê-la aqui.
+
+Não reimplemente a projeção final: `Abstract_WC_Gateway_PayCryptoMe::get_order_display_data()` é `final public` e já aplica os filtros `paycryptome_order_display_args`/`paycryptome_order_display_data`, chama o builder compartilhado e retorna o contrato público de apresentação sem renderizar template nem enfileirar assets. Um terceiro gateway só fornece os args acima e herda automaticamente a API usada por templates web, admin e add-ons.
 
 Characterization tests de referência: `tests/phpunit/unit/OrderDisplayArgsTest.php` e `PaymentDisplayDataBuilderTest.php`.
 

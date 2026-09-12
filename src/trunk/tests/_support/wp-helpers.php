@@ -20,6 +20,9 @@ if (!function_exists('hook_spy_calls')) {
 if (!function_exists('hook_spy_reset')) {
     function hook_spy_reset(): void {
         $GLOBALS['__hook_spy'] = [];
+        $GLOBALS['__template_spy'] = [];
+        $GLOBALS['__enqueue_script_spy'] = [];
+        $GLOBALS['__enqueue_style_spy'] = [];
     }
 }
 if (!function_exists('__')) {
@@ -130,7 +133,42 @@ if (!function_exists('wp_json_encode')) {
 }
 if (!function_exists('wc_get_template')) {
     // No-op: tests exercising render paths only assert on data/hooks, not template output.
-    function wc_get_template($template_name, $args = [], $template_path = '', $default_path = '') { return null; }
+    function wc_get_template($template_name, $args = [], $template_path = '', $default_path = '') {
+        $GLOBALS['__template_spy'][] = [
+            'template_name' => $template_name,
+            'args'          => $args,
+            'template_path' => $template_path,
+            'default_path'  => $default_path,
+        ];
+        return null;
+    }
+}
+if (!function_exists('template_spy_calls')) {
+    function template_spy_calls(): array {
+        return $GLOBALS['__template_spy'] ?? [];
+    }
+}
+if (!function_exists('wp_enqueue_script')) {
+    function wp_enqueue_script($handle, $src = '', $deps = [], $ver = false, $in_footer = false) {
+        $GLOBALS['__enqueue_script_spy'][] = compact('handle', 'src', 'deps', 'ver', 'in_footer');
+        return null;
+    }
+}
+if (!function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style($handle, $src = '', $deps = [], $ver = false, $media = 'all') {
+        $GLOBALS['__enqueue_style_spy'][] = compact('handle', 'src', 'deps', 'ver', 'media');
+        return null;
+    }
+}
+if (!function_exists('enqueue_script_spy_calls')) {
+    function enqueue_script_spy_calls(): array {
+        return $GLOBALS['__enqueue_script_spy'] ?? [];
+    }
+}
+if (!function_exists('enqueue_style_spy_calls')) {
+    function enqueue_style_spy_calls(): array {
+        return $GLOBALS['__enqueue_style_spy'] ?? [];
+    }
 }
 // Test-controlled globals ($TEST_CURRENT_USER_CAN / $TEST_CHECK_AJAX_REFERER) let
 // individual tests flip these without redeclaring the function.

@@ -5,7 +5,11 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Added `Abstract_WC_Gateway_PayCryptoMe::get_order_display_data()` as a public, non-rendering
+  payment presentation data API for add-ons, including an `expires_at_timestamp` field in the
+  shared display projection.
 
 ## 0.3.0
 

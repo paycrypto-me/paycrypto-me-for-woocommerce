@@ -16,6 +16,9 @@ confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch m
 - **[GUIDE]** [docs/GUIDE-ADD-NEW-GATEWAY.md](docs/GUIDE-ADD-NEW-GATEWAY.md) — checklist to implement a third gateway.
 - **[GUIDE]** [docs/GUIDE-DB-SCHEMA-UPGRADE.md](docs/GUIDE-DB-SCHEMA-UPGRADE.md) — checklist for bumping `DbInstaller::DB_VERSION`: editing the `CREATE TABLE` SQL, freezing a new `tests/schema/v<N>.sql`, running `schema-tests.sh`. Written 2026-08-27 alongside the mechanism itself, before any real bump exercised it — flagged in the doc as open to correction from the first real use.
 
+**Validation in progress**
+- **[VALIDATION]** [docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — Base branch `feat/public-payment-presentation-data` implements the public non-rendering payment presentation data API; unit suite, docs/i18n audits and minimal-host smoke passed on 2026-09-12. Archive as `[DONE]` after merge.
+
 **Executed and verified — archived, may be absent from your checkout**
 
 These records did their job (they got their change built, verified and merged) and are now closed.
@@ -39,7 +42,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 - **[PLAN — NOT STARTED]** [`docs/PREMIUM-ADDON.md`](https://github.com/paycrypto-me/paycrypto-me-pro/blob/main/docs/PREMIUM-ADDON.md) — approved implementation plan for the separate Pro add-on plugin (renamed from "Premium" to "Pro" 2026-08-25). Lives in that add-on's own repo; see "Pro add-on" below for the base's own scope boundaries and extension points.
 
 **Proposed RFCs — not implemented**
-- **[PLAN — NOT STARTED]** [docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/rfcs/RFC-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — proposal committed in `043187e`; no runtime/API implementation exists in this branch.
+- None currently.
 
 **Release status**
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — release 0.3.0 built and validated locally; no external push or publication performed.

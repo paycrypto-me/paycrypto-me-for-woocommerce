@@ -32,6 +32,24 @@ class PaymentDisplayDataBuilder
      *
      * $logger is forwarded to QrCodeService so a failed QR (missing gd/iconv/fileinfo) is
      * reported instead of silently rendering an order page without one.
+     *
+     * @return array{
+     *     payment_identifier: string,
+     *     payment_uri: string,
+     *     payment_qr_code: string,
+     *     fiat_amount: string,
+     *     fiat_currency: string,
+     *     crypto_amount: string|null,
+     *     crypto_currency: string,
+     *     crypto_label: string,
+     *     network_label: string,
+     *     crypto_network: string,
+     *     expires_at: string,
+     *     expires_at_timestamp: int|null,
+     *     expires_at_formatted: string|null,
+     *     is_expired: bool,
+     *     confirmations_required: int
+     * }
      */
     public function build(\WC_Order $order, array $args, ?callable $logger = null): array
     {
@@ -51,22 +69,24 @@ class PaymentDisplayDataBuilder
         // tracking involved (that is add-on scope). Only gateways whose expiry is actually
         // enforced opt in via show_expiry, so an on-chain address is never called expired.
         $is_expired = $expires_at_timestamp !== null && $expires_at_timestamp <= time();
+        $crypto_amount = $args['crypto_amount'];
 
         return [
-            'payment_identifier'     => $args['payment_identifier'],
-            'payment_uri'            => $args['payment_uri'],
-            'payment_qr_code'        => $this->qr_code_service->generate_qr_code_data_uri($args['payment_uri'], $args['logo_path'], $args['qr_logo_options'] ?? [], $logger),
-            'fiat_amount'            => $order->get_meta('_paycrypto_me_fiat_amount'),
-            'fiat_currency'          => $order->get_meta('_paycrypto_me_fiat_currency'),
-            'crypto_amount'          => $args['crypto_amount'],
-            'crypto_currency'        => $args['crypto_currency'],
+            'payment_identifier'     => (string) $args['payment_identifier'],
+            'payment_uri'            => (string) $args['payment_uri'],
+            'payment_qr_code'        => $this->qr_code_service->generate_qr_code_data_uri((string) $args['payment_uri'], (string) $args['logo_path'], $args['qr_logo_options'] ?? [], $logger),
+            'fiat_amount'            => (string) $order->get_meta('_paycrypto_me_fiat_amount'),
+            'fiat_currency'          => (string) $order->get_meta('_paycrypto_me_fiat_currency'),
+            'crypto_amount'          => $crypto_amount === '' || $crypto_amount === null ? null : (string) $crypto_amount,
+            'crypto_currency'        => (string) $args['crypto_currency'],
             'crypto_label'           => $this->crypto_label($args['crypto_currency']),
-            'network_label'          => $args['network_label'],
-            'crypto_network'         => $args['crypto_network'],
-            'expires_at'             => $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'network_label'          => (string) $args['network_label'],
+            'crypto_network'         => (string) $args['crypto_network'],
+            'expires_at'             => (string) $order->get_meta('_paycrypto_me_payment_expires_at'),
+            'expires_at_timestamp'   => $expires_at_timestamp,
             'expires_at_formatted'   => $expires_at_formatted,
             'is_expired'             => $is_expired,
-            'confirmations_required' => $args['confirmations_required'],
+            'confirmations_required' => max(0, (int) $args['confirmations_required']),
         ];
     }
 

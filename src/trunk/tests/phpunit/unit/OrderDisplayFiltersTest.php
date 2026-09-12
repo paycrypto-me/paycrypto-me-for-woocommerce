@@ -3,11 +3,11 @@ use PHPUnit\Framework\TestCase;
 use PayCryptoMe\WooCommerce\WC_Gateway_PayCryptoMe;
 use PayCryptoMe\WooCommerce\PaymentDisplayDataBuilder;
 
-// F1 — the order-details render path exposes two third-party seams:
+// F1 — the order-details projection exposes two third-party seams:
 // paycryptome_order_display_args (pre-build) and paycryptome_order_display_data (post-build).
 // apply_filters is a recording no-op in tests (tests/_support/wp-helpers.php) — add_filter
 // callbacks are NOT dispatched — so we assert the filters were CALLED with the right payload
-// via hook_spy, mirroring the do_action assertions elsewhere. wc_get_template is shimmed no-op.
+// via hook_spy, mirroring the do_action assertions elsewhere.
 
 class OrderDisplayFiltersTest extends TestCase
 {
@@ -36,7 +36,7 @@ class OrderDisplayFiltersTest extends TestCase
         $prop->setValue($gateway, $builder);
     }
 
-    public function test_render_applies_pre_and_post_display_filters()
+    public function test_get_order_display_data_applies_pre_and_post_display_filters()
     {
         $args  = ['payment_identifier' => 'addr', 'show_expiry' => false];
         $built = ['crypto_amount' => null, 'expires_at_formatted' => null];
@@ -50,7 +50,9 @@ class OrderDisplayFiltersTest extends TestCase
 
         $order = $this->createMock(\WC_Order::class);
 
-        $gateway->render_checkout_order_details_section($order);
+        $data = $gateway->get_order_display_data($order);
+
+        $this->assertSame($built, $data);
 
         // pre-build seam: args = [display_args, order, gateway]
         $pre = hook_spy_calls('paycryptome_order_display_args');
@@ -65,6 +67,52 @@ class OrderDisplayFiltersTest extends TestCase
         $this->assertSame($built, $post[0]['args'][0]);
         $this->assertSame($order, $post[0]['args'][1]);
         $this->assertSame($gateway, $post[0]['args'][2]);
+    }
+
+    public function test_get_order_display_data_has_no_rendering_side_effects()
+    {
+        $args  = ['payment_identifier' => 'addr', 'show_expiry' => false];
+        $built = ['payment_identifier' => 'addr'];
+
+        $gateway = $this->make_gateway();
+        $gateway->method('build_order_display_args')->willReturn($args);
+
+        $builder = $this->createMock(PaymentDisplayDataBuilder::class);
+        $builder->method('build')->willReturn($built);
+        $this->set_builder($gateway, $builder);
+
+        $order = $this->createMock(\WC_Order::class);
+
+        ob_start();
+        $data = $gateway->get_order_display_data($order);
+        $output = ob_get_clean();
+
+        $this->assertSame($built, $data);
+        $this->assertSame('', $output);
+        $this->assertSame([], template_spy_calls());
+        $this->assertSame([], enqueue_script_spy_calls());
+        $this->assertSame([], enqueue_style_spy_calls());
+    }
+
+    public function test_render_uses_public_display_data_projection()
+    {
+        $args  = ['payment_identifier' => 'addr', 'show_expiry' => false];
+        $built = ['payment_identifier' => 'addr'];
+
+        $gateway = $this->make_gateway();
+        $gateway->method('build_order_display_args')->willReturn($args);
+
+        $builder = $this->createMock(PaymentDisplayDataBuilder::class);
+        $builder->expects($this->once())->method('build')->willReturn($built);
+        $this->set_builder($gateway, $builder);
+
+        $order = $this->createMock(\WC_Order::class);
+
+        $gateway->render_checkout_order_details_section($order);
+
+        $template_calls = template_spy_calls();
+        $this->assertCount(1, $template_calls);
+        $this->assertSame($built, $template_calls[0]['args']['payment_display_data']);
     }
 
     public function test_render_catches_throwable_and_logs_instead_of_fatal()
@@ -88,13 +136,29 @@ class OrderDisplayFiltersTest extends TestCase
         $this->assertCount(0, hook_spy_calls('paycryptome_order_display_args'));
     }
 
+    public function test_get_order_display_data_propagates_throwable()
+    {
+        $gateway = $this->getMockBuilder(WC_Gateway_PayCryptoMe::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['build_order_display_args', 'register_paycrypto_me_log'])
+            ->getMock();
+        $gateway->id = 'paycrypto_me';
+        $gateway->method('build_order_display_args')->willThrowException(new \Error('boom'));
+        $gateway->expects($this->never())->method('register_paycrypto_me_log');
+
+        $this->expectException(\Error::class);
+        $this->expectExceptionMessage('boom');
+
+        $gateway->get_order_display_data($this->createMock(\WC_Order::class));
+    }
+
     public function test_render_bails_without_firing_filters_when_no_payment()
     {
         $gateway = $this->make_gateway();
         $gateway->method('build_order_display_args')->willReturn(null);
 
         $order = $this->createMock(\WC_Order::class);
-        $gateway->render_checkout_order_details_section($order);
+        $this->assertNull($gateway->get_order_display_data($order));
 
         $this->assertCount(0, hook_spy_calls('paycryptome_order_display_args'));
         $this->assertCount(0, hook_spy_calls('paycryptome_order_display_data'));

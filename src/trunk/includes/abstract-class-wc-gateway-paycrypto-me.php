@@ -70,6 +70,57 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
      */
     abstract public function build_order_display_args(\WC_Order $order): ?array;
 
+    /**
+     * Returns the final payment display projection without rendering a template.
+     *
+     * This is the public extension contract for channels that need the same canonical payment
+     * presentation data as the order-details renderer without printing HTML or enqueueing assets.
+     * Returns null only when the order does not belong to this gateway or lacks its minimum payment
+     * identifier. Build/filter errors deliberately propagate to the caller.
+     *
+     * @return array{
+     *     payment_identifier: string,
+     *     payment_uri: string,
+     *     payment_qr_code: string,
+     *     fiat_amount: string,
+     *     fiat_currency: string,
+     *     crypto_amount: string|null,
+     *     crypto_currency: string,
+     *     crypto_label: string,
+     *     network_label: string,
+     *     crypto_network: string,
+     *     expires_at: string,
+     *     expires_at_timestamp: int|null,
+     *     expires_at_formatted: string|null,
+     *     is_expired: bool,
+     *     confirmations_required: int
+     * }|null
+     */
+    final public function get_order_display_data(\WC_Order $order): ?array
+    {
+        $args = $this->build_order_display_args($order);
+
+        if ($args === null) {
+            return null;
+        }
+
+        // Third-party seam (pre-build): lets an add-on flip show_expiry, set crypto_amount, etc.
+        // before PaymentDisplayDataBuilder computes the final display array.
+        $args = apply_filters('paycryptome_order_display_args', $args, $order, $this);
+
+        // Third-party seam (post-build): lets an add-on adjust already-computed fields (QR, labels).
+        return apply_filters(
+            'paycryptome_order_display_data',
+            $this->display_data_builder->build(
+                $order,
+                $args,
+                fn($message, $level) => $this->register_paycrypto_me_log($message, $level)
+            ),
+            $order,
+            $this
+        );
+    }
+
     public function render_admin_order_details_section($order)
     {
         $this->render_checkout_order_details_section($order);
@@ -81,27 +132,11 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         // order screen right after a payment is made — it must never fatal either one, even if
         // a third-party filter or a rendering dependency (e.g. the QR code path) misbehaves.
         try {
-            $args = $this->build_order_display_args($order);
+            $payment_display_data = $this->get_order_display_data($order);
 
-            if ($args === null) {
+            if ($payment_display_data === null) {
                 return;
             }
-
-            // Third-party seam (pre-build): lets an add-on flip show_expiry, set crypto_amount, etc.
-            // before PaymentDisplayDataBuilder computes the final display array.
-            $args = apply_filters('paycryptome_order_display_args', $args, $order, $this);
-
-            // Third-party seam (post-build): lets an add-on adjust already-computed fields (QR, labels).
-            $payment_display_data = apply_filters(
-                'paycryptome_order_display_data',
-                $this->display_data_builder->build(
-                    $order,
-                    $args,
-                    fn($message, $level) => $this->register_paycrypto_me_log($message, $level)
-                ),
-                $order,
-                $this
-            );
 
             // Enqueued here (not enqueue_checkout_styles, which only runs on wp_enqueue_scripts) because
             // this section renders on both the frontend order-received page and the admin order-edit screen.

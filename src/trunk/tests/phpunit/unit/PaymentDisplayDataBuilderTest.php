@@ -63,6 +63,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
         $this->assertSame('On-Chain', $data['network_label']);
         $this->assertSame('mainnet', $data['crypto_network']);
         $this->assertSame('2', $data['expires_at']);
+        $this->assertNull($data['expires_at_timestamp']);
         $this->assertSame(3, $data['confirmations_required']);
     }
 
@@ -82,6 +83,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
             'network_label',
             'crypto_network',
             'expires_at',
+            'expires_at_timestamp',
             'expires_at_formatted',
             'is_expired',
             'confirmations_required',
@@ -118,6 +120,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
         );
 
         // 2 hours after epoch, formatted via the (shimmed) gmdate-based wp_date.
+        $this->assertSame(2 * HOUR_IN_SECONDS, $data['expires_at_timestamp']);
         $this->assertNotNull($data['expires_at_formatted']);
         $this->assertStringContainsString(gmdate('', 2 * HOUR_IN_SECONDS), (string) $data['expires_at_formatted']);
     }
@@ -131,6 +134,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
         );
 
         // On-chain opts out: expiry isn't enforced, so it must not be shown.
+        $this->assertNull($data['expires_at_timestamp']);
         $this->assertNull($data['expires_at_formatted']);
     }
 
@@ -149,6 +153,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
 
         $data = $this->make_builder()->build($order, $this->sample_args());
 
+        $this->assertSame((int) $order->get_meta('_paycrypto_me_payment_expires_ts'), $data['expires_at_timestamp']);
         $this->assertFalse($data['is_expired'], 'an invoice with 6h left must not be shown as expired');
     }
 
@@ -160,6 +165,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
 
         $data = $this->make_builder()->build($order, $this->sample_args());
 
+        $this->assertSame((int) $order->get_meta('_paycrypto_me_payment_expires_ts'), $data['expires_at_timestamp']);
         $this->assertTrue($data['is_expired']);
     }
 
@@ -173,6 +179,7 @@ class PaymentDisplayDataBuilderTest extends TestCase
         $data = $this->make_builder()->build($order, $this->sample_args(['show_expiry' => false]));
 
         $this->assertFalse($data['is_expired']);
+        $this->assertNull($data['expires_at_timestamp']);
         $this->assertNull($data['expires_at_formatted']);
     }
 
@@ -196,6 +203,26 @@ class PaymentDisplayDataBuilderTest extends TestCase
         );
 
         $this->assertSame('Bitcoin', $data['crypto_label']);
+    }
+
+    public function test_build_normalizes_public_contract_types_without_floating_decimals()
+    {
+        $data = $this->make_builder()->build(
+            $this->make_order([
+                '_paycrypto_me_fiat_amount'        => '199.90',
+                '_paycrypto_me_fiat_currency'      => 'USD',
+                '_paycrypto_me_payment_expires_at' => '',
+            ]),
+            $this->sample_args([
+                'crypto_amount'          => '',
+                'confirmations_required' => '-2',
+            ])
+        );
+
+        $this->assertSame('199.90', $data['fiat_amount']);
+        $this->assertNull($data['crypto_amount']);
+        $this->assertSame('', $data['expires_at']);
+        $this->assertSame(0, $data['confirmations_required']);
     }
 
     public function test_crypto_label_falls_back_to_currency_for_unknown_code()
