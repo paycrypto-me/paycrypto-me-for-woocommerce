@@ -52,8 +52,7 @@ The distributable WordPress plugin lives in `src/trunk`. For local development a
 The Base plugin also exposes a versioned payment-status projection contract for the separate Pro
 add-on. It publishes capability discovery and an atomic, invoice-identified Lightning status
 write-back; confirmation, polling, reconciliation and fiat conversion remain outside this plugin.
-The contract and its release gates are documented in [`docs/rfcs`](docs/rfcs/) and
-[`docs/PRE-RELEASE-0.3.0.md`](docs/PRE-RELEASE-0.3.0.md).
+The contract shipped in version 0.3.0 and is covered by the plugin's unit and real-MySQL suites.
 
 Enable logging in the gateway settings and inspect events under **WooCommerce → Status → Logs** using the `paycrypto_me` source.
 
