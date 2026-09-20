@@ -25,6 +25,10 @@ class BitcoinAddressVectorsTest extends TestCase
                 $got = $svc->generate_address_from_xPub($xpub, $index, $network, null);
 
                 $this->assertEquals($expected, $got, sprintf('%s %s index %d', $entry['prefix'], $entry['network'], $index));
+
+                $forced = $svc->generate_address_from_xPub($xpub, $index, $network, $addr['type']);
+
+                $this->assertEquals($expected, $forced, sprintf('%s %s index %d forced %s', $entry['prefix'], $entry['network'], $index, $addr['type']));
             }
         }
     }

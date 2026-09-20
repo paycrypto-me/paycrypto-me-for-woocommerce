@@ -63,7 +63,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         if (!$this->bitcoin_address_service->validate_extended_pubkey($xPub, $bitcoin_network, $xpub_logger)) {
             throw new PayCryptoMeException(
                 \sprintf(
-                    'Invalid Bitcoin extended public key configured: %s. Please provide a valid.',
+                    'Invalid Bitcoin extended public key configured: %s. Supported formats are xpub, ypub, zpub, tpub, upub, and vpub.',
                     esc_html(substr($xPub, 0, 4) . '...' . substr($xPub, -3))
                 )
             );
