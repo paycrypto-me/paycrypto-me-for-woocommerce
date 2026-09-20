@@ -25,6 +25,6 @@
   "author": "PayCrypto.Me",
   "license": "GPL-3.0-or-later",
   "devDependencies": {
-    "@wordpress/scripts": "^26.0.0"
+    "@wordpress/scripts": "^35.0.0"
   }
 }
