@@ -124,6 +124,33 @@ class BitcoinAddressValidationTest extends TestCase
         $this->assertFalse($svc->validate_extended_pubkey(self::MAINNET_XPUB, NetworkFactory::bitcoin()));
     }
 
+    /**
+     * @dataProvider incompatible_extended_pubkey_depth_provider
+     */
+    public function test_validate_extended_pubkey_rejects_keys_that_are_not_account_level(int $depth): void
+    {
+        $hdFactory = $this->createMock(\BitWasp\Bitcoin\Key\Factory\HierarchicalKeyFactory::class);
+        $hdKey = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdKey->method('getDepth')->willReturn($depth);
+        $hdFactory->method('fromExtended')->willReturn($hdKey);
+
+        $svc = new BitcoinAddressService($hdFactory);
+
+        $this->assertFalse($svc->validate_extended_pubkey(self::MAINNET_XPUB, NetworkFactory::bitcoin()));
+    }
+
+    public function incompatible_extended_pubkey_depth_provider(): array
+    {
+        return [
+            'root/master public key' => [0],
+            'purpose-level key' => [1],
+            'coin-level key' => [2],
+            'external-chain key' => [4],
+        ];
+    }
+
     public function test_validate_extended_pubkey_rejects_unsupported_prefix()
     {
         $this->assertFalse($this->svc->validate_extended_pubkey('foo1NotARealPrefixKey', NetworkFactory::bitcoin()));

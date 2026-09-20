@@ -32,6 +32,17 @@ class BitcoinAddressService
      */
     private const MAX_NON_HARDENED_INDEX = 0x7fffffff;
 
+    /**
+     * The configured public key is the BIP44-style account node:
+     * m / purpose' / coin_type' / account'.
+     *
+     * The service owns the remaining relative public derivation, `0/index`.
+     * BIP32 serialization does not retain the complete path, but its depth lets
+     * us reject root, purpose, coin and external-chain nodes rather than deriving
+     * a syntactically valid address from the wrong branch.
+     */
+    private const ACCOUNT_EXTENDED_PUBKEY_DEPTH = 3;
+
     /** Address policies the gateway deliberately knows how to construct. */
     private const SUPPORTED_ADDRESS_TYPES = [
         'p2pkh',
@@ -139,23 +150,13 @@ class BitcoinAddressService
             $converted = $this->convert_extended_pubkey_prefix($xPub, $network);
             $hdKey = $this->get_hd_factory()->fromExtended($converted, $network);
 
+            $this->assert_account_level_extended_pubkey($hdKey->getDepth());
+
             // Do NOT attempt to derive hardened paths (those with a trailing ').
-            // Hardened derivation requires the private key; deriving hardened
-            // children from an extended public key will fail. Instead, assume the
-            // provided extended pubkey is at (or above) the account/external level
-            // and derive the external chain child `0/{index}` non-hardened.
+            // Hardened derivation requires the private key; account-level public
+            // keys can derive only this non-hardened external-chain/address suffix.
             $childKey = $hdKey->derivePath("0/{$index}");
             $publicKey = $childKey->getPublicKey();
-
-            // Ensure the provided extended pubkey is an account-level key.
-            // Account-level keys typically have depth >= 3 (e.g. m/84'/1'/0').
-
-            // $depth = $hdKey->getDepth();
-            // if ($depth < 3) {
-            //     // Continue deriving from the provided node (external chain 0). This
-            //     // allows using vpub/upub/etc. even when they are not account-level,
-            //     // but wallets may not recognise these addresses as the same account.
-            // }
 
             $publicKeyHash = $publicKey->getPubKeyHash();
 
@@ -178,6 +179,26 @@ class BitcoinAddressService
                     );
             }
         });
+    }
+
+    /**
+     * Reject every level except the account-level node before a relative
+     * `0/index` derivation. Depth alone cannot prove purpose, coin type or
+     * account number; those remain the documented merchant configuration
+     * contract. It can prove that an external-chain key (depth 4), or a node
+     * above the account level, must not be used with this relative path.
+     */
+    private function assert_account_level_extended_pubkey(int $depth): void
+    {
+        if ($depth !== self::ACCOUNT_EXTENDED_PUBKEY_DEPTH) {
+            throw new \InvalidArgumentException(
+                \sprintf(
+                    'Bitcoin extended public key must be an account-level key at BIP32 depth %d; received depth %d. Configure m/purpose\'/coin_type\'/account\', then this gateway derives 0/index.',
+                    self::ACCOUNT_EXTENDED_PUBKEY_DEPTH,
+                    $depth
+                )
+            );
+        }
     }
 
     /**
@@ -396,7 +417,8 @@ class BitcoinAddressService
                 // silently ignore the injected one, exactly like validate_bitcoin_address() did with
                 // AddressCreator. Construction still happens inside the try, so a host without GMP
                 // still raises the \Error the contract above depends on.
-                $this->get_hd_factory()->fromExtended($replaceHex, $network);
+                $hdKey = $this->get_hd_factory()->fromExtended($replaceHex, $network);
+                $this->assert_account_level_extended_pubkey($hdKey->getDepth());
             });
 
             return true;
