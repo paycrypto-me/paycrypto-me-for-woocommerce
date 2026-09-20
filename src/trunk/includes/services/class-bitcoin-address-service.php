@@ -24,6 +24,14 @@ use BitWasp\Buffertools\Buffer;
 
 class BitcoinAddressService
 {
+    /**
+     * The largest BIP-32 child number that remains non-hardened.
+     *
+     * Payment addresses are derived from an extended public key, so hardened
+     * child derivation is not available and must never be requested.
+     */
+    private const MAX_NON_HARDENED_INDEX = 0x7fffffff;
+
     private array $prefixMap = [
         // mainnet
         'xpub' => ['hex' => '0488b21e', 'type' => 'p2pkh', 'testnet' => false],
@@ -100,15 +108,17 @@ class BitcoinAddressService
      * which produce the final address string.
      *
      * @param string $xPub Extended public key
-     * @param int $index Address index (>= 0)
+     * @param int $index Non-hardened BIP-32 address index (0–2147483647)
      * @param NetworkInterface $network Network object
      * @param string|null $forceType Optional force address type (p2pkh|p2sh-p2wpkh|p2wpkh)
      * @return string
      */
     public function generate_address_from_xPub(string $xPub, int $index, NetworkInterface $network, ?string $forceType = null, ?callable $logger = null): string
     {
-        if ($index < 0) {
-            throw new \InvalidArgumentException('Derivation index must be a non-negative integer.');
+        if ($index < 0 || $index > self::MAX_NON_HARDENED_INDEX) {
+            throw new \InvalidArgumentException(
+                'Derivation index must be between 0 and 2147483647 for non-hardened BIP-32 derivation.'
+            );
         }
 
         // The derivation/generation body runs inside suppress_vendor_deprecations(): fromExtended,
