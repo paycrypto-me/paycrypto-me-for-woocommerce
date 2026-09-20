@@ -103,6 +103,7 @@ class BitcoinAddressServiceTest extends TestCase
         $publicKeyMock->method('getPubKeyHash')->willReturn($pubHash);
 
         $derived->method('getPublicKey')->willReturn($publicKeyMock);
+        $hdKey->method('getDepth')->willReturn(3);
         $hdKey->method('derivePath')->willReturn($derived);
         $hdFactory->method('fromExtended')->willReturn($hdKey);
 
@@ -199,6 +200,7 @@ class BitcoinAddressServiceTest extends TestCase
         $publicKeyMock->method('getPubKeyHash')->willReturn($pubHash);
 
         $derived->method('getPublicKey')->willReturn($publicKeyMock);
+        $hdKey->method('getDepth')->willReturn(3);
         $hdKey->method('derivePath')->willReturn($derived);
         $hdFactory->method('fromExtended')->willReturn($hdKey);
 
@@ -211,5 +213,43 @@ class BitcoinAddressServiceTest extends TestCase
 
         $addr = $svc->generate_address_from_xPub('zpub_fake', 3, $network, null);
         $this->assertStringStartsWith('bc1', $addr);
+    }
+
+    /**
+     * @dataProvider incompatible_extended_pubkey_depth_provider
+     */
+    public function test_generate_address_rejects_keys_that_are_not_account_level(int $depth): void
+    {
+        $hdFactory = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Factory\HierarchicalKeyFactory::class)
+            ->onlyMethods(['fromExtended'])
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdKey = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Deterministic\HierarchicalKey::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdKey->method('getDepth')->willReturn($depth);
+        $hdKey->expects($this->never())->method('derivePath');
+        $hdFactory->method('fromExtended')->willReturn($hdKey);
+
+        $service = $this->getMockBuilder(BitcoinAddressService::class)
+            ->onlyMethods(['convert_extended_pubkey_prefix'])
+            ->setConstructorArgs([$hdFactory])
+            ->getMock();
+        $service->method('convert_extended_pubkey_prefix')->willReturn('converted_xpub');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be an account-level key at BIP32 depth 3');
+
+        $service->generate_address_from_xPub('xpub_fake', 0, NetworkFactory::bitcoin());
+    }
+
+    public function incompatible_extended_pubkey_depth_provider(): array
+    {
+        return [
+            'root/master public key' => [0],
+            'purpose-level key' => [1],
+            'coin-level key' => [2],
+            'external-chain key' => [4],
+        ];
     }
 }
