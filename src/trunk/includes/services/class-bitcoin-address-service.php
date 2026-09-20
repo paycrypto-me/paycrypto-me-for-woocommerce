@@ -174,9 +174,11 @@ class BitcoinAddressService
                     // Keep this guard even though resolve_address_type() has already validated
                     // the value: generating a valid address for an unintended policy is worse
                     // than failing the payment attempt.
+                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- This is an internal exception message, not rendered output; the policy was already validated before this defensive guard.
                     throw new \InvalidArgumentException(
                         \sprintf('Unsupported Bitcoin address type: %s.', $type)
                     );
+                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
             }
         });
     }
@@ -191,6 +193,7 @@ class BitcoinAddressService
     private function assert_account_level_extended_pubkey(int $depth): void
     {
         if ($depth !== self::ACCOUNT_EXTENDED_PUBKEY_DEPTH) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- This is an internal validation exception, not rendered output; depth is an integer from the parsed BIP32 key.
             throw new \InvalidArgumentException(
                 \sprintf(
                     'Bitcoin extended public key must be an account-level key at BIP32 depth %d; received depth %d. Configure m/purpose\'/coin_type\'/account\', then this gateway derives 0/index.',
@@ -198,6 +201,7 @@ class BitcoinAddressService
                     $depth
                 )
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
     }
 
@@ -212,6 +216,7 @@ class BitcoinAddressService
     {
         if ($forceType !== null) {
             if (!in_array($forceType, self::SUPPORTED_ADDRESS_TYPES, true)) {
+                // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- This is an internal validation exception, not rendered output; the value is rejected before address generation.
                 throw new \InvalidArgumentException(
                     \sprintf(
                         'Unsupported Bitcoin address type: %s. Supported address types: %s.',
@@ -219,6 +224,7 @@ class BitcoinAddressService
                         implode(', ', self::SUPPORTED_ADDRESS_TYPES)
                     )
                 );
+                // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
             }
 
             return $forceType;
@@ -282,6 +288,7 @@ class BitcoinAddressService
     private function get_prefix_meta(string $prefix): array
     {
         if (!isset($this->prefixMap[$prefix])) {
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- This is an internal validation exception, not rendered output; the unsupported prefix is rejected before address generation.
             throw new \InvalidArgumentException(
                 \sprintf(
                     'Unsupported extended public key prefix: %s. Supported prefixes: %s.',
@@ -289,6 +296,7 @@ class BitcoinAddressService
                     implode(', ', array_keys($this->prefixMap))
                 )
             );
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         return $this->prefixMap[$prefix];
