@@ -6,6 +6,34 @@ use BitWasp\Bitcoin\Network\NetworkFactory;
 
 class BitcoinAddressServiceTest extends TestCase
 {
+    /**
+     * @dataProvider invalid_non_hardened_index_provider
+     */
+    public function test_generate_address_rejects_indices_outside_non_hardened_range(int $index): void
+    {
+        $hdFactory = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Factory\HierarchicalKeyFactory::class)
+            ->onlyMethods(['fromExtended'])
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdFactory->expects($this->never())->method('fromExtended');
+
+        $service = new BitcoinAddressService($hdFactory);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('between 0 and 2147483647 for non-hardened BIP-32 derivation');
+
+        $service->generate_address_from_xPub('xpub_fake', $index, NetworkFactory::bitcoin());
+    }
+
+    public function invalid_non_hardened_index_provider(): array
+    {
+        return [
+            'negative index' => [-1],
+            'first hardened index' => [2147483648],
+            'large integer' => [PHP_INT_MAX],
+        ];
+    }
+
     public function test_prefix_map_contains_expected_keys()
     {
         $svc = new BitcoinAddressService();
