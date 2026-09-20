@@ -7,6 +7,18 @@ All notable changes to this project are documented in this file.
 
 No changes yet.
 
+## 0.4.1
+
+### Fixed
+
+- Bitcoin On-Chain address derivation now rejects indexes outside the non-hardened BIP32 range
+  before calling the cryptography library.
+- Unsupported Bitcoin extended-public-key prefixes and forced address types now fail closed instead
+  of silently falling back to P2WPKH; supported policy errors identify the accepted formats.
+- Bitcoin On-Chain configuration and address generation now require an account-level extended public
+  key at BIP32 depth 3, rejecting root, purpose-level, coin-level and external-chain keys before
+  the gateway derives `0/index`.
+
 ## 0.4.0
 
 ### Added

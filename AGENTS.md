@@ -46,7 +46,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 **Release status**
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — release 0.3.0 built and validated locally; no external push or publication performed.
 
-**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.0** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (420 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.0** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (437 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 
@@ -119,7 +119,7 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
 3. Factory maps `paycrypto_me` → `BitcoinProcessorStrategiesFactory`, which is the **composition root**: builds `new BitcoinPaymentProcessor($gateway, new BitcoinAddressService(), new PayCryptoMeDBStatementsService())`. The processor's constructor params are nullable with an internal `new Service()` fallback, so `new BitcoinPaymentProcessor($gateway)` still works — the factory is just where real wiring happens.
 4. `BitcoinPaymentProcessor::process()` (split into `resolve_bitcoin_network()` → `resolve_derived_address()` → `build_payment_uri()`):
    - Static address in `network_identifier` → uses it directly
-   - xPub/ypub/zpub → `BitcoinAddressService::generate_address_from_xPub()` with an auto-incremented derivation index
+   - account-level xPub/ypub/zpub/tpub/upub/vpub at BIP32 depth 3 → `BitcoinAddressService::generate_address_from_xPub()` with an auto-incremented non-hardened derivation index; the gateway derives the relative `0/index` path and rejects indexes above `2147483647`
    - Index reservation uses `GET_LOCK` / `RELEASE_LOCK` for atomicity
    - Persists via `PayCryptoMeDBStatementsService`
    - An order that already has a row (checkout retry, `order-pay`) reuses the address on file
@@ -311,7 +311,7 @@ legacy on-chain confirmation columns in schema version 2. The contract for futur
 
 | Class | File | Does |
 |-------|------|------|
-| `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Generate/validate Bitcoin addresses (p2pkh, p2sh-p2wpkh, p2wpkh) from xpub/ypub/zpub using `bitwasp/bitcoin`; `requires_gmp_math()`/`validate_segwit_address()` keep the bech32 path usable on hosts without the GMP extension |
+| `BitcoinAddressService` | `services/class-bitcoin-address-service.php` | Generate/validate Bitcoin addresses (p2pkh, p2sh-p2wpkh, p2wpkh) from account-level xpub/ypub/zpub/tpub/upub/vpub nodes at BIP32 depth 3 using `bitwasp/bitcoin`; fail closed on unsupported policies and non-hardened indexes outside `0..2147483647`; `requires_gmp_math()`/`validate_segwit_address()` keep the bech32 path usable on hosts without the GMP extension |
 | `PayCryptoMeDBStatementsService` | `services/pay-crypto-me-db-statements-service.php` | CRUD on the 3 On-Chain custom tables; atomic index reservation via MySQL advisory lock; `release_derivation_index()` refunds a reserved index if derivation/persistence fails afterward, so a systemic failure (missing GMP, invalid xpub) can't burn through the wallet's BIP-44 gap limit; `insert_static_address()` records a fixed-address payment through the same `insert_address()` INSERT and `exists_for_order()` guard, using the `WALLET_ID_STATIC_ADDRESS` sentinel |
 | `PayCryptoMeLightningDBStatementsService` | `services/class-paycrypto-me-lightning-db-statements-service.php` | CRUD on `paycrypto_me_lightning_invoices`; `transition_status()` compare-and-swaps `order_id` + invoice identity + expected status and returns a typed outcome, so concurrent write-backs emit at most one transition and a delayed webhook cannot settle a replacement invoice; `update_status()` remains as a deprecated compatibility wrapper |
 | `PaymentStatusProjectionCapabilities` | `contracts/class-payment-status-projection-capabilities.php` | Versioned discovery API for add-ons: Lightning invoice CAS is v1 and on-chain confirmation projection is explicitly absent (`0`) |

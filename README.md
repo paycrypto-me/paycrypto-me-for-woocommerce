@@ -8,7 +8,7 @@ Accept Bitcoin On-Chain and Lightning Network payments directly in your WooComme
 
 ## Features
 
-- **Bitcoin On-Chain:** derive a unique address for every order from an xPub, yPub, or zPub, or use a fixed receiving address
+- **Bitcoin On-Chain:** derive a unique address for every order from an account-level xPub, yPub, or zPub, or use a fixed receiving address
 - **Bitcoin Lightning:** connect directly to your own BTCPay Server or lnd node
 - **Non-custodial:** your store connects to infrastructure you own and your funds never pass through PayCrypto.Me
 - **Modern checkout support:** compatible with WooCommerce Blocks, classic checkout, and High-Performance Order Storage (HPOS)
@@ -37,7 +37,7 @@ WooCommerce must be installed and active. The plugin requires WordPress 6.5 or n
 
 ### Bitcoin On-Chain
 
-Add an xPub, yPub, or zPub to derive a fresh receiving address for each order (recommended), or configure a fixed bech32 address. Choose mainnet or testnet and set the payment timeout and required confirmations to suit your store.
+Add an account-level xPub, yPub, or zPub to derive a fresh receiving address for each order (recommended), or configure a fixed bech32 address. The extended key must represent the account node at BIP32 depth 3 (`m/purpose'/coin_type'/account'`); the plugin derives the external receiving path `0/index` using non-hardened indexes from 0 through 2,147,483,647. Choose mainnet or testnet and set the payment timeout and required confirmations to suit your store.
 
 ### Bitcoin Lightning
 

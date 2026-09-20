@@ -21,7 +21,7 @@ PayCrypto.Me for WooCommerce lets your store accept Bitcoin directly into wallet
 Two independent, fully self-hosted payment methods, both included:
 
 **Bitcoin On-Chain**
-Give the plugin an xPub, yPub or zPub (or a single address) and it derives a fresh, never-reused receiving address for every order via standard HD derivation — your wallet software does the rest. Works on mainnet or testnet, so you can rehearse the full checkout flow with worthless test coins before going live.
+Give the plugin an account-level xPub, yPub or zPub (or a single address) and it derives a fresh, never-reused receiving address for every order via standard HD derivation — your wallet software does the rest. The extended key must be the account node at BIP32 depth 3 (`m/purpose'/coin_type'/account'`); the plugin derives the external receiving path `0/index` with non-hardened indexes from 0 through 2,147,483,647. Works on mainnet or testnet, so you can rehearse the full checkout flow with worthless test coins before going live.
 
 **Bitcoin Lightning Network**
 Connect the plugin straight to your own BTCPay Server instance or lnd node (REST API, with macaroon authentication and optional TLS certificate pinning). Invoices are created and shown to the customer in seconds — ideal for instant, low-fee payments. A built-in "Test connection" button in the settings screen confirms your node is reachable before you enable the method.
@@ -52,7 +52,7 @@ Bitcoin is currently the only supported cryptocurrency (on-chain and Lightning) 
 1. Make sure WooCommerce is installed and active — the plugin will show an admin notice and stay inactive otherwise.
 2. Upload the plugin folder to `/wp-content/plugins/` (or install it via your usual deployment workflow) and activate it from the WordPress Plugins screen.
 3. Go to **WooCommerce → Settings → Payments** and you'll see two new methods: "Bitcoin" (On-Chain) and "Bitcoin Lightning". Enable whichever one (or both) you want to accept.
-4. **On-Chain:** open its settings and paste your xPub/yPub/zPub (recommended) or a single receiving address, choose mainnet or testnet, and adjust the payment timeout and number of confirmations required to your risk tolerance.
+4. **On-Chain:** open its settings and paste your account-level xPub/yPub/zPub (recommended) or a single receiving address, choose mainnet or testnet, and adjust the payment timeout and number of confirmations required to your risk tolerance.
 5. **Lightning:** open its settings, choose your node type (BTCPay Server or lnd REST), fill in the connection details (URL, API key/macaroon, optional TLS certificate), and use the "Test connection" button to confirm the plugin can reach it before enabling the method.
 6. Testing: switch the On-Chain gateway to testnet, place a test order and confirm the full flow end to end before going live with mainnet.
 
@@ -79,7 +79,7 @@ Notes:
 == Frequently Asked Questions ==
 
 = Which cryptocurrencies are supported? =
-Bitcoin only, through two independent methods: On-Chain (mainnet/testnet, address derived from your xPub/yPub/zPub) and Lightning Network (via your own BTCPay Server or lnd node).
+Bitcoin only, through two independent methods: On-Chain (mainnet/testnet, address derived from your account-level xPub/yPub/zPub or testnet tPub/upub/vpub) and Lightning Network (via your own BTCPay Server or lnd node).
 
 = Does the plugin take custody of my funds at any point? =
 No. On-Chain payments go straight to addresses derived from your own extended public key; Lightning invoices are created and settled directly by your own BTCPay Server or lnd node. The plugin never holds keys or funds.
@@ -104,7 +104,7 @@ Not in the free plugin — see "What this plugin intentionally does not do" in t
 
 = Does the plugin store my wallet's private keys? =
 No. The plugin never asks for or stores a wallet seed or private key. For HD address derivation it
-stores the extended public key (xPub/yPub/zPub) you provide. An extended public key cannot authorize
+stores the account-level extended public key (xPub/yPub/zPub or testnet tPub/upub/vpub) you provide. An extended public key cannot authorize
 spending, but it can derive the account's public addresses and reveal its transaction history, so it
 should still be treated as privacy-sensitive financial data.
 
@@ -112,7 +112,7 @@ should still be treated as privacy-sensitive financial data.
 
 This plugin stores the following data needed to process Bitcoin payments:
 
-- Your wallet's extended public key (xPub/yPub/zPub) or single receiving address, and every address
+- Your wallet's account-level extended public key (xPub/yPub/zPub or testnet tPub/upub/vpub) or single receiving address, and every address
   derived from it, in dedicated database tables (`{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`,
   `{prefix}paycrypto_me_bitcoin_derivation_indexes`, `{prefix}paycrypto_me_bitcoin_transactions_data`).
   The extended public key is stored in readable form because the plugin needs it to derive addresses
@@ -135,6 +135,11 @@ backups and drop these tables manually only when you no longer need the history 
 resume derivation from that wallet through this plugin.
 
 == Changelog ==
+
+= 0.4.1 =
+* Fixed Bitcoin On-Chain derivation accepting indexes outside the non-hardened BIP32 range; invalid indexes are now rejected before derivation.
+* Fixed unsupported extended-public-key prefixes and forced address types falling back to P2WPKH; ambiguous Bitcoin output policies now fail closed with an explicit error.
+* Fixed account-boundary validation by requiring configured extended public keys to be account-level BIP32 nodes at depth 3 before deriving `0/index`; root, purpose-level, coin-level and external-chain keys are rejected.
 
 = 0.4.0 =
 * Added `Abstract_WC_Gateway_PayCryptoMe::get_order_display_data()` as a public, non-rendering payment presentation data API for add-ons, including an `expires_at_timestamp` field in the shared display projection.
@@ -189,6 +194,9 @@ resume derivation from that wallet through this plugin.
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.4.1 =
+Fixes Bitcoin On-Chain extended-public-key and address-index validation. Existing supported account-level xPub/yPub/zPub and tPub/upub/vpub configurations remain compatible; keys must represent the account node at BIP32 depth 3.
 
 = 0.4.0 =
 Adds a public payment presentation data API for add-ons. Existing payment behavior, records and settings are unchanged.
