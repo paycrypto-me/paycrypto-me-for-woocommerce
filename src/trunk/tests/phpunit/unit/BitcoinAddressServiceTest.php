@@ -45,6 +45,38 @@ class BitcoinAddressServiceTest extends TestCase
         $this->assertEquals('p2wpkh', $map['zpub']['type']);
     }
 
+    public function test_generate_address_rejects_an_unsupported_extended_public_key_prefix_before_derivation(): void
+    {
+        $hdFactory = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Factory\HierarchicalKeyFactory::class)
+            ->onlyMethods(['fromExtended'])
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdFactory->expects($this->never())->method('fromExtended');
+
+        $service = new BitcoinAddressService($hdFactory);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported extended public key prefix: qpub');
+
+        $service->generate_address_from_xPub('qpub_fake', 0, NetworkFactory::bitcoin());
+    }
+
+    public function test_generate_address_rejects_an_unknown_forced_type_before_derivation(): void
+    {
+        $hdFactory = $this->getMockBuilder(\BitWasp\Bitcoin\Key\Factory\HierarchicalKeyFactory::class)
+            ->onlyMethods(['fromExtended'])
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hdFactory->expects($this->never())->method('fromExtended');
+
+        $service = new BitcoinAddressService($hdFactory);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported Bitcoin address type: unknown');
+
+        $service->generate_address_from_xPub('xpub_fake', 0, NetworkFactory::bitcoin(), 'unknown');
+    }
+
     public function test_generate_p2pkh_and_p2sh_use_address_creator()
     {
         // Create a stub public key hash Buffer (20 bytes)

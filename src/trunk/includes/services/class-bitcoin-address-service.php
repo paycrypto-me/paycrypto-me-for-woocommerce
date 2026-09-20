@@ -32,6 +32,13 @@ class BitcoinAddressService
      */
     private const MAX_NON_HARDENED_INDEX = 0x7fffffff;
 
+    /** Address policies the gateway deliberately knows how to construct. */
+    private const SUPPORTED_ADDRESS_TYPES = [
+        'p2pkh',
+        'p2sh-p2wpkh',
+        'p2wpkh',
+    ];
+
     private array $prefixMap = [
         // mainnet
         'xpub' => ['hex' => '0488b21e', 'type' => 'p2pkh', 'testnet' => false],
@@ -125,8 +132,9 @@ class BitcoinAddressService
         // derivePath and the p2pkh/p2sh/p2wpkh generators all exercise the bitwasp serialization
         // path that emits accepted E_DEPRECATED notices. Wrapping here keeps them out of the
         // response on the checkout/order-pay derivation the same way the validators do on save.
-        return self::suppress_vendor_deprecations(function () use ($xPub, $index, $network, $forceType, $logger): string {
+        return self::suppress_vendor_deprecations(function () use ($xPub, $index, $network, $forceType): string {
             $currentPrefix = $this->get_prefix_from_xpub($xPub);
+            $type = $this->resolve_address_type($currentPrefix, $forceType);
 
             $converted = $this->convert_extended_pubkey_prefix($xPub, $network);
             $hdKey = $this->get_hd_factory()->fromExtended($converted, $network);
@@ -151,26 +159,6 @@ class BitcoinAddressService
 
             $publicKeyHash = $publicKey->getPubKeyHash();
 
-            if ($forceType !== null) {
-                $type = $forceType;
-            } else {
-                try {
-                    $meta = $this->get_prefix_meta($currentPrefix);
-                    $type = $meta['type'];
-                } catch (\InvalidArgumentException $e) {
-                    if ($logger !== null) {
-                        $logger(
-                            \sprintf(
-                                'Unsupported extended public key prefix: %s. Falling back to bech32 address generation.',
-                                esc_html( wp_strip_all_tags( (string) $currentPrefix ) )
-                            ),
-                            'warning'
-                        );
-                    }
-                    $type = 'p2wpkh';
-                }
-            }
-
             switch ($type) {
                 case 'p2pkh':
                     return $this->generate_p2pkh_from_pubhash($publicKeyHash, $network);
@@ -179,10 +167,43 @@ class BitcoinAddressService
                     return $this->generate_p2sh_p2wpkh_from_pubhash($publicKeyHash, $network);
 
                 case 'p2wpkh':
-                default:
                     return $this->generate_p2wpkh_from_pubhash($publicKeyHash, $network);
+
+                default:
+                    // Keep this guard even though resolve_address_type() has already validated
+                    // the value: generating a valid address for an unintended policy is worse
+                    // than failing the payment attempt.
+                    throw new \InvalidArgumentException(
+                        \sprintf('Unsupported Bitcoin address type: %s.', $type)
+                    );
             }
         });
+    }
+
+    /**
+     * Resolve the output policy before parsing or deriving the extended key.
+     *
+     * A BIP-32 key alone does not state which Bitcoin output it should produce.
+     * Unknown prefixes and caller-supplied overrides therefore fail closed instead
+     * of being interpreted as a different, but still syntactically valid, address.
+     */
+    private function resolve_address_type(string $prefix, ?string $forceType): string
+    {
+        if ($forceType !== null) {
+            if (!in_array($forceType, self::SUPPORTED_ADDRESS_TYPES, true)) {
+                throw new \InvalidArgumentException(
+                    \sprintf(
+                        'Unsupported Bitcoin address type: %s. Supported address types: %s.',
+                        $forceType,
+                        implode(', ', self::SUPPORTED_ADDRESS_TYPES)
+                    )
+                );
+            }
+
+            return $forceType;
+        }
+
+        return $this->get_prefix_meta($prefix)['type'];
     }
 
     public function get_prefix_from_xpub(string $xPub): string
@@ -240,7 +261,13 @@ class BitcoinAddressService
     private function get_prefix_meta(string $prefix): array
     {
         if (!isset($this->prefixMap[$prefix])) {
-            throw new \InvalidArgumentException('Unsupported extended public key prefix.');
+            throw new \InvalidArgumentException(
+                \sprintf(
+                    'Unsupported extended public key prefix: %s. Supported prefixes: %s.',
+                    $prefix,
+                    implode(', ', array_keys($this->prefixMap))
+                )
+            );
         }
 
         return $this->prefixMap[$prefix];
