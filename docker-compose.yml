@@ -1,0 +1,85 @@
+# Imagem única compartilhada por `wordpress` (dev) e `release`: mesmo Dockerfile,
+# mesma tag e mesmo cache de camadas — o toolchain PHP/Node/Composer não é duplicado.
+x-app-build: &app-build
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: paycrypto-me-for-woocommerce:local
+
+services:
+
+  wordpress:
+    <<: *app-build
+    restart: always
+    ports:
+      - 8080:80
+    environment:
+      WORDPRESS_DB_HOST: wp_db
+      WORDPRESS_DB_USER: wordpressdbuser
+      WORDPRESS_DB_PASSWORD: wordpress123456
+      WORDPRESS_DB_NAME: wordpressdb
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_TITLE: "PayCrypto.Me"
+      WORDPRESS_ADMIN_USER: admin
+      WORDPRESS_ADMIN_PASSWORD: admin123
+      WORDPRESS_ADMIN_EMAIL: admin@example.com
+      WORDPRESS_DEBUG: 1
+    depends_on:
+      - wp_db
+    volumes:
+      - wordpress:/var/www/html
+      - ./src/trunk:/var/www/html/wp-content/plugins/paycrypto-me-for-woocommerce
+    networks:
+      - wp_network
+
+  # Container efêmero de build/empacotamento do release (usado por scripts/release.sh
+  # via `docker compose run --rm release`). Reutiliza a MESMA imagem do serviço wordpress
+  # (build único, cache de camadas compartilhado) e monta ./src/trunk em /plugin — vendor/
+  # e node_modules/ ficam no host, reaproveitados entre execuções. NÃO usa os volumes de
+  # WP core/MySQL, NÃO tem depends_on e fica atrás de um profile: nunca sobe com
+  # `docker compose up` e nunca liga o banco.
+  release:
+    <<: *app-build
+    profiles: ["release"]
+    # This standalone build container needs no service discovery. Docker's default
+    # bridge avoids the host TLS failures seen on Compose-created networks.
+    network_mode: bridge
+    working_dir: /plugin
+    environment:
+      COMPOSER_AUTH: ${COMPOSER_AUTH:-}
+    volumes:
+      - ./src/trunk:/plugin
+
+  wp_db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_DATABASE: wordpressdb
+      MYSQL_USER: wordpressdbuser
+      MYSQL_PASSWORD: wordpress123456
+      MYSQL_ROOT_PASSWORD: root123456789
+    ports:
+      - 33061:3306
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - wp_network
+
+  cron:
+    image: alpine:latest
+    container_name: wp_cron
+    restart: always
+    depends_on:
+      - wordpress
+    command: >
+      sh -c "echo '*/5 * * * * wget -q -O- http://wordpress:80/wp-cron.php?doing_wp_cron' | crontab - && crond -f -L /dev/stdout"
+    networks:
+      - wp_network
+
+volumes:
+  wordpress:
+  db:
+
+networks:
+  wp_network:
+    driver: bridge

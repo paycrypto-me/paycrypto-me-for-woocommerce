@@ -1,0 +1,150 @@
+.paycrypto-support-box {
+    padding: 12px;
+    max-width: 100%;
+    border-radius: 8px;
+    display: inline-flex;
+    background: #fffbe7;
+    border: 1px solid #ffd580;
+}
+
+.paycrypto-support-box img {
+    width: 95px;
+    aspect-ratio: 1/1;
+    margin-right: 8px;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
+.paycrypto-support-box .support-content {
+    font-family: 'Courier New', Courier, monospace;
+    border: 1px solid #ffd580;
+    letter-spacing: 0.035em;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    display: inline-block;
+    font-weight: light;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 300px;
+    padding: 7px 8px;
+    font-size: 1.1em;
+    user-select: all;
+    cursor: default;
+}
+
+.paycrypto-support-box .support-input {
+    border: 1px solid #ffd580;
+    text-overflow: ellipsis;
+    font-family: monospace;
+    vertical-align: middle;
+    white-space: nowrap;
+    border-radius: 6px;
+    background: #fff;
+    line-height: 1.4em;
+    margin-right: 8px;
+    padding: 4px 12px;
+    max-width: 260px;
+    font-size: 1.2em;
+    overflow: hidden;
+}
+
+.paycrypto-support-box .support-btn {
+    background: #ffdd00;
+    line-height: 1.4em;
+    border-radius: 6px;
+    font-weight: bold;
+    padding: 9px 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: #222;
+    border: none;
+}
+
+.paycrypto-support-box .support-btn:hover {
+    background: #ffe666;
+}
+
+.paycrypto-support-box .support-divider {
+    height: 8px;
+}
+
+/** */
+
+.paycrypto-me-order-details > h3 {
+    margin: 1.33em 0 0;
+}
+
+@media screen and (max-width: 600px) {
+    .paycrypto-support-box img {
+        width: 110px;
+    }
+
+    .paycrypto-support-box .support-btn {
+        margin-left: 0;
+        margin-top: 8px;
+    }
+}
+
+/* BTCPay Lightning fields */
+.paycrypto-btcpay-row {
+    display: table-row;
+}
+
+.paycrypto-btcpay-row.hidden {
+    display: none !important;
+}
+
+.paycrypto-btcpay-field {
+    display: inline-block;
+    margin-right: 12px;
+}
+
+/* lnd REST Lightning fields */
+.paycrypto-lnd-row {
+    display: table-row;
+}
+
+.paycrypto-lnd-row.hidden {
+    display: none !important;
+}
+
+.paycrypto-lnd-field {
+    display: inline-block;
+    margin-right: 12px;
+}
+
+/* Pro (coming soon) settings preview */
+.paycrypto-pro-badge {
+    display: inline-block;
+    background: #f7931a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.9;
+    padding: 0 10px;
+    border-radius: 999px;
+    letter-spacing: .02em;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.paycrypto-pro-badge::before {
+    content: "\1F512";
+    margin-right: 5px;
+}
+
+input.paycrypto-pro-field,
+textarea.paycrypto-pro-field {
+    background-color: #f6f7f7 !important;
+    color: #8c8f94 !important;
+    border-style: dashed !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    opacity: 1 !important;
+}
+
+input.paycrypto-pro-field::placeholder,
+textarea.paycrypto-pro-field::placeholder {
+    color: #a7aaad;
+    font-style: italic;
+}

@@ -1,0 +1,121 @@
+# Wordpress - ignore core, configuration, examples, uploads and logs.
+# https://github.com/github/gitignore/blob/main/WordPress.gitignore
+
+# Core
+#
+# Note: if you want to stage/commit WP core files
+# you can delete this whole section/until Configuration.
+/wp-admin/
+/wp-content/index.php
+/wp-content/languages
+/wp-content/plugins/index.php
+/wp-content/themes/index.php
+/wp-includes/
+/index.php
+/license.txt
+/readme.html
+/wp-*.php
+/xmlrpc.php
+
+# Configuration
+wp-config.php
+test.php
+
+# Example themes
+/wp-content/themes/twenty*/
+
+# Example plugin
+/wp-content/plugins/hello.php
+
+# Uploads
+/wp-content/uploads/
+
+# Log files
+*.log
+
+# htaccess
+/.htaccess
+
+# All plugins
+#
+# Note: If you wish to whitelist plugins,
+# uncomment the next line
+#/wp-content/plugins
+
+# All themes
+#
+# Note: If you wish to whitelist themes,
+# uncomment the next line
+#/wp-content/themes
+
+# Ignore PHPUnit result cache files created by test runs
+*.cache
+
+# Stray fixture written at test runtime by ActivateDbDeltaTest (ABSPATH concat artifact)
+src/trunk/tests/..wp-admin/
+
+# Project / development ignores (merged from src/.gitignore)
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build files
+dist/
+build/
+
+# Node/Yarn logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Translation working files
+*.po~
+*.pot~
+/tmp/php_files.txt
+
+# Compiled translations (optional - you might want to commit these)
+# Uncomment the line below if you don't want to commit .mo files
+# languages/*.mo
+
+# WordPress specific
+# (kept only in the top WordPress section to avoid duplication)
+wp-content/cache/
+wp-content/backup-db/
+wp-content/advanced-cache.php
+wp-content/wp-cache-config.php
+
+# Development and testing
+debug-paycrypto.php
+releases/*
+!releases/.gitkeep
+auth.json
+
+# Archived docs: already-executed plans/records moved out of the tracked docs/ index
+# (see AGENTS.md's "Context and guides" — "Executed and verified" group). Kept locally as a
+# convenience, deliberately not committed going forward, so cloning the repo fresh from here on
+# does not carry closed-out history forever. References to files under here must be written as
+# possibly-absent, never as "read this file" without a fallback.
+docs/archive/
