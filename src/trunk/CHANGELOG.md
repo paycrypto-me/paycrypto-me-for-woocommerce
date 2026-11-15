@@ -7,6 +7,18 @@ All notable changes to this project are documented in this file.
 
 No changes yet.
 
+## 0.4.3
+
+### Changed
+
+- Refresh the WordPress.org icon, banners and real checkout/settings screenshots with the approved PayCrypto.Me identity.
+- Redesign the optional donation section with a compact layout, adaptive light/dark presentation, a full selectable address and non-blocking copy feedback.
+- Update the Bitcoin donation address and bundled branded QR, with validated wallet URI and scanning checks. Order-payment QR generation is unchanged.
+- Update the donation section translations in all seven bundled locales.
+- Update bundled sodium_compat from 2.5.0 to the patched 2.5.2 release and refresh lock metadata.
+- Assign explicit PNG/SVG MIME types to WordPress.org directory artwork during SVN preparation.
+- Keep the WordPress Tested up to metadata in readme.txt only, as required by the current Plugin Check.
+
 ## 0.4.2
 
 ### Changed

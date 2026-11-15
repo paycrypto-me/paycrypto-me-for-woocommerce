@@ -10,6 +10,8 @@ docs are a working checklist for a specific branch's manual QA — code already 
 confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch merges.
 
 **Operational guides**
+- **[GUIDE]** [docs/GUIDE-DONATION-BRANDING.md](docs/GUIDE-DONATION-BRANDING.md) — approved compact donation card, effective-admin-theme behavior, canonical donation address/QR reproduction and release verification.
+- **[GUIDE]** [docs/GUIDE-DIRECTORY-BRANDING.md](docs/GUIDE-DIRECTORY-BRANDING.md) — V3 WordPress.org directory artwork, canonical vector sources, exact dimensions, and artwork-only publication boundary. Owner-approved directory artwork prepared for the next release; WordPress.org publication remains separate.
 - **[GUIDE]** [docs/GUIDE-RELEASE.md](docs/GUIDE-RELEASE.md) — how to build a release and submit to WordPress.org (SVN or direct upload); SVN flow battle-tested against the real first push (2026-08-08), including recovery from a transient WP.org server-side commit error.
 - **[GUIDE]** [docs/GUIDE-TRANSLATION.md](docs/GUIDE-TRANSLATION.md) — translation commands and status (7 locales, 100%).
 - **[GUIDE]** [docs/GUIDE-I18N-CONVENTIONS.md](docs/GUIDE-I18N-CONVENTIONS.md) — permanent string-authoring rules: product-name constants, reorderable placeholders, translator comments, context, markup boundaries and JS catalogs.
@@ -44,15 +46,19 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 - None currently.
 
 **Release status**
+
+- **[VALIDATION]** [docs/RELEASE-0.4.3.md](docs/RELEASE-0.4.3.md) — approved branding/donation release, validated ZIP and local SVN preparation; final WordPress.org publication is reserved for the owner.
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — release 0.3.0 built and validated locally; no external push or publication performed.
 
-**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.2** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (437 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Publication boundary:** the current tree is the prepared 0.4.3 release; WordPress.org remains on 0.4.2 until the owner runs the final SVN publish command.
+
+**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.3** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (437 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 
 ## What this project is
 
-WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.4.2**. Author: PayCrypto.Me (contact@paycrypto.me).
+WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.4.3**. Author: PayCrypto.Me (contact@paycrypto.me).
 
 **Two registered gateways, both fully functional:**
 - `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).
@@ -81,7 +87,7 @@ paycrypto-me-for-woocommerce/
 │   │   ├── strategies/           ← ProcessorStrategiesFactory (composition root: wires processors + their services via DI)
 │   │   ├── validators/           ← LightningConfigValidator
 │   │   └── utils/                 ← AssetManager, OrderGatewayMatcher, EnvironmentRequirements
-│   ├── assets/                   ← compiled/static assets (do NOT edit JS/CSS here directly)
+│   ├── assets/                   ← static admin sources and compiled Blocks output
 │   │   └── blocks/               ← webpack output from includes/blocks/js/
 │   ├── templates/                ← WooCommerce PHP templates (checkout, order-details)
 │   ├── exceptions/               ← PayCryptoMeException, PayCryptoMePaymentException
@@ -372,7 +378,7 @@ composer install
 ./vendor/bin/phpunit
 ```
 
-Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`, which scans `./tests/phpunit` only, so the MySQL-backed suite under `tests/integration/` is never pulled into this run. Current suite: 420 tests, 979 assertions, 0 errors (4 skipped by design: they assert what a host *without* the GMP extension shows, so they only run on a GMP-less host — e.g. `docker run --rm -v $(pwd)/src/trunk:/plugin -w /plugin php:8.3-cli php ./vendor/bin/phpunit --filter OnchainWithoutGmpTest`).
+Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`, which scans `./tests/phpunit` only, so the MySQL-backed suite under `tests/integration/` is never pulled into this run. Current suite: 437 tests, 1094 assertions, 0 errors (4 skipped by design: they assert what a host *without* the GMP extension shows, so they only run on a GMP-less host — e.g. `docker run --rm -v $(pwd)/src/trunk:/plugin -w /plugin php:8.3-cli php ./vendor/bin/phpunit --filter OnchainWithoutGmpTest`).
 
 ### Integration tests against real MySQL (run from the repo root)
 

@@ -1,0 +1,26 @@
+{
+  "status": "Owner-supplied address and branded QR prepared locally; compact donation UI remains a design study. No release published.",
+  "address": "bc1qca6mftuav8al60ag7g2wrwv9dj4m35hlw94uum",
+  "payload": "bitcoin:bc1qca6mftuav8al60ag7g2wrwv9dj4m35hlw94uum",
+  "error_correction": "H",
+  "quiet_zone_modules": 4,
+  "matrix_modules": 41,
+  "center_plate_modules": 9,
+  "center_logo_modules": 7,
+  "png_dimensions": [
+    588,
+    588
+  ],
+  "decoded_at_pixels": [
+    95,
+    110,
+    120,
+    128,
+    144,
+    160,
+    240,
+    256,
+    588
+  ],
+  "brand_sha256": "c24eb894f9aed3e05bfbaea81fc1c18d06b9aee4ac37f94829ceb909459dfecd"
+}

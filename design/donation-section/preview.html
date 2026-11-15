@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayCrypto.Me — donation section study</title>
+<script>
+const requestedTheme = new URLSearchParams(location.search).get('theme');
+if (requestedTheme === 'light' || requestedTheme === 'dark') document.documentElement.dataset.theme = requestedTheme;
+</script>
+<link rel="stylesheet" href="preview.css">
+<p class="lab-note"><strong>Local design study.</strong> Updated with the owner-supplied donation address. No payment or wallet action is triggered automatically.</p>
+<main class="layout">
+<div class="lab-toolbar"><label for="preview-theme">Preview theme</label><select id="preview-theme"><option value="auto">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+<p class="breadcrumb">WooCommerce / Settings / Payments</p>
+<h1>Bitcoin Payments (On-Chain)</h1>
+<p class="description">Illustrative settings context — the donation card is the proposed change.</p>
+<div class="settings-row"><strong>Hide for Non-Admin Users</strong><div><label><input type="checkbox" disabled> Show only for administrators.</label><small>If enabled, only administrators will see the payment method on Checkout page.</small></div></div>
+<div class="settings-row"><strong>Debug</strong><div><label><input type="checkbox" disabled> Enable debugging messages</label><small>Debug logs will be saved to WooCommerce &gt; Status &gt; Logs.</small></div></div>
+<section class="donation-wrap" aria-labelledby="support-title">
+<div class="paycrypto-support-box">
+<figure class="support-qr"><img src="donation-qr.png" width="128" height="128" alt="Bitcoin QR code for an optional donation to PayCrypto.Me"></figure>
+<div>
+<p class="support-kicker">PayCrypto.Me · Open source</p>
+<h2 id="support-title">Help move the project forward</h2>
+<p class="support-copy">Finding the plugin useful? Your Bitcoin donation helps support ongoing development.</p>
+<code id="btc-address-admin" class="support-address">Loading current donation address…</code>
+<div class="support-actions"><button class="support-btn" type="button" id="copy-btc-admin"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg><span>Copy address</span></button><a class="support-wallet" id="support-wallet">Open wallet ↗</a></div>
+<p class="support-status" role="status" aria-live="polite"></p>
+</div>
+</div>
+</section>
+<button class="save" type="button" disabled>Save changes</button>
+<p class="footer-note">Compact UI prototype. The new donation address and branded QR are prepared in the local plugin; no release has been published. Order-payment QR generation is unchanged.</p>
+</main>
+<script>
+const themeSelect = document.getElementById('preview-theme');
+themeSelect.value = document.documentElement.dataset.theme || 'auto';
+themeSelect.addEventListener('change', () => {
+  const theme = themeSelect.value;
+  const url = new URL(location.href);
+  if (theme === 'light' || theme === 'dark') {
+    document.documentElement.dataset.theme = theme;
+    url.searchParams.set('theme', theme);
+  } else {
+    delete document.documentElement.dataset.theme;
+    url.searchParams.delete('theme');
+  }
+  history.replaceState(null, '', url);
+});
+const addressElement = document.getElementById('btc-address-admin');
+const statusElement = document.querySelector('.support-status');
+const copyButton = document.getElementById('copy-btc-admin');
+copyButton.disabled = true;
+fetch('preview-data.json').then(response => { if (!response.ok) throw new Error('Data unavailable'); return response.json(); }).then(data => {
+  addressElement.textContent = data.address;
+  document.getElementById('support-wallet').href = data.payload;
+  copyButton.disabled = false;
+}).catch(() => { addressElement.textContent = 'Preview data unavailable. Run render.py and serve this folder locally.'; });
+copyButton.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(addressElement.textContent.trim());
+    statusElement.textContent = 'Address copied.';
+  } catch {
+    const range = document.createRange(); range.selectNodeContents(addressElement);
+    const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    statusElement.textContent = 'Select and copy the address.';
+  }
+});
+</script>
+</html>

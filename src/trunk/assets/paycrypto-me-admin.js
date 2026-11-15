@@ -41,15 +41,49 @@ function selected_network_renderer() {
 }
 
 function copy_btc_admin_button_renderer() {
-    var btn = document.getElementById('copy-btc-admin');
-    if (btn) {
-        btn.addEventListener('click', function () {
-            var address = document.getElementById('btc-address-admin').textContent;
-            navigator.clipboard.writeText(address).then(function () {
-                alert('Address copied!');
-            });
-        });
+    var box = document.querySelector('.paycrypto-support-box');
+    if (!box) return;
+    var btn = box.querySelector('#copy-btc-admin');
+    var address = box.querySelector('#btc-address-admin');
+    var status = box.querySelector('.support-status');
+    if (!btn || !address || !status) return;
+
+    btn.addEventListener('click', async function () {
+        try {
+            await navigator.clipboard.writeText(address.textContent.trim());
+            status.textContent = 'Address copied.';
+        } catch (error) {
+            var range = document.createRange();
+            range.selectNodeContents(address);
+            var selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            status.textContent = 'Select and copy the address.';
+        }
+    });
+
+    // Follow the painted admin surface, not OS dark preference on an otherwise light WordPress admin.
+    function syncTheme() {
+        var ancestor = box.parentElement;
+        while (ancestor) {
+            var background = getComputedStyle(ancestor).backgroundColor;
+            var values = background.match(/[\d.]+/g);
+            if (values && values.length >= 3 && (values.length < 4 || Number(values[3]) >= 0.95)) {
+                var luminance = Number(values[0]) * 0.2126 + Number(values[1]) * 0.7152 + Number(values[2]) * 0.0722;
+                box.dataset.paycryptoTheme = luminance < 128 ? 'dark' : 'light';
+                return;
+            }
+            ancestor = ancestor.parentElement;
+        }
+        box.dataset.paycryptoTheme = getComputedStyle(document.documentElement).colorScheme === 'dark' ? 'dark' : 'light';
     }
+    syncTheme();
+    var observer = new MutationObserver(syncTheme);
+    for (var ancestor = box.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        observer.observe(ancestor, { attributes: true, attributeFilter: ['class', 'style', 'data-theme', 'data-color-mode'] });
+    }
+    document.head.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) { link.addEventListener('load', syncTheme); });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncTheme);
 }
 
 function reset_derivation_index_button_renderer() {

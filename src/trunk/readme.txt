@@ -8,7 +8,7 @@ Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9
-Stable tag: 0.4.2
+Stable tag: 0.4.3
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -69,12 +69,14 @@ Notes:
 
 == Screenshots ==
 
-1. Checkout page with the Bitcoin On-Chain and Lightning payment options
-2. Thank you / order-received page showing the payment QR code and address
-3. Admin order screen showing the same payment details for support and reconciliation
-4. WooCommerce → Settings → Payments listing both PayCrypto.Me gateways
-5. Bitcoin On-Chain gateway settings (network, xPub, timeout, confirmations)
-6. Bitcoin Lightning gateway settings (node type, connection details, test connection button)
+1. WooCommerce Blocks checkout with Bitcoin on-chain, Lightning and express buttons, using the Twenty Twenty-Four Onyx theme. Fictional store and testnet demonstration.
+2. Classic WooCommerce checkout with both payment methods and the complete order form, using the Onyx theme. Fictional store and testnet demonstration.
+3. Order-received page with a Bitcoin testnet QR code, receiving address, wallet link and pending payment details. No real payment was made.
+4. Complete WooCommerce admin order screen with payment details, order actions, items and notes for a fictional testnet order.
+5. WooCommerce payment settings listing both PayCrypto.Me gateways and their status controls.
+6. Bitcoin on-chain gateway settings, express-payment options and a fixed testnet receiving address in the demonstration store.
+7. Lightning gateway settings with BTCPay Server/lnd options and example connection fields. No live Lightning node is connected; Pro fields are unavailable previews.
+8. Full mobile WooCommerce Blocks checkout with Bitcoin on-chain, Lightning and express buttons, using the Onyx theme and fictional customer data.
 
 == Frequently Asked Questions ==
 
@@ -135,6 +137,15 @@ backups and drop these tables manually only when you no longer need the history 
 resume derivation from that wallet through this plugin.
 
 == Changelog ==
+
+= 0.4.3 =
+* Refresh the WordPress.org icon, banners and real checkout/settings screenshots with the approved PayCrypto.Me identity.
+* Redesign the optional donation section with a compact layout, adaptive light/dark presentation, a full selectable address and non-blocking copy feedback.
+* Update the Bitcoin donation address and bundled branded QR, with validated wallet URI and scanning checks. Order-payment QR generation is unchanged.
+* Update the donation section translations in all seven bundled locales.
+* Update bundled sodium_compat from 2.5.0 to the patched 2.5.2 release and refresh lock metadata.
+* Assign explicit PNG/SVG MIME types to WordPress.org directory artwork during SVN preparation.
+* Keep the WordPress Tested up to metadata in readme.txt only, as required by the current Plugin Check.
 
 = 0.4.2 =
 * Updated WordPress.org contributor metadata.
@@ -197,6 +208,9 @@ resume derivation from that wallet through this plugin.
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.4.3 =
+Refreshed branding and a compact optional donation section with a new Bitcoin donation address. Customer payment processing is unchanged.
 
 = 0.4.2 =
 Updates WordPress.org contributor metadata; payment behavior and settings are unchanged.

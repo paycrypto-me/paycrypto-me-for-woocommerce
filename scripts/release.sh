@@ -596,6 +596,19 @@ svn_publish() {
   svn add --force --no-ignore --no-auto-props --depth infinity -q \
           "$SVN_DIR/trunk" "$SVN_DIR/assets"
 
+  # Auto-props are intentionally disabled above; explicitly type directory artwork,
+  # especially new SVG icons, so the CDN serves images rather than downloads.
+  local asset mime
+  while IFS= read -r -d '' asset; do
+    case "$asset" in
+      *.png) mime='image/png' ;;
+      *.jpg|*.jpeg) mime='image/jpeg' ;;
+      *.svg) mime='image/svg+xml' ;;
+      *) continue ;;
+    esac
+    svn propset --quiet svn:mime-type "$mime" "$asset"
+  done < <(find "$SVN_DIR/assets" -maxdepth 1 -type f -print0)
+
   # Pós-condição: nada não-reconciliado pode sobreviver (?=unversioned,
   # !=missing, ~=obstructed, C=conflito).
   left="$( svn status "$SVN_DIR/trunk" "$SVN_DIR/assets" \

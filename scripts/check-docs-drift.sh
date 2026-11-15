@@ -56,6 +56,7 @@ ARCHIVED_PATHS=(
     "docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md"
     "docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md"
     "docs/archive/DONE-PRE-RELEASE-0.3.0.md"
+    "docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md"
 )
 
 FINDINGS=0
@@ -99,7 +100,7 @@ for doc in "${DOCS[@]}"; do
         fi
 
         finding "$(basename "$doc") cites a path that does not exist: $cited"
-    done < <(grep -oE '(src/trunk/|docs/|scripts/|includes/|templates/|tests/|assets/|exceptions/)[A-Za-z0-9_./-]*\.(json|php|md|sh|jsx?|xml|dist|txt|css|png|pot?|mo|yml)' "$doc" | sort -u)
+    done < <(grep -oE '(src/(trunk|assets)/|docs/|scripts/|includes/|templates/|tests/|assets/|exceptions/)[A-Za-z0-9_./-]*\.(json|php|md|sh|jsx?|xml|dist|txt|css|png|svg|pot?|mo|yml)' "$doc" | sort -u)
 done
 
 # --- 2. every `file.php:NNN` still lands on code -------------------------------------------------

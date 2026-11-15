@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="PayCrypto.Me"><title>PayCrypto.Me — version 3</title><path fill="#080a0d" d="M0 0H512V512H0Z"/><g transform="translate(81 30) scale(.58)"><defs>
+ <linearGradient id="stem" gradientUnits="userSpaceOnUse" x1="-52" y1="384" x2="169" y2="559"><stop stop-color="#e99a12"/><stop offset=".43" stop-color="#ffd33a"/><stop offset="1" stop-color="#eda00e"/></linearGradient>
+ <linearGradient id="ribbon" gradientUnits="userSpaceOnUse" x1="96" y1="131" x2="532" y2="478"><stop stop-color="#ffe65a"/><stop offset=".29" stop-color="#ffd02e"/><stop offset=".60" stop-color="#efa413"/><stop offset=".80" stop-color="#f7b917"/><stop offset="1" stop-color="#e9930b"/></linearGradient>
+ <linearGradient id="tail" gradientUnits="userSpaceOnUse" x1="209" y1="628" x2="465" y2="420"><stop stop-color="#ffe34b"/><stop offset=".48" stop-color="#ffce2d"/><stop offset="1" stop-color="#efaa17" stop-opacity="0"/></linearGradient>
+ <linearGradient id="edge" gradientUnits="userSpaceOnUse" x1="226" y1="541" x2="452" y2="409"><stop stop-color="#ffeb78"/><stop offset="1" stop-color="#ffd747" stop-opacity="0"/></linearGradient>
+ <linearGradient id="coin" gradientUnits="userSpaceOnUse" x1="246" y1="238" x2="369" y2="382"><stop stop-color="#ffe15a"/><stop offset=".55" stop-color="#ffd02e"/><stop offset="1" stop-color="#f3b719"/></linearGradient>
+ </defs>
+ <g id="brand">
+ <path id="vertical-stem" fill="url(#stem)" d="M7 314 L153 226 C138 239 132 252 132 275 L132 725 C132 739 128 747 117 754 L50 797 C30 809 7 798 7 769 Z"/>
+ <path id="main-ribbon" fill="url(#ribbon)" d="M7 315 L7 210 C7 186 15 169 36 155 L269 19 C288 7 307 7 326 18 L553 156 C572 168 582 184 582 207 L582 434 C582 460 572 478 551 491 L225 680 C205 693 188 685 188 665 L188 574 C188 559 195 549 209 540 L438 408 C450 401 457 390 457 375 L457 262 C457 245 451 235 438 227 L319 155 C307 147 294 147 281 154 Z"/>
+ <path id="lower-highlight" fill="url(#tail)" d="M188 574 C188 559 195 549 209 540 L438 408 C450 401 457 390 457 375 L457 418 L551 491 L225 680 C205 693 188 685 188 665 Z"/>
+ <path opacity="0.55" id="fold-highlight" fill="url(#edge)" d="M188 574 C188 559 195 549 209 540 L438 408 C450 401 457 390 457 375 L457 398 C451 414 435 423 420 432 Z"/>
+ <path id="bitcoin" fill="url(#coin)" fill-rule="evenodd" d="M286 213 L307 218 L299 249 L313 253 L321 222 L342 227 L334 259 C361 266 378 282 371 307 C367 322 358 329 345 332 C365 342 373 357 364 382 C355 408 329 412 297 406 L289 437 L269 432 L277 401 L263 398 L254 429 L233 424 L241 393 L204 384 L212 360 L230 364 C234 365 236 364 237 360 L259 276 C261 270 260 267 255 265 L236 260 L242 237 L278 245 Z M294 274 L285 311 C305 317 330 323 335 304 C340 285 314 279 294 274 Z M280 332 L269 374 C292 380 324 388 330 366 C336 345 305 338 280 332 Z"/>
+ </g></g></svg>

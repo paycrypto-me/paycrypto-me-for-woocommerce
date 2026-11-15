@@ -26,7 +26,7 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
     protected $show_express_icon;
     protected $express_icon_position;
     protected $express_icon;
-    protected $support_btc_address = 'bc1qgvc07956sxuudk3jku6n03q5vc9tkrvkcar7uw';
+    protected $support_btc_address = 'bc1qca6mftuav8al60ag7g2wrwv9dj4m35hlw94uum';
     protected PaymentDisplayDataBuilder $display_data_builder;
 
     public function __construct()
@@ -362,22 +362,29 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 ),
                 'paycrypto_me_donate' => array(
                     'type' => 'title',
-                    'title' => __('Support the development!', 'paycrypto-me-for-woocommerce'),
-                    'description' => '<div class="paycrypto-support-box">
-                    <div>
-                        <img src="' . WC_PayCryptoMe::plugin_url() . '/assets/wallet_address_qrcode.png">
-                    </div>
-                    <div>
-                        ' . sprintf('<strong>%s</strong> %s', esc_html__('Enjoying the plugin?', 'paycrypto-me-for-woocommerce'), __('Send some BTC to support:', 'paycrypto-me-for-woocommerce')) . '
-                        <div style="display: flex; align-items: center; margin-top: 8px;">
-                            <span id="btc-address-admin" class="support-content">' . esc_html($this->support_btc_address) . '</span>
-                            <button type="button" id="copy-btc-admin" class="support-btn">' . esc_html_x('Copy', 'button label: copy the Bitcoin donation address to the clipboard', 'paycrypto-me-for-woocommerce') . '</button>
-                        </div>
-                    </div>
-                </div>',
+                    'title' => '',
+                    'description' => $this->donation_description(),
                 ),
             ]
         );
+    }
+
+    protected function donation_description(): string
+    {
+        $donation_address = $this->support_btc_address;
+        $donation_assets = WC_PayCryptoMe::plugin_url() . '/assets/';
+        ob_start();
+        include __DIR__ . '/../templates/admin/donation.php';
+        return (string) ob_get_clean();
+    }
+
+    public function generate_title_html($key, $data)
+    {
+        if ($key === 'paycrypto_me_donate') {
+            // Keep this non-setting outside the form table without an empty generated heading.
+            return '</table>' . $data['description'] . '<table class="form-table">';
+        }
+        return parent::generate_title_html($key, $data);
     }
 
     /**

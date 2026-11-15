@@ -1,0 +1,39 @@
+/* Theme controls belong to the laboratory; runtime integration must follow the actual admin theme. */
+:root { color-scheme: light; --page: #f0f0f1; --surface: #fff; --text: #1d2327; --muted: #50575e; --quiet: #646970; --border: #dcdcde; --address-bg: #f8f9fa; --address-border: #e5e7e9; --address-text: #30363b; --button-border: #b9c0c5; --button-hover: #f4f5f5; --button-hover-border: #8c969e; --accent: #786023; --wallet: #755b17; --gold-edge: #e7c365; --status: #3d6248; --focus: #2271b1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--text); background: var(--page); }
+:root[data-theme="dark"] { color-scheme: dark; --page: #080a0d; --surface: #101318; --text: #f5f5f0; --muted: #b7bbc2; --quiet: #9ca3ad; --border: #303641; --address-bg: #171b22; --address-border: #343b46; --address-text: #dde1e6; --button-border: #596370; --button-hover: #202630; --button-hover-border: #82909f; --accent: #f4c62b; --wallet: #f4c62b; --gold-edge: #b99a38; --status: #8ed0a4; --focus: #72aee6; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) { color-scheme: dark; --page: #080a0d; --surface: #101318; --text: #f5f5f0; --muted: #b7bbc2; --quiet: #9ca3ad; --border: #303641; --address-bg: #171b22; --address-border: #343b46; --address-text: #dde1e6; --button-border: #596370; --button-hover: #202630; --button-hover-border: #82909f; --accent: #f4c62b; --wallet: #f4c62b; --gold-edge: #b99a38; --status: #8ed0a4; --focus: #72aee6; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-size: 13px; line-height: 1.6; }
+.lab-note { margin: 0; padding: 12px 28px; background: var(--surface); border-bottom: 1px solid var(--border); color: var(--muted); }
+.lab-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 24px; color: var(--muted); }
+.lab-toolbar select { background: var(--surface); color: var(--text); border: 1px solid var(--button-border); border-radius: 4px; padding: 6px 28px 6px 9px; font: inherit; }
+.layout { max-width: 1040px; margin: auto; padding: 30px 28px 70px; }
+.breadcrumb { color: var(--quiet); margin: 0 0 8px; }
+h1 { font-size: 23px; font-weight: 500; margin: 0 0 8px; }
+.description { margin: 0 0 32px; color: var(--muted); }
+.settings-row { display: grid; grid-template-columns: 200px 1fr; gap: 28px; padding: 20px 0; }
+.settings-row > strong { font-weight: 600; }
+.settings-row input { accent-color: #2271b1; }
+.settings-row small { display: block; color: var(--quiet); margin: 6px 0 0 23px; }
+.donation-wrap { margin: 26px 0 24px; border-top: 1px solid var(--border); padding-top: 26px; }
+.paycrypto-support-box { width: 100%; max-width: 800px; display: grid; grid-template-columns: 138px minmax(0, 1fr); align-items: center; gap: 18px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: inset 3px 0 var(--gold-edge); }
+.support-qr { margin: 0; padding: 4px; background: #fff; border: 1px solid #eef0f2; border-radius: 8px; }
+.support-qr img { display: block; width: 128px; height: 128px; }
+.support-kicker { margin: 0 0 3px; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.paycrypto-support-box h2 { margin: 0 0 4px; font-size: 17px; line-height: 1.4; font-weight: 600; color: var(--text); }
+.support-copy { color: var(--muted); margin: 0 0 9px; max-width: 490px; }
+.support-address { display: block; margin: 0; padding: 6px 9px; border: 1px solid var(--address-border); border-radius: 5px; background: var(--address-bg); color: var(--address-text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; user-select: all; }
+.support-actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.support-btn { display: inline-flex; gap: 7px; align-items: center; padding: 5px 10px; background: var(--surface); border: 1px solid var(--button-border); border-radius: 4px; color: var(--text); font: inherit; font-weight: 500; cursor: pointer; }
+.support-btn:hover { background: var(--button-hover); border-color: var(--button-hover-border); }
+.support-btn svg { width: 14px; height: 14px; }
+.support-wallet { color: var(--wallet); font-weight: 500; text-decoration: none; }
+.support-wallet:hover { text-decoration: underline; }
+.support-btn:focus-visible, .support-wallet:focus-visible, .save:focus-visible, .lab-toolbar select:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.support-status { color: var(--status); font-size: 12px; margin: 5px 0 0; }
+.support-status:empty { margin: 0; }
+.save { padding: 7px 12px; border: 1px solid #2271b1; border-radius: 3px; background: #2271b1; color: white; font: inherit; cursor: pointer; }
+.footer-note { margin: 24px 0 0; color: var(--quiet); font-size: 12px; }
+@media(max-width: 700px) { .layout { padding: 24px 18px 48px; } .lab-note { padding: 12px 18px; } .settings-row { grid-template-columns: 1fr; gap: 8px; } .paycrypto-support-box { padding: 14px; gap: 12px; grid-template-columns: minmax(0,1fr); } .support-qr { width: 138px; } .paycrypto-support-box h2 { font-size: 17px; } }
