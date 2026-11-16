@@ -1,6 +1,6 @@
 # [GUIDE] WordPress.org directory branding
 
-V3 banner/icon and screenshot selection approved; local preparation is part of the 0.4.3 release. Nothing published to WordPress.org yet.
+V3 banner/icon and screenshot selection shipped with 0.4.3 on November 15, 2026: SVN trunk/assets r3803918, tag r3803919. Public package contents matched the approved ZIP.
 
 Canonical identity: `paycrypto-me/branding`, V3 C +8. Application sources and standalone instructions: [`platforms/wordpress-org/`](https://github.com/paycrypto-me/branding/tree/main/platforms/wordpress-org) on `main` after the authorized integration push. The local source is `../branding/platforms/wordpress-org/`; the vector icon is byte-identical to `symbol/symbol-square-dark.svg`. The banner contains the approved outlined wordmark and outlined supporting copy; fonts are not required for export. This application is newer than the immutable `v3.0.0` branding release.
 

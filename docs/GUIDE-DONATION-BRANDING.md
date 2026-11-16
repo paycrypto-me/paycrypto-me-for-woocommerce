@@ -1,6 +1,6 @@
 # [GUIDE] Donation branding and destination
 
-The owner approved the compact donation card, both theme variants, the copy, and camera-tested the branded QR in November 2026. Runtime integration is prepared for 0.4.3; no WordPress.org publication is implied by this guide.
+The owner approved the compact donation card, both theme variants, the copy, and camera-tested the branded QR in November 2026. Runtime integration shipped in 0.4.3 on November 15, 2026 (SVN trunk r3803918, tag r3803919), with public package contents verified against the approved ZIP.
 
 ## Authoritative destination
 

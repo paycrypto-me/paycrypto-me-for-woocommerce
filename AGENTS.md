@@ -47,10 +47,10 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 **Release status**
 
-- **[VALIDATION]** [docs/RELEASE-0.4.3.md](docs/RELEASE-0.4.3.md) — approved branding/donation release, validated ZIP and local SVN preparation; final WordPress.org publication is reserved for the owner.
+- **0.4.3 published November 15, 2026:** trunk/assets r3803918, tag r3803919. The downloaded public ZIP matched the approved package file for file; see [the release guide](docs/GUIDE-RELEASE.md) for the publication record.
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — release 0.3.0 built and validated locally; no external push or publication performed.
 
-**Publication boundary:** the current tree is the prepared 0.4.3 release; WordPress.org remains on 0.4.2 until the owner runs the final SVN publish command.
+**Publication confirmed:** WordPress.org serves 0.4.3; trunk/assets r3803918 and tag r3803919 were verified after the owner completed publication.
 
 **Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.3** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (437 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 

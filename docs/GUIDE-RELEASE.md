@@ -4,6 +4,14 @@ Este guia descreve o processo completo para gerar um build de produção e subme
 
 ---
 
+## Última publicação confirmada
+
+**0.4.3, em 15/11/2026:** trunk/assets na revisão SVN **r3803918** e tag na **r3803919** (21:55:05 UTC). A API oficial confirma 0.4.3; o ZIP público foi comparado arquivo por arquivo ao pacote aprovado e é idêntico em conteúdo. Hash SHA-256 do ZIP local aprovado: `5f878d1f35a7fd202e809bc69f1b47488857c852c60f0f5ecffe251d280d896f`.
+
+O dono concluiu a publicação interativa. Não repetir o publisher para essa tag existente. O registro de validação foi encerrado e arquivado localmente; o snapshot anterior está preservado na tag Git `v0.4.3`. A documentação de branding e a página WooCommerce do site devem refletir a publicação real.
+
+---
+
 ## Visão Geral do Processo
 
 O release do plugin envolve três etapas principais:
