@@ -47,12 +47,9 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 **Release status**
 
-- **0.4.3 published November 15, 2026:** trunk/assets r3803918, tag r3803919. The downloaded public ZIP matched the approved package file for file; see [the release guide](docs/GUIDE-RELEASE.md) for the publication record.
-- **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — release 0.3.0 built and validated locally; no external push or publication performed.
+WordPress.org serves **0.5.0**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
 
-**Publication confirmed:** WordPress.org serves 0.4.3; trunk/assets r3803918 and tag r3803919 were verified after the owner completed publication.
-
-**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.0** in the local release candidate (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.0** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 

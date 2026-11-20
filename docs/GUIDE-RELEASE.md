@@ -6,9 +6,9 @@ Este guia descreve o processo completo para gerar um build de produção e subme
 
 ## Última publicação confirmada
 
-**0.4.3, em 15/11/2026:** trunk/assets na revisão SVN **r3803918** e tag na **r3803919** (21:55:05 UTC). A API oficial confirma 0.4.3; o ZIP público foi comparado arquivo por arquivo ao pacote aprovado e é idêntico em conteúdo. Hash SHA-256 do ZIP local aprovado: `5f878d1f35a7fd202e809bc69f1b47488857c852c60f0f5ecffe251d280d896f`.
+**0.5.0, em 20/11/2026.** O SVN recebeu o trunk na revisão **r3814289** e a tag na **r3814290** (18:18:59 UTC). A API oficial anuncia 0.5.0 e os 810 arquivos do ZIP público coincidem com o pacote aprovado. A tag Git `v0.5.0` aponta para `195ed56`.
 
-O dono concluiu a publicação interativa. Não repetir o publisher para essa tag existente. O registro de validação foi encerrado e arquivado localmente; o snapshot anterior está preservado na tag Git `v0.4.3`. A documentação de branding e a página WooCommerce do site devem refletir a publicação real.
+SHA-256 do ZIP local aprovado: `a01c960d3b8cbf419801ea6725b75a9597ccd35e381cd56b5f75dea8539869c8`.
 
 ---
 
