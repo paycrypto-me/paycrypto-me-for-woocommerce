@@ -203,6 +203,10 @@ class WC_Gateway_PayCryptoMe extends Abstract_WC_Gateway_PayCryptoMe
         $this->sync_debug_log_from_post();
 
         $selected_network = isset($_POST['woocommerce_paycrypto_me_selected_network']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_selected_network'])) : null;
+        if (!isset($this->get_available_networks()[$selected_network])) {
+            \WC_Admin_Settings::add_error('Select a Bitcoin network before saving.');
+            return false;
+        }
         $network_identifier = isset($_POST['woocommerce_paycrypto_me_network_identifier']) ? sanitize_text_field(wp_unslash($_POST['woocommerce_paycrypto_me_network_identifier'])) : '';
         $network_config = $this->get_network_config($selected_network);
 

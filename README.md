@@ -37,17 +37,17 @@ WooCommerce must be installed and active. The plugin requires WordPress 6.5 or n
 
 ### Bitcoin On-Chain
 
-Add an account-level xPub, yPub, or zPub to derive a fresh receiving address for each order (recommended), or configure a fixed bech32 address. The extended key must represent the account node at BIP32 depth 3 (`m/purpose'/coin_type'/account'`); the plugin derives the external receiving path `0/index` using non-hardened indexes from 0 through 2,147,483,647. Choose mainnet or testnet and set the payment timeout and required confirmations to suit your store.
+Add an account-level xPub, yPub, or zPub to derive a fresh receiving address for each order (recommended), or configure a fixed bech32 address. The extended key must represent the account node at BIP32 depth 3 (`m/purpose'/coin_type'/account'`); the plugin derives the external receiving path `0/index` using non-hardened indexes from 0 through 2,147,483,647. Choose the network that matches the key or address.
 
 ### Bitcoin Lightning
 
 Choose BTCPay Server or lnd REST, enter your node connection details, and use **Test connection** before enabling the gateway. API keys, macaroons, and TLS certificates are sensitive credentials; use least-privilege access and protect your WordPress database and backups.
 
-Never enter a wallet seed or private key into this plugin.
+Never enter a wallet seed or private key into this plugin. For the data stored by each gateway, deletion choices and suggested store privacy policy wording, see the [plugin readme](src/trunk/readme.txt).
 
 ## Development
 
-The distributable WordPress plugin lives in `src/trunk`. For local development and release instructions, see the documentation in [`docs`](docs/).
+The distributable WordPress plugin lives in `src/trunk`. See the [development workflow](AGENTS.md#development-workflow) for test selection and the [release guide](docs/GUIDE-RELEASE.md) for packaging and publication.
 
 The Base plugin also exposes a versioned payment-status projection contract for the separate Pro
 add-on. It publishes capability discovery and an atomic, invoice-identified Lightning status

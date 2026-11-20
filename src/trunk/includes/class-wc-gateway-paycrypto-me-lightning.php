@@ -58,9 +58,15 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
 
     public function process_admin_options()
     {
+        $this->config_validator = new LightningConfigValidator();
         $this->sync_debug_log_from_post();
 
         return parent::process_admin_options();
+    }
+
+    protected function has_settings_errors(): bool
+    {
+        return parent::has_settings_errors() || $this->config_validator()->has_errors();
     }
 
     protected function admin_enqueue_scripts_content($screen)
@@ -235,6 +241,10 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
                 'title' => __('lnd REST Connection Test', 'paycrypto-me-for-woocommerce'),
                 'type' => 'lnd_test_button',
                 'default' => '',
+            ],
+            'paycrypto_danger_area' => [
+                'type' => 'title',
+                'title' => __('Danger Area', 'paycrypto-me-for-woocommerce'),
             ],
         ];
     }

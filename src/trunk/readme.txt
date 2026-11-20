@@ -8,7 +8,7 @@ Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9
-Stable tag: 0.4.3
+Stable tag: 0.5.0
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -33,7 +33,7 @@ Connect the plugin straight to your own BTCPay Server instance or lnd node (REST
 - **Express Payment button** — an optional one-click "Buy with Bitcoin" button on the checkout page, with a configurable icon position.
 - **QR code everywhere it matters** — a scannable payment QR (with copy-to-clipboard and "Open in wallet" deep link) on the Thank You page, in My Account → Orders, and on the admin order screen, so both you and the customer always see the same payment details.
 - **Non-custodial by design** — the plugin never takes possession of funds; it only derives addresses and requests invoices from infrastructure you own.
-- **Debug logging** — every payment attempt is logged through the native WooCommerce logger (WooCommerce → Status → Logs, source `paycrypto_me`), so troubleshooting a stuck order doesn't require guesswork.
+- **Debug logging** — payment diagnostics are available through the native WooCommerce logger (WooCommerce → Status → Logs, source `paycrypto_me`), so troubleshooting a stuck order doesn't require guesswork.
 - **Translation-ready** — text domain `paycrypto-me-for-woocommerce`, with complete translations included for Portuguese (Brazil), Spanish, French, German, Italian, Russian and Chinese (Simplified).
 - **Developer-friendly** — before/after payment hooks, filters over the invoice arguments sent to BTCPay/lnd, and a filter over the final payment data, so custom logic can hook in without touching plugin code.
 
@@ -43,7 +43,7 @@ To keep the free plugin simple and auditable, three things are left out on purpo
 
 - **Automatic payment confirmation.** Today, order status is moved forward manually once you've verified the payment yourself (e.g. in your node or block explorer). Automatic confirmation via BTCPay webhooks / lnd polling is planned for the Pro add-on.
 - **On-chain confirmation tracking and transaction history.** The base stores the receiving address and derivation context; the Pro add-on owns blockchain polling, transaction records and confirmation-specific data in its own tables.
-- **Fiat → sats conversion.** Lightning invoices are currently created as zero-amount (the wallet reads the amount from the invoice itself once the add-on populates it); automatic conversion of the order's fiat total into an exact BTC/sats amount is also planned for the Pro add-on.
+- **Fiat → sats conversion.** The base plugin sends the order total and currency to BTCPay Server. With lnd it requests an invoice without a fixed amount. Automatic conversion by the plugin is planned for the Pro add-on.
 
 Bitcoin is currently the only supported cryptocurrency (on-chain and Lightning) — this keeps the codebase small and well-tested rather than spreading support thin across many chains.
 
@@ -98,8 +98,8 @@ Yes, both gateways support the Blocks-based Cart & Checkout as well as the class
 = How do I test payments safely before going live? =
 Switch the On-Chain gateway's network to testnet and place a test order, or use your Lightning node's own testing/regtest setup if it supports one — the plugin itself only exposes mainnet/testnet for On-Chain.
 
-= Where are payment logs stored? =
-Through the native WooCommerce logger, source `paycrypto_me`. Access them via WooCommerce → Status → Logs.
+= Where can I find payment logs, and what happens to them when I uninstall the plugin? =
+Open WooCommerce → Status → Logs and look for the source `paycrypto_me`. WooCommerce manages log retention. By default, deleting the plugin leaves those logs in place. To remove its native WooCommerce logs on deletion, select the log checkbox in either gateway’s Danger Area and save.
 
 = Does the order status update automatically once the customer pays? =
 Not in the free plugin — see "What this plugin intentionally does not do" in the description. Automatic confirmation is planned for a future Pro add-on.
@@ -112,31 +112,43 @@ should still be treated as privacy-sensitive financial data.
 
 == Privacy ==
 
-This plugin stores the following data needed to process Bitcoin payments:
+= What information does the store keep? =
 
-- Your wallet's account-level extended public key (xPub/yPub/zPub or testnet tPub/upub/vpub) or single receiving address, and every address
-  derived from it, in dedicated database tables (`{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`,
-  `{prefix}paycrypto_me_bitcoin_derivation_indexes`, `{prefix}paycrypto_me_bitcoin_transactions_data`).
-  The extended public key is stored in readable form because the plugin needs it to derive addresses
-  and reconnect the same wallet to its previous derivation indexes. It cannot authorize spending,
-  but it is privacy-sensitive because it can reveal that wallet account's addresses and activity.
-- Lightning node connection details you provide (BTCPay Server or lnd URL, API key/macaroon, optional TLS certificate) in the gateway settings (`wp_options`), and every created invoice in `{prefix}paycrypto_me_lightning_invoices`.
-- No customer personal data beyond what WooCommerce already stores with the order — the plugin only attaches the payment address/invoice details as order meta.
+The plugin links each Bitcoin payment to its WooCommerce order ID so the store can show payment instructions, handle checkout retries and reconcile orders. Someone with access to the order can associate these records with the customer.
 
-None of this data leaves your WordPress installation: the plugin only talks to your own wallet-derivation logic and to the BTCPay Server/lnd node you configure, never to a third-party API.
+- **On-chain:** The store keeps the receiving address with the order. For an HD wallet, dedicated tables also keep the account-level extended public key, network and derivation indexes so future orders can use fresh addresses. The extended public key is readable and can reveal the wallet account's addresses and activity.
+- **Lightning:** The store keeps the node type, invoice ID, payment request, status, expiry and amount in satoshis when supplied. The gateway settings hold the node URL, authentication credentials and optional TLS certificate.
+- **Orders and logs:** WooCommerce order metadata contains payment instructions, including the wallet link. Payment logs can include the order ID, amounts, currencies, network, a shortened payment identifier and diagnostic errors. Restrict access to orders, logs, database copies and backups.
 
-**On uninstall, both gateways' settings are deleted** — including the Lightning node credentials (API key, macaroon, TLS certificate), so those secrets are not left behind in your database.
+= Who receives payment information? =
 
-**The payment record tables are deliberately kept** (`{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`,
-`{prefix}paycrypto_me_bitcoin_derivation_indexes`, `{prefix}paycrypto_me_bitcoin_transactions_data`,
-`{prefix}paycrypto_me_lightning_invoices`), so the payment history of past orders stays intact for
-accounting and reconciliation after the plugin is removed. Keeping the wallet and derivation-index
-records also prevents a later reinstall from starting the same wallet at an old index and reusing
-payment addresses. Because this retains the privacy-sensitive extended public key, protect database
-backups and drop these tables manually only when you no longer need the history and do not intend to
-resume derivation from that wallet through this plugin.
+The plugin generates on-chain addresses and payment QR images on the WordPress server. The on-chain QR and wallet link contain the receiving address, an order reference, the billing first name when provided, and the Bitcoin amount when supplied. Opening the link or scanning the code gives those details to the wallet application. When the customer pays, the receiving address and transaction amount become public on the Bitcoin blockchain. The order reference and billing name are wallet instructions and are separate from the blockchain transaction. Reusing a fixed address makes payments to the same store easier to link.
+
+For Lightning, the plugin contacts the endpoint chosen by the store when testing the connection and when creating or retrieving an invoice. BTCPay Server receives the order ID, order total, currency, invoice description (empty by default) and checkout settings including expiry. lnd receives the expiry and a memo (empty by default), plus an amount if supplied by an extension. A hosted node provider can access the requests its service receives. Extensions can change invoice fields. The base plugin sends no payment telemetry to PayCrypto.Me.
+
+= How long are records kept, and how can a customer make a request? =
+
+In either gateway’s **Danger Area**, choose what WordPress should erase when you delete the plugin. Both checkboxes start unchecked, including after upgrading. The choices are shared by both gateways on the same site. You can change them until uninstall. Saving, updating or deactivating the plugin keeps the records.
+
+- **Neither selected:** The store keeps the payment tables, order payment details and logs. WooCommerce continues to apply its own log retention settings.
+- **Logs only:** Removes entries with source `paycrypto_me` in the native WooCommerce log database and matching files (including rotations) in the configured log directory. Payment records remain. External log destinations, archived directories and backups have their own retention arrangements. On multisite, a shared log directory can be cleaned only if all sites using it authorize log cleanup.
+- **Payment records only:** Removes this plugin's payment metadata from classic and HPOS order storage and drops its four tables: `{prefix}paycrypto_me_bitcoin_wallet_xpubkeys`, `{prefix}paycrypto_me_bitcoin_derivation_indexes`, `{prefix}paycrypto_me_bitcoin_transactions_data` and `{prefix}paycrypto_me_lightning_invoices`. Logs remain.
+- **Both selected:** Applies both cleanups.
+
+Uninstall always removes gateway settings, including stored Lightning credentials. Orders, totals, payment method and order notes (including payment initiation and status notes) remain. **Deleting derivation history can cause address reuse if you reinstall with the same extended public key.** Retained payment tables have no automatic expiry. Invoice expiry is a payment deadline. Deleting local records leaves invoices at the node, wallet records, backups and confirmed blockchain transactions outside the scope of the cleanup.
+
+Customers should direct privacy requests to the store using the contact in its privacy policy. The plugin does not register a WordPress personal-data exporter or eraser for its payment tables. When handling a request, the store should check the relevant order IDs against those tables and account for copies held by its providers.
+
+= Suggested wording for the store's privacy policy =
+
+Adapt the paragraph below for the payment methods you offer. Fill in the provider and processing location if you use a hosted node, the applicable retention periods or criteria, and a monitored contact. Explain the legal basis and rights applicable to your store and customers before publishing.
+
+“When you choose Bitcoin, we link the payment address or Lightning invoice to your order to provide payment instructions and reconcile your payment. For on-chain payments, opening the wallet link or scanning the QR code shares payment details, including your billing first name if supplied and your order reference, with your wallet. The receiving address and amount of a confirmed transaction are public on the Bitcoin blockchain. For Lightning payments, we request an invoice from [node operator and location]. We retain order-linked payment records for [period or criteria] and payment logs for [period]. To ask about your payment data or exercise your privacy rights, contact [store privacy contact].”
 
 == Changelog ==
+
+= 0.5.0 =
+* Add separate opt-ins for deleting WooCommerce logs and local Bitcoin payment records on uninstall. Expand privacy and retention disclosures.
 
 = 0.4.3 =
 * Refresh the WordPress.org icon, banners and real checkout/settings screenshots with the approved PayCrypto.Me identity.
@@ -208,6 +220,9 @@ resume derivation from that wallet through this plugin.
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.5.0 =
+Existing records are preserved by default. Review the two optional uninstall choices in either gateway’s Danger Area.
 
 = 0.4.3 =
 Refreshed branding and a compact optional donation section with a new Bitcoin donation address. Customer payment processing is unchanged.

@@ -52,13 +52,13 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 **Publication confirmed:** WordPress.org serves 0.4.3; trunk/assets r3803918 and tag r3803919 were verified after the owner completed publication.
 
-**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.4.3** (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on (437 unit tests + 23 MySQL-backed integration tests). Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.0** in the local release candidate (this number and the one below are bumped by `release.sh`, not by hand). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 
 ## What this project is
 
-WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.4.3**. Author: PayCrypto.Me (contact@paycrypto.me).
+WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.5.0**. Author: PayCrypto.Me (contact@paycrypto.me).
 
 **Two registered gateways, both fully functional:**
 - `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).
@@ -91,8 +91,8 @@ paycrypto-me-for-woocommerce/
 │   │   └── blocks/               ← webpack output from includes/blocks/js/
 │   ├── templates/                ← WooCommerce PHP templates (checkout, order-details)
 │   ├── exceptions/               ← PayCryptoMeException, PayCryptoMePaymentException
-│   ├── tests/                    ← PHPUnit (unit-only, custom WP shims, no real WP)
-│   ├── uninstall.php             ← deletes settings options (incl. secrets); deliberately KEEPS the 4 tables (payment records)
+│   ├── tests/                    ← PHPUnit unit tests with WP shims and integration tests against real MySQL
+│   ├── uninstall.php             ← deletes settings options (incl. secrets); keeps payment records by default; optional payment/log cleanup
 │   ├── package.json              ← npm scripts for JS build
 │   ├── webpack.config.js
 │   └── composer.json
@@ -238,7 +238,13 @@ All prefixed with `{$wpdb->prefix}`, created via `dbDelta()` in `PayCryptoMeBitc
 - `paycrypto_me_bitcoin_transactions_data` — (order_id, payment_address, derivation_index_id, wallet_xpubkeys_id). Both derivation columns hold `PayCryptoMeDBStatementsService::WALLET_ID_STATIC_ADDRESS` (`0`) for a payment to a **fixed address**, where there is no extended key and no index. `0` can never collide — `wallet_xpubkeys.id` is `AUTO_INCREMENT` from 1 — so `WHERE wallet_xpubkeys_id = 0` selects exactly the fixed-address payments. A sentinel rather than nullable columns because of F1 below. This is also why `get_by_order_id()` joins with `LEFT JOIN`: an `INNER JOIN` drops those rows entirely, which is how they went unrecorded before. Legacy confirmation columns (`num_confirmations`, `amount_received`, `tx_hash`) were removed by schema version 2; confirmation tracking belongs to the Pro add-on.
 - `paycrypto_me_lightning_invoices` — (order_id, node_type, invoice_id, payment_request, status, expires_at, amount_sats)
 
-Schema lifecycle lives in `DbInstaller` (`services/class-db-installer.php`) — `DbInstaller::activate()` (a zero-argument wrapper around `install(true)`) is the `register_activation_hook` target, plus `DbInstaller::maybe_upgrade()` on `admin_init` and `DbInstaller::maybe_upgrade_after_update()` on `upgrader_process_complete`. `activate()` always runs both `*GatewayActivate::activate()` calls, regardless of the recorded version — this is what lets it recreate a table that went missing (a restored migration, a merchant who manually dropped a table `uninstall.php` deliberately kept) even on a site whose `paycrypto_me_db_version` was already current. `maybe_upgrade()` (no force) runs them only when the code's `DbInstaller::DB_VERSION` is newer than the recorded version (the only way a schema change reaches an already-installed site otherwise, since WordPress doesn't re-fire `register_activation_hook` on update) — and additionally, when the version IS current, throttled-probes (`SHOW TABLES LIKE`, at most twice a day via the `paycrypto_me_db_health_check` transient) that the 4 tables still exist, force-repairing via `install(true)` if one is missing. The table names have one source: each activator's `TABLE_*` constants (bare names), exposed as `DbInstaller::tables()`. Each `dbDelta()` call goes through `DbDeltaRunner::run()`, which checks `$wpdb->last_error` **and then** a `dbDelta($sql, false)` dry run for anything still structurally missing (see F5 below) — see `DbDeltaRunner`'s own docblock for exactly what "unchanged" means here; each activator **returns** the errors it recorded as well as accumulating them in `paycrypto_me_db_activation_errors`, and `DbInstaller::install()` records the new version **only when that list is empty** — recording it unconditionally used to leave a site with broken tables permanently claiming to be up to date. A failed attempt sets the `paycrypto_me_db_upgrade_retry` transient (1h) so the retry doesn't re-run `dbDelta` on every request, and `DbInstaller::render_activation_errors()` keeps showing the notice until a later successful `install()` clears the option (it used to delete the option after rendering once, so the warning vanished while the schema stayed broken). `uninstall.php` deletes both settings options (including secrets: `lnd_macaroon_hex`, `btcpay_api_key`, `lnd_certificate`) but **deliberately keeps the 4 custom tables and `paycrypto_me_db_version`** — those tables are the store's payment records (derived addresses, indexes, Lightning invoices), still needed for accounting/reconciliation of past orders after the plugin is removed.
+Schema lifecycle lives in `DbInstaller` (`services/class-db-installer.php`) — `DbInstaller::activate()` (a zero-argument wrapper around `install(true)`) is the `register_activation_hook` target, plus `DbInstaller::maybe_upgrade()` on `admin_init` and `DbInstaller::maybe_upgrade_after_update()` on `upgrader_process_complete`. `activate()` always runs both `*GatewayActivate::activate()` calls, regardless of the recorded version — this is what lets it recreate a table that went missing (a restored migration, a merchant who manually dropped a table `uninstall.php` deliberately kept) even on a site whose `paycrypto_me_db_version` was already current. `maybe_upgrade()` (no force) runs them only when the code's `DbInstaller::DB_VERSION` is newer than the recorded version (the only way a schema change reaches an already-installed site otherwise, since WordPress doesn't re-fire `register_activation_hook` on update) — and additionally, when the version IS current, throttled-probes (`SHOW TABLES LIKE`, at most twice a day via the `paycrypto_me_db_health_check` transient) that the 4 tables still exist, force-repairing via `install(true)` if one is missing. The table names have one source: each activator's `TABLE_*` constants (bare names), exposed as `DbInstaller::tables()`. Each `dbDelta()` call goes through `DbDeltaRunner::run()`, which checks `$wpdb->last_error` **and then** a `dbDelta($sql, false)` dry run for anything still structurally missing (see F5 below) — see `DbDeltaRunner`'s own docblock for exactly what "unchanged" means here; each activator **returns** the errors it recorded as well as accumulating them in `paycrypto_me_db_activation_errors`, and `DbInstaller::install()` records the new version **only when that list is empty** — recording it unconditionally used to leave a site with broken tables permanently claiming to be up to date. A failed attempt sets the `paycrypto_me_db_upgrade_retry` transient (1h) so the retry doesn't re-run `dbDelta` on every request, and `DbInstaller::render_activation_errors()` keeps showing the notice until a later successful `install()` clears the option (it used to delete the option after rendering once, so the warning vanished while the schema stayed broken).
+
+### Uninstall and data retention
+
+Keep visibility and debugging with general settings. Reserve the Danger Area for actions with data-loss consequences. Both gateways use the same per-site option, `paycrypto_me_uninstall_cleanup`. WordPress deletion removes gateway settings and credentials. Saving consent requires `manage_options`, the nonce for the current gateway and successful form validation. Each unchecked or absent choice preserves its corresponding records at uninstall. For the merchant-facing retention rules and wallet address reuse warning, maintain [the plugin readme](src/trunk/readme.txt).
+
+When changing storage, review `UninstallCleanup` alongside the writer. Match Base order meta keys exactly in classic and HPOS storage, including synchronized copies. Match the exact WooCommerce log source in both native handlers. Keep consent until cleanup succeeds so deletion can be retried. On multisite, a shared log directory requires consent from every site using it before its files can be removed.
 
 ### Schema lifecycle and what `dbDelta()` will not do for you
 
@@ -265,7 +271,7 @@ does nothing at all on every site that already had the plugin.
 **Invariants:**
 
 - **Forward-only and additive.** No down-migrations, no dropping a column that holds payment data —
-  the 4 tables are the store's financial history, which is also why `uninstall.php` keeps them. The
+  the 4 tables are the store's financial history, which is why uninstall preserves them unless the merchant opts into deletion. The
   real "go back" case is a merchant installing an older plugin, and what protects against that is
   the additive invariant plus `maybe_upgrade()`'s `version_compare(..., '>=')`, which refuses to
   rewrite a **newer** recorded version backwards.
@@ -371,14 +377,24 @@ npm run build        # production build → assets/blocks/
 npm run dev          # watch mode
 ```
 
-### Run tests (from `src/trunk/`)
+### Gateway regression tests
+
+From `src/trunk/`:
 
 ```bash
 composer install
 ./vendor/bin/phpunit
 ```
 
-Tests use custom WP shims in `tests/_support/` — no real WordPress needed. Config in `phpunit.xml.dist`, which scans `./tests/phpunit` only, so the MySQL-backed suite under `tests/integration/` is never pulled into this run. Current suite: 437 tests, 1094 assertions, 0 errors (4 skipped by design: they assert what a host *without* the GMP extension shows, so they only run on a GMP-less host — e.g. `docker run --rm -v $(pwd)/src/trunk:/plugin -w /plugin php:8.3-cli php ./vendor/bin/phpunit --filter OnchainWithoutGmpTest`).
+The default suite uses WordPress/WooCommerce shims and simulated node responses. For an internal On-Chain change, this one run also exercises existing Lightning configuration, invoice processing, order display data and shared rendering tests. It needs no configured node, browser or manual checkout. Add a regression case when a changed behavior is missing from the suite.
+
+Choose additional checks by what changed:
+
+| Change | Verification |
+|---|---|
+| SQL, schema or payment persistence | Run the real-MySQL suite below. |
+| Gateway settings layout | With a local WordPress site running, Playwright and Chromium installed, and `QA_ADMIN` and `QA_PASSWORD` exported, run `node tests/manual/settings/browser.cjs "$QA_SITE_URL"` from the repository root, using the local site URL with a trailing slash. This read-only check covers grouping, warning association and responsive layout on both screens. |
+| Consent, retention or deletion | Follow the [uninstall E2E runbook](tests/manual/uninstall/README.md). It drives the Plugins screen and inspects stored records after deletion. |
 
 ### Integration tests against real MySQL (run from the repo root)
 

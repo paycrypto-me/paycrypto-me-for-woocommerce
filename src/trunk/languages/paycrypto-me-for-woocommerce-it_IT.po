@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-3.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: PayCrypto.Me for WooCommerce 0.4.3\n"
+"Project-Id-Version: PayCrypto.Me for WooCommerce 0.5.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paycrypto-me/paycrypto-me-for-woocommerce/issues\n"
 "POT-Creation-Date: 2026-08-30T15:22:58+00:00\n"
 "PO-Revision-Date: 2026-07-07 17:52+0000\n"
@@ -700,3 +700,19 @@ msgstr "Apri portafoglio"
 #~ msgctxt "button label: copy the Bitcoin donation address to the clipboard"
 #~ msgid "Copy"
 #~ msgstr "Copia"
+
+#: templates/admin/uninstall-choices.php:8
+msgid "These choices apply to both gateways when you delete the plugin from WordPress."
+msgstr "Queste scelte si applicano a entrambi i gateway quando elimini il plugin da WordPress."
+
+#: templates/admin/uninstall-choices.php:11
+msgid "Delete this plugin’s WooCommerce logs on uninstall."
+msgstr "Elimina i log WooCommerce di questo plugin alla disinstallazione."
+
+#: templates/admin/uninstall-choices.php:15
+msgid "Delete this plugin’s payment records on uninstall."
+msgstr "Elimina i dati di pagamento di questo plugin alla disinstallazione."
+
+#: templates/admin/uninstall-choices.php:17
+msgid "Orders remain, but their Bitcoin payment details and wallet derivation history are erased. Reinstalling with the same extended public key can reuse previous receiving addresses."
+msgstr "Gli ordini vengono conservati, ma i dettagli dei pagamenti in Bitcoin e la cronologia di derivazione del portafoglio vengono cancellati. Reinstallando il plugin con la stessa chiave pubblica estesa, potresti riutilizzare indirizzi di ricezione precedenti."

@@ -23,6 +23,19 @@ namespace PayCryptoMe\WooCommerce;
  */
 class LightningConfigValidator
 {
+    private bool $has_errors = false;
+
+    public function has_errors(): bool
+    {
+        return $this->has_errors;
+    }
+
+    private function report_error(string $message): void
+    {
+        $this->has_errors = true;
+        \WC_Admin_Settings::add_error($message);
+    }
+
     public function is_lnd_rest_selected(array $post_data, string $node_type_field_key): bool
     {
         $node_type = isset($post_data[$node_type_field_key])
@@ -47,7 +60,7 @@ class LightningConfigValidator
         }
         $parts = wp_parse_url($url);
         if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(sprintf('%s must use HTTPS.', esc_html__('BTCPay Server URL', 'paycrypto-me-for-woocommerce')));
+            $this->report_error(sprintf('%s must use HTTPS.', esc_html__('BTCPay Server URL', 'paycrypto-me-for-woocommerce')));
             return '';
         }
         return $url;
@@ -56,7 +69,7 @@ class LightningConfigValidator
     /** Shared by both URL validators: the value could not be stored, so say so. */
     private function add_unusable_url_error(string $field_label): void
     {
-        \WC_Admin_Settings::add_error(sprintf(
+        $this->report_error(sprintf(
             '%s is not a usable URL and was not saved. Include the scheme, e.g. https://example.com',
             esc_html($field_label)
         ));
@@ -66,7 +79,7 @@ class LightningConfigValidator
     {
         $val = $this->sanitize_text_val($value);
         if (!$is_lnd_rest_selected && $val !== '' && strlen($val) < 20) {
-            \WC_Admin_Settings::add_error(sprintf('%1$s must be at least %2$d characters.', esc_html__('BTCPay API Key', 'paycrypto-me-for-woocommerce'), 20));
+            $this->report_error(sprintf('%1$s must be at least %2$d characters.', esc_html__('BTCPay API Key', 'paycrypto-me-for-woocommerce'), 20));
             return '';
         }
         return $val;
@@ -87,7 +100,7 @@ class LightningConfigValidator
     {
         $val = $this->sanitize_text_val($value);
         if (!$is_lnd_rest_selected && $val !== '' && strlen($val) < 16) {
-            \WC_Admin_Settings::add_error('BTCPay webhook secret is shorter than the recommended 16 characters.');
+            $this->report_error('BTCPay webhook secret is shorter than the recommended 16 characters.');
         }
         return $val;
     }
@@ -105,7 +118,7 @@ class LightningConfigValidator
         }
         $parts = wp_parse_url($url);
         if (empty($parts['scheme']) || strtolower($parts['scheme']) !== 'https') {
-            \WC_Admin_Settings::add_error(sprintf('%s must use HTTPS.', esc_html__('lnd REST URL', 'paycrypto-me-for-woocommerce')));
+            $this->report_error(sprintf('%s must use HTTPS.', esc_html__('lnd REST URL', 'paycrypto-me-for-woocommerce')));
             return '';
         }
         return $url;
@@ -117,11 +130,11 @@ class LightningConfigValidator
         $val = preg_replace('/\s+/', '', $val);
         if ($is_lnd_rest_selected && $val !== '') {
             if (strlen($val) < 100) {
-                \WC_Admin_Settings::add_error(sprintf('%1$s must be at least %2$d characters.', esc_html__('lnd Macaroon (hex)', 'paycrypto-me-for-woocommerce'), 100));
+                $this->report_error(sprintf('%1$s must be at least %2$d characters.', esc_html__('lnd Macaroon (hex)', 'paycrypto-me-for-woocommerce'), 100));
                 return '';
             }
             if (!ctype_xdigit($val)) {
-                \WC_Admin_Settings::add_error('lnd Macaroon must be a valid hexadecimal string.');
+                $this->report_error('lnd Macaroon must be a valid hexadecimal string.');
                 return '';
             }
         }
@@ -135,7 +148,7 @@ class LightningConfigValidator
             return $val;
         }
         if (strpos($val, '-----BEGIN CERTIFICATE-----') === false || strpos($val, '-----END CERTIFICATE-----') === false) {
-            \WC_Admin_Settings::add_error('Invalid certificate format. Must be valid PEM format starting with -----BEGIN CERTIFICATE-----.');
+            $this->report_error('Invalid certificate format. Must be valid PEM format starting with -----BEGIN CERTIFICATE-----.');
             return '';
         }
         return $val;
@@ -145,11 +158,11 @@ class LightningConfigValidator
     {
         $val = absint($value);
         if ($val < 300) {
-            \WC_Admin_Settings::add_error('Invoice Expiry must be at least 300 seconds (5 minutes).');
+            $this->report_error('Invoice Expiry must be at least 300 seconds (5 minutes).');
             return '3600';
         }
         if ($val > 86400) {
-            \WC_Admin_Settings::add_error('Invoice Expiry cannot exceed 86400 seconds (24 hours).');
+            $this->report_error('Invoice Expiry cannot exceed 86400 seconds (24 hours).');
             return '3600';
         }
         return strval($val);

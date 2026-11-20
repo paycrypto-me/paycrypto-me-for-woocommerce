@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-3.0-or-later.
 msgid ""
 msgstr ""
-"Project-Id-Version: PayCrypto.Me for WooCommerce 0.4.3\n"
+"Project-Id-Version: PayCrypto.Me for WooCommerce 0.5.0\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/paycrypto-me-for-woocommerce\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -572,4 +572,20 @@ msgstr ""
 
 #: templates/order-details/paycrypto-me-order-details.php:102
 msgid "This payment request has expired. Please place the order again or contact the store."
+msgstr ""
+
+#: templates/admin/uninstall-choices.php:8
+msgid "These choices apply to both gateways when you delete the plugin from WordPress."
+msgstr ""
+
+#: templates/admin/uninstall-choices.php:11
+msgid "Delete this plugin’s WooCommerce logs on uninstall."
+msgstr ""
+
+#: templates/admin/uninstall-choices.php:15
+msgid "Delete this plugin’s payment records on uninstall."
+msgstr ""
+
+#: templates/admin/uninstall-choices.php:17
+msgid "Orders remain, but their Bitcoin payment details and wallet derivation history are erased. Reinstalling with the same extended public key can reuse previous receiving addresses."
 msgstr ""

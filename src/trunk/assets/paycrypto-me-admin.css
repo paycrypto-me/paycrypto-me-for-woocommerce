@@ -86,3 +86,25 @@ textarea.paycrypto-pro-field::placeholder {
     color: #a7aaad;
     font-style: italic;
 }
+.paycrypto-danger-area {
+    max-width: 800px;
+}
+
+.paycrypto-danger-area fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.paycrypto-danger-area .paycrypto-danger-box + fieldset {
+    margin-top: 1.5em;
+}
+
+.paycrypto-danger-area legend {
+    padding: 0;
+    font-weight: 600;
+}
+
+.paycrypto-danger-area .description {
+    margin-inline-start: 0;
+}

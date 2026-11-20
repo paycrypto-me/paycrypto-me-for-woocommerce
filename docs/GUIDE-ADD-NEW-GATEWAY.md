@@ -100,6 +100,8 @@ Sem framework de scaffolding — replicar convenções existentes:
 - DI real (desde a Fase 3+): construa processors via `new <X>PaymentProcessor($gateway, $fakeService, $fakeDb)` diretamente, não via `disableOriginalConstructor()` + reflection (isso era necessário antes da DI, não é mais o padrão a seguir).
 - Templates de referência mais próximos de um processor novo: `tests/phpunit/unit/BitcoinPaymentProcessorTest.php`, `AbstractLightningProcessorTest.php`. Para validators: `LightningConfigValidatorTest.php` (não precisa mock de gateway). Para display args: `OrderDisplayArgsTest.php`.
 
+Se o gateway gravar dados novos, confira o [contrato de retenção e desinstalação](../AGENTS.md#uninstall-and-data-retention) e ajuste o inventário do readme distribuído.
+
 ## 9. Convenções transversais
 
 - i18n: strings do cliente e **rótulos/descrições de settings** via `__()`/`esc_html__()` com text domain `paycrypto-me-for-woocommerce`. **Erros, warnings, logs, feedback de botão de diagnóstico e notas de pedido do admin ficam em inglês literal**, sem `__()` — a regra completa e o porquê estão em [GUIDE-TRANSLATION.md](./GUIDE-TRANSLATION.md) → "O que entra (e o que NÃO entra) no catálogo". Não envolva uma mensagem de erro nova em `__()` só porque ela aparece na tela.

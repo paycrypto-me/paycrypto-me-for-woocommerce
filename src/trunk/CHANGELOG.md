@@ -3,9 +3,12 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## 0.5.0
 
-No changes yet.
+### Added
+
+- Add two site-wide Danger Area checkboxes for deleting native WooCommerce logs and local Bitcoin payment records on uninstall. Both default to preserving data.
+- Document payment data flows, retention, uninstall choices and suggested privacy policy wording.
 
 ## 0.4.3
 

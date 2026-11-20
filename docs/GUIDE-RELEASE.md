@@ -167,6 +167,8 @@ Antes de executar o release, verifique:
 | Versão nova definida (semver `X.Y.Z`) | Ver seção "Determinando a Próxima Versão" |
 | Credenciais SVN configuradas (se for submeter ao WP.org) | Ver seção "Configurando Credenciais SVN" abaixo |
 
+Para mudanças em settings ou retenção, escolha a validação correspondente na [matriz de testes](../AGENTS.md#gateway-regression-tests). A loja de desenvolvimento monta o código do checkout e reflete edições posteriores ao build. Se algum arquivo distribuído mudou, gere outro ZIP e use esse artefato nas verificações de pacote e na validação de desinstalação aplicável à release.
+
 > **Por que Docker?** O `release.sh` executa `npm run build`, `phpunit` e `composer install --no-dev` dentro de um **container efêmero** (serviço `release` do `docker-compose.yml`, invocado via `docker compose run --rm release`). Esse serviço reutiliza a **mesma imagem** e o **mesmo bind mount `./src/trunk`** do serviço de dev `wordpress` — mas sem WordPress/MySQL, sem `depends_on` e atrás de um profile. Assim o ambiente de build é idêntico ao de execução do plugin **sem** depender do stack de dev no ar (e sem ligar o banco).
 
 ---

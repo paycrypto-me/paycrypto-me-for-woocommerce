@@ -301,6 +301,20 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                     'description' => __('Payment method description displayed on Checkout page.', 'paycrypto-me-for-woocommerce'),
                     'default' => __('Pay directly from your Bitcoin wallet. Place your order to view the QR code and payment instructions.', 'paycrypto-me-for-woocommerce'),
                 ),
+                'hide_for_non_admin_users' => array(
+                    'title' => __('Hide for Non-Admin Users', 'paycrypto-me-for-woocommerce'),
+                    'label' => __('Show only for administrators.', 'paycrypto-me-for-woocommerce'),
+                    'type' => 'checkbox',
+                    'default' => 'no',
+                    'description' => __('If enabled, only administrators will see the payment method on Checkout page.', 'paycrypto-me-for-woocommerce'),
+                ),
+                'debug_log' => array(
+                    'title' => __('Debug', 'paycrypto-me-for-woocommerce'),
+                    'label' => __('Enable debugging messages', 'paycrypto-me-for-woocommerce'),
+                    'type' => 'checkbox',
+                    'default' => 'no',
+                    'description' => __('Debug logs will be saved to WooCommerce > Status > Logs.', 'paycrypto-me-for-woocommerce'),
+                ),
                 'express_payment_section' => array(
                     'type' => 'title',
                     'title' => __('Express Payment (One-Click)', 'paycrypto-me-for-woocommerce'),
@@ -346,20 +360,6 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
             $selected_network_item,
             $this->init_form_fields_items(),
             [
-                'hide_for_non_admin_users' => array(
-                    'title' => __('Hide for Non-Admin Users', 'paycrypto-me-for-woocommerce'),
-                    'label' => __('Show only for administrators.', 'paycrypto-me-for-woocommerce'),
-                    'type' => 'checkbox',
-                    'default' => 'no',
-                    'description' => __('If enabled, only administrators will see the payment method on Checkout page.', 'paycrypto-me-for-woocommerce'),
-                ),
-                'debug_log' => array(
-                    'title' => __('Debug', 'paycrypto-me-for-woocommerce'),
-                    'label' => __('Enable debugging messages', 'paycrypto-me-for-woocommerce'),
-                    'type' => 'checkbox',
-                    'default' => 'no',
-                    'description' => __('Debug logs will be saved to WooCommerce > Status > Logs.', 'paycrypto-me-for-woocommerce'),
-                ),
                 'paycrypto_me_donate' => array(
                     'type' => 'title',
                     'title' => '',
@@ -367,6 +367,39 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 ),
             ]
         );
+    }
+
+    public function process_admin_options()
+    {
+        $saved = parent::process_admin_options();
+        $post = $this->get_post_data();
+        $nonce = $post['paycrypto_me_cleanup_nonce'] ?? '';
+        if (!is_string($nonce) || !$nonce || !current_user_can('manage_options')
+            || !wp_verify_nonce($nonce, 'paycrypto_me_cleanup_' . $this->id)) {
+            return $saved;
+        }
+
+        // WooCommerce also returns false on a successful, unchanged gateway
+        // save. Allow changing just these choices in that case.
+        if ($this->has_settings_errors() || (!$saved && get_option($this->get_option_key()) !== $this->settings)) {
+            return $saved;
+        }
+
+        $choices = UninstallPreferences::choices($post['paycrypto_me_cleanup'] ?? []);
+        $stored = array_map(static fn(bool $checked): string => $checked ? 'yes' : 'no', $choices);
+        if ($stored === get_option(UninstallPreferences::OPTION, [])) {
+            return $saved;
+        }
+        if (!update_option(UninstallPreferences::OPTION, $stored, false)) {
+            \WC_Admin_Settings::add_error('The uninstall choices could not be saved. Reload the page to verify them.');
+            return $saved;
+        }
+        return true;
+    }
+
+    protected function has_settings_errors(): bool
+    {
+        return !empty($this->get_errors());
     }
 
     protected function donation_description(): string
@@ -383,6 +416,11 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
         if ($key === 'paycrypto_me_donate') {
             // Keep this non-setting outside the form table without an empty generated heading.
             return '</table>' . $data['description'] . '<table class="form-table">';
+        }
+        if ($key === 'paycrypto_danger_area') {
+            ob_start();
+            include __DIR__ . '/../templates/admin/uninstall-choices.php';
+            return (string) ob_get_clean();
         }
         return parent::generate_title_html($key, $data);
     }
