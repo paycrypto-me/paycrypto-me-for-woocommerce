@@ -6,9 +6,9 @@ Este guia descreve o processo completo para gerar um build de produção e subme
 
 ## Última publicação confirmada
 
-**0.5.0, em 20/11/2026.** O SVN recebeu o trunk na revisão **r3814289** e a tag na **r3814290** (18:18:59 UTC). A API oficial anuncia 0.5.0 e os 810 arquivos do ZIP público coincidem com o pacote aprovado. A tag Git `v0.5.0` aponta para `195ed56`.
+**0.5.1, em 20/11/2026.** O SVN recebeu o trunk e os screenshots atualizados na revisão **r3814350** e a tag na **r3814351** (18:59:33 UTC). A API oficial anuncia 0.5.1 e os 810 arquivos do ZIP público coincidem com o pacote aprovado. A tag Git `v0.5.1` aponta para `d8fe34b`.
 
-SHA-256 do ZIP local aprovado: `a01c960d3b8cbf419801ea6725b75a9597ccd35e381cd56b5f75dea8539869c8`.
+SHA-256 do ZIP local aprovado: `4ea9f023bdd5512163862002bdc4ea0827d10605be3dfe0a605ecbbccf9313c3`.
 
 ---
 
