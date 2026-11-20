@@ -3,6 +3,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.5.1
+
+### Fixed
+
+- Align the Lightning webhook preview and its disabled BTCPay field with the gateway settings, and keep the preview text readable on narrow screens.
+
+### Changed
+
+- Refresh the Bitcoin On-Chain and Lightning settings screenshots in the WordPress.org directory using English demo data.
+
 ## 0.5.0
 
 ### Added

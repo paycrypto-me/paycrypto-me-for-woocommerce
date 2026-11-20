@@ -40,6 +40,27 @@ async function run() {
                     assert(box && box.x >= 0 && box.x + box.width <= width + 1, 'Cleanup control or warning overflows the viewport.');
                 }
             }
+            if (gateway === 'paycrypto_me_lightning') {
+                const prefix = 'woocommerce_paycrypto_me_lightning_';
+                const node = value => page.locator('input[name="' + prefix + 'node_type"][value="' + value + '"]');
+                const secret = page.locator('#' + prefix + 'btcpay_webhook_secret');
+                const url = page.locator('#' + prefix + 'btcpay_url');
+                const lndUrl = page.locator('#' + prefix + 'lnd_rest_url');
+                const preview = page.locator('.paycrypto-webhook-preview');
+                for (const width of [1280, 390]) {
+                    await page.setViewportSize({ width, height: 900 });
+                    await node('btcpay').check();
+                    assert(await secret.isDisabled(), 'The webhook secret is a read-only preview.');
+                    const field = await secret.boundingBox();
+                    const connection = await url.boundingBox();
+                    const copy = await preview.locator('p').boundingBox();
+                    assert(field && connection && Math.abs(field.x - connection.x) <= 2, 'The secret and connection fields should share a column.');
+                    assert(copy && copy.x + copy.width <= width + 1, 'Webhook preview copy overflows the viewport.');
+                    await node('lnd_rest').check();
+                    assert(await lndUrl.isVisible() && !(await secret.isVisible()), 'The secret is visible only for BTCPay.');
+                    assert((await lndUrl.boundingBox()).y < (await preview.boundingBox()).y, 'lnd settings belong above the webhook preview.');
+                }
+            }
             console.log('Passed settings layout:', gateway);
         }
     } finally {

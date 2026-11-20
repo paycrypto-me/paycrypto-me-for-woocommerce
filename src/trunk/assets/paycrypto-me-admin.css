@@ -108,3 +108,15 @@ textarea.paycrypto-pro-field::placeholder {
 .paycrypto-danger-area .description {
     margin-inline-start: 0;
 }
+
+.form-table .paycrypto-webhook-preview td {
+    padding-inline: 0;
+}
+
+.paycrypto-webhook-preview h3 {
+    margin: 0 0 8px;
+}
+
+.paycrypto-webhook-preview p {
+    max-width: 72ch;
+}

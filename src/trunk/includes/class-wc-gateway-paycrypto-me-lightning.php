@@ -177,33 +177,6 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
                 'type' => 'btcpay_test_button',
                 'default' => '',
             ],
-            'webhook_info' => [
-                'title' => __('Webhook Configuration', 'paycrypto-me-for-woocommerce'),
-                'type' => 'title',
-                'description' => $this->pro_soon_badge() . '<br>' . $this->pro_feature_notice(
-                    __('Automatic payment confirmation via webhooks (BTCPay push / lnd polling)', 'paycrypto-me-for-woocommerce'),
-                    __('Lightning payments are confirmed manually — the settings below are a preview and are not editable yet', 'paycrypto-me-for-woocommerce')
-                ),
-            ],
-            'btcpay_webhook_secret' => [
-                'title' => __('BTCPay Webhook Secret', 'paycrypto-me-for-woocommerce'),
-                'type' => 'password',
-                'description' => sprintf(
-                    /* translators: %s: short add-on name (not translated, product name), e.g. "Pro". */
-                    __('Reserved for the %s add-on. Not used by the free version.', 'paycrypto-me-for-woocommerce'),
-                    WC_PayCryptoMe::NAME_PRO_ADDON_SHORT
-                ),
-                'placeholder' => sprintf(
-                    /* translators: %s: short add-on name (not translated, product name), e.g. "Pro". */
-                    __('Available in the %s add-on', 'paycrypto-me-for-woocommerce'),
-                    WC_PayCryptoMe::NAME_PRO_ADDON_SHORT
-                ),
-                'default' => '',
-                'class' => 'paycrypto-btcpay-field paycrypto-pro-field',
-                'custom_attributes' => [
-                    'disabled' => 'disabled',
-                ],
-            ],
             'lnd_rest_url' => [
                 'title' => __('lnd REST URL', 'paycrypto-me-for-woocommerce'),
                 'type' => 'text',
@@ -241,6 +214,33 @@ class WC_Gateway_PayCryptoMe_Lightning extends Abstract_WC_Gateway_PayCryptoMe
                 'title' => __('lnd REST Connection Test', 'paycrypto-me-for-woocommerce'),
                 'type' => 'lnd_test_button',
                 'default' => '',
+            ],
+            'webhook_info' => [
+                'title' => __('Webhook Configuration', 'paycrypto-me-for-woocommerce'),
+                'type' => 'title',
+                'description' => $this->pro_soon_badge() . '<br>' . $this->pro_feature_notice(
+                    __('Automatic payment confirmation via webhooks (BTCPay push / lnd polling)', 'paycrypto-me-for-woocommerce'),
+                    __('Lightning payments are confirmed manually — the settings below are a preview and are not editable yet', 'paycrypto-me-for-woocommerce')
+                ),
+            ],
+            'btcpay_webhook_secret' => [
+                'title' => __('BTCPay Webhook Secret', 'paycrypto-me-for-woocommerce'),
+                'type' => 'password',
+                'description' => sprintf(
+                    /* translators: %s: short add-on name (not translated, product name), e.g. "Pro". */
+                    __('Reserved for the %s add-on. Not used by the free version.', 'paycrypto-me-for-woocommerce'),
+                    WC_PayCryptoMe::NAME_PRO_ADDON_SHORT
+                ),
+                'placeholder' => sprintf(
+                    /* translators: %s: short add-on name (not translated, product name), e.g. "Pro". */
+                    __('Available in the %s add-on', 'paycrypto-me-for-woocommerce'),
+                    WC_PayCryptoMe::NAME_PRO_ADDON_SHORT
+                ),
+                'default' => '',
+                'class' => 'paycrypto-btcpay-field paycrypto-pro-field',
+                'custom_attributes' => [
+                    'disabled' => 'disabled',
+                ],
             ],
             'paycrypto_danger_area' => [
                 'type' => 'title',

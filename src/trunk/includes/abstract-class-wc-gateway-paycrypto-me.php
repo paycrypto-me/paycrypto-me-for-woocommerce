@@ -422,6 +422,15 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
             include __DIR__ . '/../templates/admin/uninstall-choices.php';
             return (string) ob_get_clean();
         }
+        if ($key === 'webhook_info') {
+            // Keep the preview and both node types on the same WooCommerce column grid.
+            return sprintf(
+                '<tr class="paycrypto-webhook-preview"><td colspan="2"><h3 id="%1$s">%2$s</h3><p>%3$s</p></td></tr>',
+                esc_attr($this->get_field_key($key)),
+                esc_html($data['title']),
+                wp_kses_post($data['description'])
+            );
+        }
         return parent::generate_title_html($key, $data);
     }
 

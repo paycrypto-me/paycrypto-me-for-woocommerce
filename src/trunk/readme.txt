@@ -147,6 +147,10 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 
 == Changelog ==
 
+= 0.5.1 =
+* Fix: Align the Lightning webhook preview and its disabled BTCPay field with the gateway settings, and keep the preview text readable on narrow screens.
+* Refresh the Bitcoin On-Chain and Lightning settings screenshots in the WordPress.org directory using English demo data.
+
 = 0.5.0 =
 * Add separate opt-ins for deleting WooCommerce logs and local Bitcoin payment records on uninstall. Expand privacy and retention disclosures.
 
@@ -220,6 +224,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.5.1 =
+Fixes the Lightning settings layout and keeps the webhook preview readable on narrow screens.
 
 = 0.5.0 =
 Existing records are preserved by default. Review the two optional uninstall choices in either gateway’s Danger Area.
