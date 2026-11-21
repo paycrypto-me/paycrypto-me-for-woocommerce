@@ -41,4 +41,4 @@ From the approved branding checkout, run:
 python scripts/sync-woocommerce.py --plugin ../paycrypto-me-for-woocommerce
 ```
 
-This verifies canonical hashes and copies the eight directory PNGs, matching captions and selected runtime icons. The capture environment lives in the landing repository under `design/woocommerce-showcase/`. Send new candidate captures to branding for approval before syncing consumers. The approved gallery depicts a fictional testnet shop using 0.5.1 with the pending visual changes. Follow the normal Git and SVN release workflow to publish them.
+This verifies canonical hashes and copies the eight directory PNGs, matching captions and selected runtime icons. The capture environment lives in the landing repository under `design/woocommerce-showcase/`. Send new candidate captures to branding for approval before syncing consumers. The approved gallery depicts a fictional testnet shop using 0.5.1 with the pending visual changes. The gallery and transparent runtime icons shipped in 0.5.2. See the [release record](GUIDE-RELEASE.md#última-publicação-confirmada) for SVN revisions and package verification.

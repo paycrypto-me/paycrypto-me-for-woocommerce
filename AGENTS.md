@@ -47,7 +47,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 **Release status**
 
-WordPress.org serves **0.5.1**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
+WordPress.org serves **0.5.2**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
 
 **Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.2** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
