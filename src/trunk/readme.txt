@@ -69,13 +69,13 @@ Notes:
 
 == Screenshots ==
 
-1. WooCommerce Blocks checkout with Bitcoin on-chain, Lightning and express buttons, using the Twenty Twenty-Four Onyx theme. Fictional store and testnet demonstration.
-2. Classic WooCommerce checkout with both payment methods and the complete order form, using the Onyx theme. Fictional store and testnet demonstration.
-3. Order-received page with a Bitcoin testnet QR code, receiving address, wallet link and pending payment details. No real payment was made.
-4. Complete WooCommerce admin order screen with payment details, order actions, items and notes for a fictional testnet order.
-5. WooCommerce payment settings listing both PayCrypto.Me gateways and their status controls.
-6. Bitcoin on-chain gateway settings, express-payment options and a fixed testnet receiving address in the demonstration store.
-7. Lightning gateway settings with BTCPay Server/lnd options and example connection fields. No live Lightning node is connected; Pro fields are unavailable previews.
+1. Bitcoin and Lightning options, express buttons, billing fields and order summary in WooCommerce Blocks.
+2. The classic shortcode checkout on mobile, with both payment methods and the complete order form.
+3. Mobile order overview, testnet QR code, wallet link, payment status and billing details.
+4. The complete WooCommerce order screen, including payment details, order actions, items and notes.
+5. Both gateways in WooCommerce payment settings, with navigation and status controls.
+6. Express payment, a testnet receiving address and uninstall choices.
+7. BTCPay/lnd selection, example connection settings and uninstall choices.
 8. Full mobile WooCommerce Blocks checkout with Bitcoin on-chain, Lightning and express buttons, using the Onyx theme and fictional customer data.
 
 == Frequently Asked Questions ==

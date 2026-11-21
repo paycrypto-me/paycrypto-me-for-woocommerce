@@ -26,9 +26,20 @@ if ($payment_display_data['payment_identifier']): ?>
                     <small class="paycrypto-me-order-details__expires"><?php echo esc_html($payment_display_data['expires_at_formatted']); ?></small>
                 </div>
             <?php endif; ?>
-            <div class="paycrypto-me-order-details__wrapper">
+            <div class="paycrypto-me-order-details__wrapper paycrypto-me-order-details__status-row">
                 <small><?php esc_html_e('Status:', 'paycrypto-me-for-woocommerce'); ?></small>
-                <div class="paycrypto-me-network-switch">
+                <div class="paycrypto-me-order-details__status-value">
+                    <?php // An expired invoice cannot be paid, so "Awaiting Payment" next to a past expiry date was telling the customer to keep waiting for something that will never settle. ?>
+                    <span class="paycrypto-me-order-details__status-badge<?php echo !empty($payment_display_data['is_expired']) ? ' paycrypto-me-order-details__status-badge--expired' : ''; ?>">
+                        <span class="paycrypto-me-order-details__status-dot"></span>
+                        <?php
+                        if (!empty($payment_display_data['is_expired'])) {
+                            esc_html_e('Expired', 'paycrypto-me-for-woocommerce');
+                        } else {
+                            esc_html_e('Awaiting Payment', 'paycrypto-me-for-woocommerce');
+                        }
+                        ?>
+                    </span>
                     <?php if (!empty($payment_display_data['confirmations_required'])): ?>
                         <p class="paycrypto-me-order-details__confirmations-hint">
                             <?php printf(
@@ -43,17 +54,6 @@ if ($payment_display_data['payment_identifier']): ?>
                             ); ?>
                         </p>
                     <?php endif; ?>
-                    <?php // An expired invoice cannot be paid, so "Awaiting Payment" next to a past expiry date was telling the customer to keep waiting for something that will never settle. ?>
-                    <span class="paycrypto-me-order-details__status-badge<?php echo !empty($payment_display_data['is_expired']) ? ' paycrypto-me-order-details__status-badge--expired' : ''; ?>">
-                        <span class="paycrypto-me-order-details__status-dot"></span>
-                        <?php
-                        if (!empty($payment_display_data['is_expired'])) {
-                            esc_html_e('Expired', 'paycrypto-me-for-woocommerce');
-                        } else {
-                            esc_html_e('Awaiting Payment', 'paycrypto-me-for-woocommerce');
-                        }
-                        ?>
-                    </span>
                 </div>
             </div>
             <div class="paycrypto-me-order-details__wrapper">

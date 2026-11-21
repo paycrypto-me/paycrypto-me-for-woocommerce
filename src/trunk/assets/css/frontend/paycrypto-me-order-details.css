@@ -7,7 +7,17 @@
 }
 
 .paycrypto-me-order-details__status-row {
-    margin-bottom: 12px;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.paycrypto-me-order-details__status-value {
+    align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    text-align: right;
 }
 
 .paycrypto-me-order-details__status-badge {
@@ -18,7 +28,7 @@
     display: inline-flex;
     font-family: sans-serif;
     letter-spacing: .02em;
-    white-space: nowrap;
+    max-width: 100%;
     padding: 5px 10px;
     user-select: none;
     font-size: .7rem;
@@ -142,6 +152,7 @@
     box-sizing: border-box;
     margin: 0 auto;
     max-width: 340px;
+    width: 100%;
     position: relative;
 }
 
@@ -171,12 +182,11 @@
 }
 
 .paycrypto-me-order-details__confirmations-hint {
-    color: #6b7280;
+    color: inherit;
     font-size: .75rem;
-    margin: -2px auto 0;
-    max-width: 340px;
-    text-align: center;
-    width: 100%;
+    line-height: 1.35;
+    margin: 0;
+    opacity: .85;
 }
 
 .paycrypto-me-copy-feedback {

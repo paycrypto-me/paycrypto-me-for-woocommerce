@@ -3,6 +3,17 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Keep the payment status and confirmation details readable in narrow order panels and compact the admin payment QR and address.
+
+### Changed
+
+- Replace the legacy payment-method logos with the faceted PayCrypto.Me P: Bitcoin on-chain and a violet Lightning glyph, retaining network-specific express and QR icons.
+- Refresh all directory screenshots from the current demo with the new product thumbnail and payment-method branding.
+
 ## 0.5.1
 
 ### Fixed

@@ -6,3 +6,12 @@
     margin: 0 0 10px 0 !important;
     padding-top: 10px !important;
 }
+
+.paycrypto-me-order-details .paycrypto-me-order-details__qr-code-image img {
+    max-width: 184px;
+}
+
+.paycrypto-me-order-details .paycrypto-me-order-details__address {
+    font-size: .9rem;
+    padding-block: 10px;
+}

@@ -29,3 +29,16 @@ Dark storefront styling belongs to the demonstration theme/CSS, not a plugin dar
 Per the [official specifications](https://developer.wordpress.org/plugins/wordpress-org/plugin-assets/) (checked November 15, 2026), directory banners must be PNG/JPEG at exactly the named dimensions (maximum 4 MB); icons accept SVG plus a PNG fallback (maximum 1 MB). The outputs are optimized PNGs generated from vectors, optionally using pngquant at quality 95–100 if smaller.
 
 For artwork-only publication, copy the thirteen image files into top-level SVN `assets/`, beside `trunk/` and `tags/`, flattening the screenshots folder. Review status and MIME properties, and commit only authorized paths. Artwork alone needs no version bump. The 0.4.3 release publishes the updated captions with its new stable-tag readme. For a future artwork-only update, captions still come from the readme parsed for the stable tag: do not assume publishing trunk or images alone will update that section. Inspect remote metadata and the project's immutable-tag convention before choosing an authorized metadata/release route; no SVN tag has been modified here. Do not invoke `release.sh --svn-publish` just to upload artwork: it also publishes software. Read [GUIDE-RELEASE.md](GUIDE-RELEASE.md) for SVN operational details. A Git push alone does not update WordPress.org. Record the approved Git commit and published SVN revision when publication actually occurs; allow for CDN caching.
+
+
+## Canonical WooCommerce gallery and runtime icons
+
+The approved asset source is `paycrypto-me/branding` at commit `5ff48b29bbcfc764e31eb6e99f1fa1559741e48c`. Its `platforms/wordpress-org/screenshots.json` defines the directory gallery and captions. Its `platforms/woocommerce-gateways/` holds the transparent, graphite and white gateway applications. The current plugin copy uses the transparent 256×256 PNGs. Express and payment QR network icons keep their dedicated assets.
+
+From the approved branding checkout, run:
+
+```sh
+python scripts/sync-woocommerce.py --plugin ../paycrypto-me-for-woocommerce
+```
+
+This verifies canonical hashes and copies the eight directory PNGs, matching captions and selected runtime icons. The capture environment lives in the landing repository under `design/woocommerce-showcase/`. Send new candidate captures to branding for approval before syncing consumers. The approved gallery depicts a fictional testnet shop using 0.5.1 with the pending visual changes. Follow the normal Git and SVN release workflow to publish them.
