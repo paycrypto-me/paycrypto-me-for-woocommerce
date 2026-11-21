@@ -49,13 +49,13 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 WordPress.org serves **0.5.1**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
 
-**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.1** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Status:** **Live on WordPress.org** since 2026-08-08 (first published as 0.1.0); current version **0.5.2** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 
 ## What this project is
 
-WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.5.1**. Author: PayCrypto.Me (contact@paycrypto.me).
+WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.5.2**. Author: PayCrypto.Me (contact@paycrypto.me).
 
 **Two registered gateways, both fully functional:**
 - `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).
