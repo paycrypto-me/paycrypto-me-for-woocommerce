@@ -147,6 +147,11 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 
 == Changelog ==
 
+= 0.5.2 =
+* Keep the payment status and confirmation details readable in narrow order panels and compact the admin payment QR and address.
+* Replace the legacy payment-method logos with the faceted PayCrypto.Me P: Bitcoin on-chain and a violet Lightning glyph, retaining network-specific express and QR icons.
+* Refresh all directory screenshots from the current demo with the new product thumbnail and payment-method branding.
+
 = 0.5.1 =
 * Fix: Align the Lightning webhook preview and its disabled BTCPay field with the gateway settings, and keep the preview text readable on narrow screens.
 * Refresh the Bitcoin On-Chain and Lightning settings screenshots in the WordPress.org directory using English demo data.
@@ -224,6 +229,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.5.2 =
+Updated payment-method icons and a more compact, readable payment panel for WooCommerce orders.
 
 = 0.5.1 =
 Fixes the Lightning settings layout and keeps the webhook preview readable on narrow screens.

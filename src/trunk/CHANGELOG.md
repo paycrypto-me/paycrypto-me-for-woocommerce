@@ -5,6 +5,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## 0.5.2
+
 ### Fixed
 
 - Keep the payment status and confirmation details readable in narrow order panels and compact the admin payment QR and address.
