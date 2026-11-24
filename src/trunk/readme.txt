@@ -8,7 +8,7 @@ Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9
-Stable tag: 0.5.2
+Stable tag: 0.6.0
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -148,6 +148,10 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 
 == Changelog ==
 
+= 0.6.0 =
+* Reflect WooCommerce order and refund status in Bitcoin and Lightning payment details.
+* Offer eligible retries on the original order and preserve concurrent status updates.
+
 = 0.5.2 =
 * Keep the payment status and confirmation details readable in narrow order panels and compact the admin payment QR and address.
 * Replace the legacy payment-method logos with the faceted PayCrypto.Me P: Bitcoin on-chain and a violet Lightning glyph, retaining network-specific express and QR icons.
@@ -230,6 +234,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.6.0 =
+Bitcoin and Lightning payment details now follow the WooCommerce order status. Review eligible payment retries from the original order.
 
 = 0.5.2 =
 Updated payment-method icons and a more compact, readable payment panel for WooCommerce orders.
