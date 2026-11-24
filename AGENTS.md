@@ -9,8 +9,6 @@ someone implements them — nothing in a `[PLAN — NOT STARTED]` doc is in the 
 docs are a working checklist for a specific branch's manual QA — code already exists, the doc tracks
 confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch merges.
 
-**Branch validation** — [Reactive order payment presentation](docs/VALIDATION-ORDER-PAYMENT-PRESENTATION.md) records browser, checkout, migration and concurrent retry results.
-
 **Operational guides**
 - **[GUIDE]** [docs/GUIDE-DONATION-BRANDING.md](docs/GUIDE-DONATION-BRANDING.md) — approved compact donation card, effective-admin-theme behavior, canonical donation address/QR reproduction and release verification.
 - **[GUIDE]** [docs/GUIDE-DIRECTORY-BRANDING.md](docs/GUIDE-DIRECTORY-BRANDING.md) — V3 WordPress.org directory artwork, canonical vector sources, exact dimensions, and artwork-only publication boundary. Owner-approved directory artwork prepared for the next release; WordPress.org publication remains separate.
@@ -25,8 +23,8 @@ confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch m
 These records did their job (they got their change built, verified and merged) and are now closed.
 They live under `docs/archive/`, which is **gitignored** — kept locally as a convenience, not
 committed going forward. A fresh clone of this repo from this point on will **not** have them; if a
-link below 404s, that is expected, not drift. `scripts/check-docs-drift.sh` knows about the four
-paths below and does not flag them as missing. Do not resurrect a file here just to satisfy a link —
+link below 404s, that is expected, not drift. `scripts/check-docs-drift.sh` accepts the archived
+paths below. Do not resurrect a file here just to satisfy a link —
 if you need the history, `git log` on the commit that last had it under `docs/` still has the content.
 - **[DONE]** [docs/archive/DONE-CRYPTO-DEPENDENCIES.md](docs/archive/DONE-CRYPTO-DEPENDENCIES.md) — the record of why the two `lucas-rosa95/*` forks existed and how they were retired in favor of the official `bitwasp/*` packages (measured). Read it before touching the crypto dependencies in `src/trunk/composer.json`, if present in your checkout.
 - **[DONE]** [docs/archive/DONE-CRYPTO-DEPENDENCIES-AUDIT.md](docs/archive/DONE-CRYPTO-DEPENDENCIES-AUDIT.md) — independent review of that dependency swap: what was re-measured and passed, the 5 record/documentation corrections it found (all applied), and the list of things that look wrong but are deliberate. Read it with the doc above, not instead of it.
@@ -40,6 +38,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 - **[DONE]** [docs/archive/DONE-PRE-RELEASE-0.3.0.md](docs/archive/DONE-PRE-RELEASE-0.3.0.md) — pre-release gates for 0.3.0: release commit/tag, ZIP inspection, Plugin Check, host smoke and real-MySQL schema suite all passed on 2026-09-07; external push/publication remains a separate operation.
 - **[DONE]** [docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — exposes the Base's final payment presentation projection via `get_order_display_data()` without rendering/enqueueing, adds `expires_at_timestamp`, and keeps channel presentation in consumer scope. Completed and validated 2026-09-12; archived/gitignored and therefore potentially absent from a fresh checkout.
 - **[DONE]** [docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md](docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md) and [docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md](docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md) — records the published 0.3.0 Lightning status-projection CAS contract and its execution. The Base tests passed again on 2026-09-13; the Pro P7d consumer harness was independently accepted, while M6/M7 remain separate Pro product work.
+- **[DONE]** [docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md](docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md) — records browser, checkout, upgrade and concurrent retry validation for reactive payment presentation. The 0.6.0 package passed Plugin Check and was published on 2026-11-24.
 
 **Approved plans — not started yet**
 - **[PLAN — NOT STARTED]** [`docs/PREMIUM-ADDON.md`](https://github.com/paycrypto-me/paycrypto-me-pro/blob/main/docs/PREMIUM-ADDON.md) — approved implementation plan for the separate Pro add-on plugin (renamed from "Premium" to "Pro" 2026-08-25). Lives in that add-on's own repo; see "Pro add-on" below for the base's own scope boundaries and extension points.
@@ -49,7 +48,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 **Release status**
 
-WordPress.org serves **0.5.2**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
+WordPress.org serves **0.6.0**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
 
 **Status:** Live on WordPress.org since 2026-08-08 (first published as 0.1.0). The repository contains the current version **0.6.0** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
