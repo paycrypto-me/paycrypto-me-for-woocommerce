@@ -270,10 +270,22 @@ if (!class_exists('WC_Order')) {
         public function get_id() { return 0; }
         public function get_order_number() { return $this->get_id(); }
         public function get_billing_first_name($context = 'view') { return ''; }
+        public function get_status() { return "pending"; }
+        public function get_total_refunded() { return 0; }
+        public function is_paid() { return false; }
+        public function needs_payment() { return true; }
+        public function get_checkout_payment_url() { return ""; }
         public function get_total() { return '0'; }
         public function get_currency() { return 'USD'; }
         public function get_meta($key, $single = true, $context = 'view') { return ''; }
         public function get_date_created() { return null; }
         public function get_payment_method() { return ''; }
     }
+}
+
+if (!function_exists('wc_get_price_decimals')) {
+    function wc_get_price_decimals() { return 2; }
+}
+if (!function_exists('wc_format_decimal')) {
+    function wc_format_decimal($value, $dp) { return number_format((float) $value, $dp, '.', ''); }
 }

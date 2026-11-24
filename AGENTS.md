@@ -9,6 +9,8 @@ someone implements them — nothing in a `[PLAN — NOT STARTED]` doc is in the 
 docs are a working checklist for a specific branch's manual QA — code already exists, the doc tracks
 confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch merges.
 
+**Branch validation** — [Reactive order payment presentation](docs/VALIDATION-ORDER-PAYMENT-PRESENTATION.md) records browser, checkout, migration and concurrent retry results.
+
 **Operational guides**
 - **[GUIDE]** [docs/GUIDE-DONATION-BRANDING.md](docs/GUIDE-DONATION-BRANDING.md) — approved compact donation card, effective-admin-theme behavior, canonical donation address/QR reproduction and release verification.
 - **[GUIDE]** [docs/GUIDE-DIRECTORY-BRANDING.md](docs/GUIDE-DIRECTORY-BRANDING.md) — V3 WordPress.org directory artwork, canonical vector sources, exact dimensions, and artwork-only publication boundary. Owner-approved directory artwork prepared for the next release; WordPress.org publication remains separate.
@@ -133,7 +135,7 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
      just recorded the same order) re-reads and returns that row instead of failing the checkout —
      see `PayCryptoMeDBStatementsService::insert_address()`'s docblock and
      `BitcoinPaymentProcessor::resolve_static_address()`/`resolve_derived_address()`.
-5. `PaymentProcessor` saves `_paycrypto_me_*` order meta and sets status to `pending`
+5. `PaymentProcessor` saves `_paycrypto_me_*` order meta. An order already pending needs no status write. A retry moves back to pending through WooCommerce CRUD only while the authoritative order row still holds its starting status.
 
 ### Payment flow (Lightning)
 
@@ -145,7 +147,7 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
    - Calls `$this->service->create_invoice($args)` — service is `BtcpayInvoiceService` or `LndRestInvoiceService`, both extending `AbstractLightningInvoiceService` (shared constructor + `parse_response()`) and implementing `LightningInvoiceServiceContract`
    - If `payment_request` comes back empty (BTCPay may generate the BOLT11 asynchronously), `resolve_payment_request()` retries a fixed 2 times with 750ms delay before giving up with `PayCryptoMePaymentException`
    - Persists the invoice via `PayCryptoMeLightningDBStatementsService::insert_invoice()` (new order) or compare-and-swap `replace_invoice()` (order had an expired invoice). If either write loses a double-submit race, the processor re-reads and returns the winner's stored invoice so order meta and webhook lookup stay aligned; a genuine persistence failure with no stored row still raises `PayCryptoMePaymentException`.
-4. `PaymentProcessor` saves order meta and sets status to `pending`, same as On-Chain
+4. `PaymentProcessor` saves order meta and applies the same conditional retry transition as On-Chain.
 
 ### Reporting failures honestly (validation, availability, environment)
 
@@ -226,6 +228,12 @@ widen it to silence our own deprecations. See
 `Abstract_WC_Gateway_PayCryptoMe` owns `render_admin_order_details_section()`/`render_checkout_order_details_section()`; each gateway only implements the abstract `build_order_display_args(\WC_Order $order): ?array` hook (guard-meta check, network label, crypto amount/currency, confirmations required — the parts that actually differ). The shared `PaymentDisplayDataBuilder` (constructor-injected with `QrCodeService`) turns those args into the final display array (QR code, formatted expiry, `crypto_label`) consumed by `templates/order-details/paycrypto-me-order-details.php`.
 
 That template renders in two very different contexts: the customer's order page (no surrounding form) and the admin order screen, where it sits **inside WooCommerce's order `<form>`**. Every `<button>` there must therefore carry an explicit `type="button"` — the HTML default is `submit`, so the copy-address button used to save the order and answer "Order updated." on every click. `OrderDetailsTemplateMarkupTest` pins this, since `wc_get_template()` is stubbed in the unit suite and nothing else can see the markup.
+
+The order presentation is recomputed on read. `get_order_display_data()` returns null for checkout drafts, other methods and missing identifiers. Its additional keys are `order_status` (WooCommerce slug), `payment_state` (localized by the template), `payment_action` (`pay`, `retry`, `none`) and `refunded_amount` (decimal string in the order currency). Consumers must gate payment controls on `payment_action`. The identifier and URI remain historical references. `is_expired` describes the request deadline even if the order has since been paid. Filters that change eligibility should update the action and state together. Native retry URLs are generated only in the authorized customer view.
+
+Stable `payment_state` values are `refunded`, `cancelled`, `paid`, `on_hold`, `failed`, `no_payment_due`, `expired`, `unavailable`, `awaiting_payment` and `order_status`. The last value delegates the human-readable label to WooCommerce. Partial refunds are an additional amount; a paid order stays paid after a partial refund.
+
+The active theme override remains `woocommerce/order-details/paycrypto-me-order-details.php`. Closed orders and native retries use `woocommerce/order-details/paycrypto-me-order-summary.php`. Its bundled layout exposes the historical reference only in admin. Neither rendering nor projection writes an order or an invoice. WooCommerce manages stock and status transitions.
 
 ### Custom DB tables (created on plugin activation)
 

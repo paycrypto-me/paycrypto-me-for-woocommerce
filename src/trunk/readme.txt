@@ -64,7 +64,8 @@ Notes:
   privileges: use least-privilege credentials and protect them accordingly. Never enter a wallet
   seed or private key into this plugin.
 - Only Bitcoin is currently supported (on-chain and Lightning). Support for additional networks may be considered in future updates.
-- Payment confirmation is currently a manual, admin-driven step — see "What this plugin intentionally does not do" above.
+- After checking the payment in your wallet or node, update the order in WooCommerce. Processing and Completed both close the payment instructions on the next page load. Orders on hold show that the store is reviewing the payment. Cancelled and refunded orders show their recorded outcome. The admin keeps the receiving address or Lightning invoice for reconciliation.
+- An expired Lightning request or failed attempt links to payment for the same order when WooCommerce allows another attempt. Opening order details never creates a new invoice. A refund recorded in WooCommerce describes the store’s record and does not send cryptocurrency.
 - **PHP extensions:** deriving addresses from an xPub/yPub/zPub requires the `gmp` extension. Without it, that route is unavailable (with an admin notice explaining it), but you can still accept On-Chain payments by configuring a single fixed bech32 address (`bc1…`/`tb1…`), which needs no such extension — every order is then paid to that same address, which is worse for privacy but works. Lightning is unaffected either way. The payment QR code requires `gd`; if it's missing, the order-details page still shows the address/invoice and a copy button, just without the QR image.
 
 == Screenshots ==

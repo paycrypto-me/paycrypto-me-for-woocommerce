@@ -75,7 +75,7 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
      *
      * This is the public extension contract for channels that need the same canonical payment
      * presentation data as the order-details renderer without printing HTML or enqueueing assets.
-     * Returns null only when the order does not belong to this gateway or lacks its minimum payment
+     * Returns null for checkout drafts, other payment methods or a missing minimum payment
      * identifier. Build/filter errors deliberately propagate to the caller.
      *
      * @return array{
@@ -93,11 +93,18 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
      *     expires_at_timestamp: int|null,
      *     expires_at_formatted: string|null,
      *     is_expired: bool,
+     *     order_status: string,
+     *     payment_state: string,
+     *     payment_action: string,
+     *     refunded_amount: string,
      *     confirmations_required: int
      * }|null
      */
     final public function get_order_display_data(\WC_Order $order): ?array
     {
+        if ($order->get_status() === 'checkout-draft') {
+            return null;
+        }
         $args = $this->build_order_display_args($order);
 
         if ($args === null) {
@@ -123,10 +130,15 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
 
     public function render_admin_order_details_section($order)
     {
-        $this->render_checkout_order_details_section($order);
+        $this->render_order_details($order, true);
     }
 
     public function render_checkout_order_details_section($order)
+    {
+        $this->render_order_details($order, false);
+    }
+
+    private function render_order_details($order, bool $admin)
     {
         // This hook fires on both the customer's order-received/order-view page and the admin
         // order screen right after a payment is made — it must never fatal either one, even if
@@ -151,9 +163,17 @@ abstract class Abstract_WC_Gateway_PayCryptoMe extends \WC_Payment_Gateway
                 );
             }
 
+            $action = $payment_display_data['payment_action'] ?? 'none';
+            $can_pay = $action === 'pay' && PaymentDisplayDataBuilder::usable_payment_uri(
+                (string) ($payment_display_data['payment_uri'] ?? ''),
+                $this->id === 'paycrypto_me_lightning'
+            );
+            $retry_url = !$admin && $action === 'retry' && $order->needs_payment()
+                ? $order->get_checkout_payment_url() : '';
+            $order_currency = $order->get_currency();
             wc_get_template(
-                'order-details/paycrypto-me-order-details.php',
-                compact('payment_display_data'),
+                $can_pay ? 'order-details/paycrypto-me-order-details.php' : 'order-details/paycrypto-me-order-summary.php',
+                compact('payment_display_data', 'admin', 'can_pay', 'retry_url', 'order_currency'),
                 '',
                 WC_PayCryptoMe::plugin_abspath() . 'templates/'
             );

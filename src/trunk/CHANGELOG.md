@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Reflect WooCommerce order and refund status in Bitcoin and Lightning payment details. Retire customer payment controls on closed orders and offer eligible retries on the original order.
+- Preserve a concurrent order status change when a checkout retry finishes.
+
 ## 0.5.2
 
 ### Fixed

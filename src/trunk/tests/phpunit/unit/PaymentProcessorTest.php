@@ -216,7 +216,7 @@ class PaymentProcessorTest extends TestCase
         $this->assertStringStartsWith('bitcoin:', $order->meta['_paycrypto_me_payment_uri']);
 
         $this->assertNotEmpty($order->notes);
-        $this->assertSame([['pending', 'Awaiting cryptocurrency payment']], $order->status_updates);
+        $this->assertSame([], $order->status_updates, 'A pending order needs no status write.');
     }
 
     public function test_generic_filters_receive_gateway_for_third_party_branching()

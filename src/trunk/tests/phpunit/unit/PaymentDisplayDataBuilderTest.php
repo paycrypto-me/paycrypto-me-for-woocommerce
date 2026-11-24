@@ -22,6 +22,8 @@ class PaymentDisplayDataBuilderTest extends TestCase
         $order->method('get_meta')->willReturnCallback(
             fn($key, $single = true, $context = 'view') => $meta[$key] ?? ''
         );
+        $order->method('get_status')->willReturn('pending');
+        $order->method('needs_payment')->willReturn(true);
         $order->method('get_date_created')->willReturn($date_created);
 
         return $order;
@@ -39,6 +41,47 @@ class PaymentDisplayDataBuilderTest extends TestCase
             'crypto_currency'        => 'BTC',
             'confirmations_required' => 3,
         ], $overrides);
+    }
+
+    /** @dataProvider order_states */
+    public function test_payment_decision($status, $paid, $needs_payment, $refund, $uri, $deadline, $state, $action)
+    {
+        $order = $this->createMock(\WC_Order::class);
+        $order->method('get_status')->willReturn($status);
+        $order->method('get_payment_method')->willReturn(str_starts_with($uri, 'bitcoin:') ? 'paycrypto_me' : 'paycrypto_me_lightning');
+        $order->method('is_paid')->willReturn($paid);
+        $order->method('needs_payment')->willReturn($needs_payment);
+        $order->method('get_total')->willReturn('10.00');
+        $order->method('get_total_refunded')->willReturn($refund);
+        $order->method('get_meta')->willReturnCallback(fn($key) => $key === '_paycrypto_me_payment_expires_ts' ? $deadline : '');
+        $qr = $this->createMock(QrCodeService::class);
+        $qr->expects($action === 'pay' ? $this->once() : $this->never())->method('generate_qr_code_data_uri');
+        $data = (new PaymentDisplayDataBuilder($qr))->build($order, $this->sample_args([
+            'crypto_network' => str_starts_with($uri, 'bitcoin:') ? 'mainnet' : 'lightning',
+            'payment_uri' => $uri,
+        ]));
+        $this->assertSame([$state, $action], [$data['payment_state'], $data['payment_action']]);
+    }
+
+    public function order_states(): array
+    {
+        return [
+            ['processing', true, false, 0, 'bitcoin:addr', 0, 'paid', 'none'],
+            ['completed', true, false, 0, 'lightning:invoice', 1, 'paid', 'none'],
+            ['cancelled', false, false, 0, 'lightning:invoice', 0, 'cancelled', 'none'],
+            ['refunded', false, false, 0, '', 0, 'refunded', 'none'],
+            ['processing', true, false, 9.999, '', 0, 'refunded', 'none'],
+            ['ready', true, false, 2, '', 0, 'paid', 'none'],
+            ['on-hold', false, false, 0, '', 0, 'on_hold', 'none'],
+            ['failed', false, true, 0, '', 0, 'failed', 'retry'],
+            ['pending', false, false, 0, '', 0, 'no_payment_due', 'none'],
+            ['pending', false, true, 0, 'lightning:invoice', time(), 'expired', 'retry'],
+            ['pending', false, true, 0, 'lightning:invoice', 0, 'unavailable', 'retry'],
+            ['pending', false, true, 0, 'https://example.org', time()+600, 'unavailable', 'retry'],
+            ['pending', false, true, 0, 'bitcoin:addr', 0, 'awaiting_payment', 'pay'],
+            ['custom', false, true, 0, '', 0, 'order_status', 'retry'],
+            ['custom', false, false, 0, '', 0, 'order_status', 'none'],
+        ];
     }
 
     public function test_build_merges_args_and_order_meta_into_display_array()
@@ -87,6 +130,10 @@ class PaymentDisplayDataBuilderTest extends TestCase
             'expires_at_formatted',
             'is_expired',
             'confirmations_required',
+            'order_status',
+            'payment_state',
+            'payment_action',
+            'refunded_amount',
         ], array_keys($data));
     }
 

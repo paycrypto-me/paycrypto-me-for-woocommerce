@@ -134,8 +134,10 @@ run_check "fileinfo missing" "mime_content_type" "fileinfo.php"
 # --- 5) Order-details page must still render the essentials (address, copy button) with
 #     GD missing — the QR block disappears, but the page itself must never fatal (C6). ---
 write_check "order-details.php" '
-$order = wc_create_order();
+$order = wc_create_order(["status" => "pending"]);
 $order->set_payment_method("paycrypto_me");
+// A zero-total order has no payment due, so its customer view hides payment controls.
+$order->set_total("10.00");
 $address = "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxxx";
 $order->add_meta_data("_paycrypto_me_payment_address", $address, true);
 $order->add_meta_data("_paycrypto_me_crypto_network", "mainnet", true);

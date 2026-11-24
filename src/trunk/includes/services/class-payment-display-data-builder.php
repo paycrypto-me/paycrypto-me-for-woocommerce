@@ -48,6 +48,10 @@ class PaymentDisplayDataBuilder
      *     expires_at_timestamp: int|null,
      *     expires_at_formatted: string|null,
      *     is_expired: bool,
+     *     order_status: string,
+     *     payment_state: string,
+     *     payment_action: string,
+     *     refunded_amount: string,
      *     confirmations_required: int
      * }
      */
@@ -71,10 +75,39 @@ class PaymentDisplayDataBuilder
         $is_expired = $expires_at_timestamp !== null && $expires_at_timestamp <= time();
         $crypto_amount = $args['crypto_amount'];
 
+        $status = $order->get_status();
+        $precision = wc_get_price_decimals();
+        $refunded = wc_format_decimal($order->get_total_refunded(), $precision);
+        $total = wc_format_decimal($order->get_total(), $precision);
+        $fully_refunded = $total > 0 && $refunded >= $total;
+        $lightning = OrderGatewayMatcher::matches($order, 'paycrypto_me_lightning');
+        $uri = (string) $args['payment_uri'];
+        $usable_uri = self::usable_payment_uri($uri, $lightning);
+        $state = match (true) {
+            $status === 'refunded', $fully_refunded => 'refunded',
+            $status === 'cancelled' => 'cancelled',
+            $order->is_paid() => 'paid',
+            $status === 'on-hold' => 'on_hold',
+            $status === 'failed' => 'failed',
+            $status !== 'pending' => 'order_status',
+            !$order->needs_payment() => 'no_payment_due',
+            $is_expired => 'expired',
+            !$usable_uri, $lightning && $show_expiry && $expires_at_timestamp === null => 'unavailable',
+            default => 'awaiting_payment',
+        };
+        $action = match ($state) {
+            'awaiting_payment' => 'pay',
+            'expired', 'unavailable' => 'retry',
+            'failed', 'order_status' => $order->needs_payment() ? 'retry' : 'none',
+            default => 'none',
+        };
+
         return [
             'payment_identifier'     => (string) $args['payment_identifier'],
             'payment_uri'            => (string) $args['payment_uri'],
-            'payment_qr_code'        => $this->qr_code_service->generate_qr_code_data_uri((string) $args['payment_uri'], (string) $args['logo_path'], $args['qr_logo_options'] ?? [], $logger),
+            'payment_qr_code'        => $action === 'pay'
+                ? $this->qr_code_service->generate_qr_code_data_uri($uri, (string) $args['logo_path'], $args['qr_logo_options'] ?? [], $logger)
+                : '',
             'fiat_amount'            => (string) $order->get_meta('_paycrypto_me_fiat_amount'),
             'fiat_currency'          => (string) $order->get_meta('_paycrypto_me_fiat_currency'),
             'crypto_amount'          => $crypto_amount === '' || $crypto_amount === null ? null : (string) $crypto_amount,
@@ -87,7 +120,17 @@ class PaymentDisplayDataBuilder
             'expires_at_formatted'   => $expires_at_formatted,
             'is_expired'             => $is_expired,
             'confirmations_required' => max(0, (int) $args['confirmations_required']),
+            'order_status'           => $status,
+            'payment_state'          => $state,
+            'payment_action'         => $action,
+            'refunded_amount'        => $refunded,
         ];
+    }
+
+    public static function usable_payment_uri(string $uri, bool $lightning): bool
+    {
+        $pattern = $lightning ? '~^lightning:[a-z0-9]+$~iD' : '~^bitcoin:[a-z0-9]+(?:\?[^\s#]*)?$~iD';
+        return preg_match($pattern, $uri) === 1;
     }
 
     /**

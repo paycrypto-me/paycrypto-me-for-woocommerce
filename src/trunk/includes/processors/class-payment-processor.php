@@ -33,11 +33,12 @@ class PaymentProcessor
 
             $this->validator->validate_gateway_config($gateway);
 
+            $starting_status = $order->get_status();
             $this->trigger_hook_before($order, $payment_data, $gateway);
 
             $payment_data = $this->handle_payment_processor_strategy($order, $payment_data, $gateway);
 
-            $this->update_order_after_payment($order, $payment_data);
+            $this->update_order_after_payment($order, $payment_data, $starting_status);
 
             $this->trigger_hook_after($order, $payment_data, $gateway);
 
@@ -112,7 +113,7 @@ class PaymentProcessor
             );
     }
 
-    private function update_order_after_payment(\WC_Order $order, array $payment_data)
+    private function update_order_after_payment(\WC_Order $order, array $payment_data, string $starting_status)
     {
         foreach ($payment_data as $key => $value) {
             $order->add_meta_data("_paycrypto_me_{$key}", $value, true);
@@ -120,9 +121,68 @@ class PaymentProcessor
 
         $order->save_meta_data();
 
-        $order->add_order_note( 'PayCrypto.Me payment initiated. Awaiting cryptocurrency payment confirmation.' );
+        $order->add_order_note('PayCrypto.Me payment initiated.');
+        if ($starting_status !== 'pending' && $order->get_status() === $starting_status) {
+            $this->finish_retry($order);
+        }
+    }
 
-        $order->update_status( 'pending', 'Awaiting cryptocurrency payment' );
+    /**
+     * A slow invoice request may return after the merchant has closed the order.
+     * Lock the authoritative status row only during the local CRUD transition.
+     */
+    private function finish_retry(\WC_Order $order): void
+    {
+        global $wpdb;
+
+        $hpos = is_callable([\Automattic\WooCommerce\Utilities\OrderUtil::class, 'custom_orders_table_usage_is_enabled'])
+            && \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+        $query = $hpos
+            ? $wpdb->prepare('SELECT status FROM %i WHERE id = %d FOR UPDATE', $wpdb->prefix . 'wc_orders', $order->get_id())
+            : $wpdb->prepare('SELECT post_status FROM %i WHERE ID = %d FOR UPDATE', $wpdb->posts, $order->get_id());
+
+        // START TRANSACTION implicitly commits any surrounding checkout transaction.
+        // In autocommit mode a savepoint disappears at the end of the statement.
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control and the locking read must use the current database connection.
+        if ($wpdb->query('SAVEPOINT paycryptome_order_retry') === false) {
+            throw new \RuntimeException('Could not set checkout savepoint.');
+        }
+        $previous = $wpdb->suppress_errors(true);
+        try {
+            $nested = $wpdb->query('ROLLBACK TO SAVEPOINT paycryptome_order_retry') !== false;
+            if (!$nested && (int) $wpdb->get_var('SHOW ERRORS LIMIT 1', 1) !== 1305) {
+                throw new \RuntimeException('Could not inspect checkout transaction.');
+            }
+        } finally {
+            $wpdb->suppress_errors($previous);
+        }
+        if (!$nested && $wpdb->query('START TRANSACTION') === false) {
+            throw new \RuntimeException('Could not start checkout status transaction.');
+        }
+        try {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- both alternatives are prepared above.
+            $stored = $wpdb->get_var($query);
+            if ($stored === null) {
+                throw new \RuntimeException('Could not read the checkout order status.');
+            }
+            if ($stored === 'wc-' . $order->get_status() && !$order->update_status('pending', 'Awaiting cryptocurrency payment')) {
+                throw new \RuntimeException('Could not update the checkout order status.');
+            }
+            $finished = $nested
+                ? $wpdb->query('RELEASE SAVEPOINT paycryptome_order_retry')
+                : $wpdb->query('COMMIT');
+            if ($finished === false) {
+                throw new \RuntimeException('Could not commit the checkout order status.');
+            }
+        } catch (\Throwable $failure) {
+            if ($nested) {
+                $wpdb->query('ROLLBACK TO SAVEPOINT paycryptome_order_retry');
+            } else {
+                $wpdb->query('ROLLBACK');
+            }
+            throw $failure;
+        }
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     }
 
     private function get_return_url($order, $result)
