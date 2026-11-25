@@ -1,6 +1,9 @@
 <?php
 
 use PayCryptoMe\WooCommerce\DbInstaller;
+use PayCryptoMe\WooCommerce\AdvisoryLockName;
+use PayCryptoMe\WooCommerce\PayCryptoMeDBStatementsService;
+use PayCryptoMe\WooCommerce\PayCryptoMeBitcoinGatewayActivate;
 
 /**
  * DbInstallerTest (unit) proves install()'s lock logic against a mocked $wpdb that always answers
@@ -17,7 +20,8 @@ class InstallLockContentionTest extends SchemaTestCase
         $prefix = $this->reserve_prefix();
         $other  = $this->open_second_connection();
 
-        $got = $other->query("SELECT GET_LOCK('" . DbInstaller::INSTALL_LOCK . "', 5)")->fetch_row();
+        $name = $this->with_prefix($prefix, fn() => AdvisoryLockName::install());
+        $got = $other->query("SELECT GET_LOCK('" . $name . "', 5)")->fetch_row();
         $this->assertSame('1', $got[0], 'Test setup: the second connection must actually hold the lock');
 
         try {
@@ -37,7 +41,7 @@ class InstallLockContentionTest extends SchemaTestCase
                 'Losing the lock race must not leave any table behind'
             );
         } finally {
-            $other->query("SELECT RELEASE_LOCK('" . DbInstaller::INSTALL_LOCK . "')");
+            $other->query("SELECT RELEASE_LOCK('" . $name . "')");
             $other->close();
         }
 
@@ -45,6 +49,58 @@ class InstallLockContentionTest extends SchemaTestCase
         // specifically the OTHER connection's lock being respected, not some unrelated failure.
         $installed_after_release = $this->with_prefix($prefix, fn(): bool => DbInstaller::install());
         $this->assertTrue($installed_after_release);
+    }
+
+    public function test_wallet_timeout_preserves_the_next_index_and_other_wallets_progress()
+    {
+        $prefix = $this->fresh_install();
+        $other = $this->open_second_connection();
+        $this->with_prefix($prefix, function () use ($prefix, $other) {
+            $db = new PayCryptoMeDBStatementsService();
+            $table = $prefix . PayCryptoMeBitcoinGatewayActivate::TABLE_DERIVATION_INDEXES;
+            $name = AdvisoryLockName::wallet($table, 1);
+            try {
+                $this->assertSame('1', $other->query("SELECT GET_LOCK('$name', 0)")->fetch_row()[0]);
+                $this->assertSame(0, $db->reserve_derivation_index_for_wallet(2, 0));
+                try {
+                    $db->reserve_derivation_index_for_wallet(1, 0);
+                    $this->fail('Reservation should time out on its own wallet.');
+                } catch (\RuntimeException $error) {
+                    $this->assertSame('Could not obtain DB lock for wallet.', $error->getMessage());
+                }
+            } finally {
+                $other->close();
+            }
+            $this->assertSame(0, $db->reserve_derivation_index_for_wallet(1, 0));
+        });
+    }
+
+    public function test_reservation_write_error_frees_the_lock_for_another_session(): void
+    {
+        global $wpdb;
+        $prefix = $this->fresh_install();
+        $table = $prefix . PayCryptoMeBitcoinGatewayActivate::TABLE_DERIVATION_INDEXES;
+        $this->assertNotFalse($wpdb->query("ALTER TABLE `$table` ADD CONSTRAINT qa_reject CHECK (derivation_index > 0)"));
+        $this->with_prefix($prefix, function () use ($table, $wpdb) {
+            $service = new PayCryptoMeDBStatementsService();
+            $name = AdvisoryLockName::wallet($table, 1);
+            $old = $wpdb->suppress_errors(true);
+            try {
+                $service->reserve_derivation_index_for_wallet(1, 0);
+                $this->fail('The disposable table constraint should reject index zero.');
+            } catch (\RuntimeException $error) {
+                $this->assertSame('Failed to insert derivation index.', $error->getMessage());
+            } finally {
+                $wpdb->suppress_errors($old);
+            }
+            $other = $this->open_second_connection();
+            try {
+                $this->assertSame('1', $other->query("SELECT GET_LOCK('$name', 0)")->fetch_row()[0]);
+            } finally {
+                $other->close();
+            }
+            $this->assertSame('0', $wpdb->get_var("SELECT COUNT(*) FROM `$table`"));
+        });
     }
 
     private function open_second_connection(): \mysqli

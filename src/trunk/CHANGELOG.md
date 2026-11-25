@@ -5,6 +5,10 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Scope schema installation and Bitcoin wallet reservations to their physical tables on shared MySQL servers. Drain active requests and jobs when upgrading from or rolling back to 0.6.0 or earlier.
+
 ## 0.6.0
 
 ### Fixed

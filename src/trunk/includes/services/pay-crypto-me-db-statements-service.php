@@ -154,16 +154,20 @@ class PayCryptoMeDBStatementsService
 	{
 		global $wpdb;
 
-		$lock_name = 'paycrypto_wallet_' . (int) $wallet_xpubkeys_id;
+		$lock_name = AdvisoryLockName::wallet($this->indexes_table, $wallet_xpubkeys_id);
 
 		$got = $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, %d)", $lock_name, $lock_timeout));
 
-		if ((int) $got !== 1) {
+		if ((string) $got === '0') {
 			throw new \RuntimeException('Could not obtain DB lock for wallet.');
 		}
 
+		if ((string) $got !== '1') {
+			throw new \RuntimeException('Database failed to acquire the wallet lock.');
+		}
+
 		try {
-					$indexes = esc_sql( $this->indexes_table );
+			$indexes = esc_sql( $this->indexes_table );
 						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 						// MAX(...) lookup on an indexes table; table fragment escaped above. This operation cannot be cached safely due to locking.
 			$max = $wpdb->get_var(

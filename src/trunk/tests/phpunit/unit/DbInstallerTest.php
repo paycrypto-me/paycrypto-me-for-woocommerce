@@ -20,6 +20,7 @@ class DbInstallerTest extends TestCase
         $wpdb = new class {
             public $prefix = 'wp_';
             public $last_error = '';
+            public $identity = ['db_name' => 'shop', 'case_mode' => '0'];
 
             // install() serializes itself on a MySQL advisory lock; '1' is "acquired".
             public $get_lock_result = '1';
@@ -48,6 +49,11 @@ class DbInstallerTest extends TestCase
             public function esc_like($text)
             {
                 return $text;
+            }
+
+            public function get_row($query, $output)
+            {
+                return $this->identity;
             }
 
             public function get_var($query)
@@ -215,6 +221,41 @@ class DbInstallerTest extends TestCase
         );
         $this->assertSame([], $error_writes);
         $this->assertFalse(get_transient('paycrypto_me_db_upgrade_retry'));
+    }
+
+    public function test_missing_database_identity_stops_before_lock_or_ddl()
+    {
+        global $wpdb;
+        $wpdb->identity = null;
+        $this->assertFalse(DbInstaller::install(true));
+        $this->assertSame([], $wpdb->lock_calls);
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        $this->assertSame(DbInstaller::ERRORS_OPTION, $GLOBALS['__update_option_calls'][0][0]);
+    }
+
+    public function test_database_lock_error_is_reported_and_throttled()
+    {
+        global $wpdb;
+        $wpdb->get_lock_result = null;
+        $this->assertFalse(DbInstaller::install());
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        $this->assertSame(['get'], $wpdb->lock_calls);
+        $this->assertSame(DbInstaller::ERRORS_OPTION, $GLOBALS['__update_option_calls'][0][0]);
+        $this->assertTrue((bool) get_transient(DbInstaller::RETRY_TRANSIENT));
+    }
+
+    public function test_lock_failure_on_current_schema_retries_after_the_throttle_expires()
+    {
+        $GLOBALS['__options'][DbInstaller::VERSION_OPTION] = DbInstaller::DB_VERSION;
+        $GLOBALS['__options'][DbInstaller::ERRORS_OPTION] = ['Installation lock failed'];
+        set_transient(DbInstaller::HEALTH_TRANSIENT, 1, HOUR_IN_SECONDS);
+        set_transient(DbInstaller::RETRY_TRANSIENT, 1, HOUR_IN_SECONDS);
+        DbInstaller::maybe_upgrade();
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        delete_transient(DbInstaller::RETRY_TRANSIENT);
+        DbInstaller::maybe_upgrade();
+        $this->assertNotEmpty($GLOBALS['__dbdelta_captured']);
+        $this->assertContains(DbInstaller::ERRORS_OPTION, $GLOBALS['__delete_option_calls']);
     }
 
     public function test_install_releases_the_lock_even_when_a_table_fails()
