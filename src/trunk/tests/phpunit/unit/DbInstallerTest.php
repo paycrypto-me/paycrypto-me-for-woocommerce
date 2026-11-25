@@ -25,6 +25,7 @@ class DbInstallerTest extends TestCase
             // install() serializes itself on a MySQL advisory lock; '1' is "acquired".
             public $get_lock_result = '1';
             public array $lock_calls = [];
+            public array $lock_queries = [];
 
             // Health-check double: which full (prefixed) table names "exist" for SHOW TABLES LIKE.
             // Defaults to all 4 present — tests that want a missing table unset() one.
@@ -60,12 +61,14 @@ class DbInstallerTest extends TestCase
             {
                 if (stripos($query, 'RELEASE_LOCK') !== false) {
                     $this->lock_calls[] = 'release';
+                    $this->lock_queries[] = $query;
 
                     return '1';
                 }
 
                 if (stripos($query, 'GET_LOCK') !== false) {
                     $this->lock_calls[] = 'get';
+                    $this->lock_queries[] = $query;
 
                     return $this->get_lock_result;
                 }
@@ -268,6 +271,8 @@ class DbInstallerTest extends TestCase
         // RELEASE_LOCK runs from a finally: a failed install must not leave the lock held for the
         // rest of the connection's life, blocking every retry.
         $this->assertSame(['get', 'release'], $wpdb->lock_calls);
+        $name = \PayCryptoMe\WooCommerce\AdvisoryLockName::install();
+        $this->assertSame(["SELECT GET_LOCK($name, 10)", "SELECT RELEASE_LOCK($name)"], $wpdb->lock_queries);
     }
 
     public function test_install_rechecks_is_current_after_acquiring_the_lock()

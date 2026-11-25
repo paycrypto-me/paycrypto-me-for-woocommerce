@@ -18,6 +18,10 @@ confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch m
 - **[GUIDE]** [docs/GUIDE-ADD-NEW-GATEWAY.md](docs/GUIDE-ADD-NEW-GATEWAY.md) — checklist to implement a third gateway.
 - **[GUIDE]** [docs/GUIDE-DB-SCHEMA-UPGRADE.md](docs/GUIDE-DB-SCHEMA-UPGRADE.md) — checklist for bumping `DbInstaller::DB_VERSION`: editing the `CREATE TABLE` SQL, freezing a new `tests/schema/v<N>.sql`, running `schema-tests.sh`. Written 2026-08-27 alongside the mechanism itself, before any real bump exercised it — flagged in the doc as open to correction from the first real use.
 
+**Branch validation**
+
+- **[VALIDATION]** [docs/VALIDATION-ADVISORY-LOCKS.md](docs/VALIDATION-ADVISORY-LOCKS.md) — shared-MySQL installation and wallet reservations, operational upgrade/rollback and payment-flow evidence for issue #1.
+
 **Executed and verified — archived, may be absent from your checkout**
 
 These records did their job (they got their change built, verified and merged) and are now closed.
