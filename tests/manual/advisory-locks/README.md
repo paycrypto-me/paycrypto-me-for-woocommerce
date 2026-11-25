@@ -12,7 +12,7 @@ Em outro host, defina `QA_WP_IMAGE` ao construir a imagem do Dockerfile do repos
    `npx --yes --package=playwright@1.65.0 playwright install chromium`. O runner aceita
    `NODE_PATH` e procura também no cache npm do usuário.
 3. Coloque o ZIP público em `releases/paycrypto-me-for-woocommerce-0.6.0.zip`.
-   O SHA-256 oficial está no guia de release e é conferido na preparação do candidato.
+   O [`package.sh`](package.sh) contém o SHA-256 da 0.6.0 e o confere ao preparar o candidato.
    Opcionalmente, aponte `QA_PLUGIN_CACHE` para uma pasta contendo as árvores de
    `woocommerce/` e `plugin-check/` para reutilizá-las em modo somente leitura.
 4. Rode:
