@@ -12,6 +12,20 @@ O ZIP local aprovado tem SHA-256 `a9fc4e36cf9c8a13262b360bd674201d558524c00d6f43
 
 ---
 
+## Transição dos locks de instalação e derivação após 0.6.0
+
+Ao atualizar uma loja ativa da 0.6.0 ou anterior para a versão com locks por tabela, pause
+a entrada de requisições, cron, filas e WP-CLI em todos os servidores da loja. Espere terminar
+o trabalho em andamento. O modo de manutenção do WordPress permite que processos iniciados
+antes da pausa continuem executando. Troque o pacote em todos os servidores, recarregue os
+workers e o OPcache conforme o host e confira a versão carregada, a opção
+`paycrypto_me_db_version` (2) e a presença das quatro tabelas retornadas por
+`DbInstaller::tables()` sob o prefixo da loja. Reabra a loja. Use a mesma sequência no rollback.
+
+Uma atualização automática sem drenagem pode sobrepor uma reserva ou instalação antiga com
+outra nova na mesma loja, porque os nomes são diferentes. As demais lojas podem continuar
+atendendo. A mudança reutiliza as tabelas, configurações e índices existentes.
+
 ## Visão Geral do Processo
 
 O release do plugin envolve três etapas principais:

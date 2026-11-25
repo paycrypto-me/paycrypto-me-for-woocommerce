@@ -49,7 +49,9 @@ trap cleanup EXIT
 
 # Compose v2 ships as the `docker compose` plugin, but plenty of hosts only have the standalone
 # `docker-compose` binary (also v2 nowadays).
-if docker compose version >/dev/null 2>&1; then
+if [[ -n "${QA_PODMAN_WORDPRESS:-}" ]]; then
+    WP_EXEC=(podman exec -e WP_CLI_ALLOW_ROOT=1 "$QA_PODMAN_WORDPRESS")
+elif docker compose version >/dev/null 2>&1; then
     DOCKER_COMPOSE=(docker compose)
 elif command -v docker-compose >/dev/null 2>&1; then
     DOCKER_COMPOSE=(docker-compose)
@@ -58,7 +60,11 @@ else
     exit 1
 fi
 
-if ! "${DOCKER_COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx "$COMPOSE_SERVICE"; then
+if [[ -z "${QA_PODMAN_WORDPRESS:-}" ]]; then
+    WP_EXEC=("${DOCKER_COMPOSE[@]}" exec -T "$COMPOSE_SERVICE")
+fi
+
+if [[ -z "${QA_PODMAN_WORDPRESS:-}" ]] && ! "${DOCKER_COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx "$COMPOSE_SERVICE"; then
     error "The '$COMPOSE_SERVICE' service is not running. Start it first: ${DOCKER_COMPOSE[*]} up -d $COMPOSE_SERVICE"
     exit 1
 fi
@@ -82,7 +88,7 @@ run_check() {
     echo
     echo -e "${BOLD}== ${label} (disable_functions=${disabled_fn}) ==${NC}"
 
-    if "${DOCKER_COMPOSE[@]}" exec -T "$COMPOSE_SERVICE" php -d "disable_functions=${disabled_fn}" \
+    if "${WP_EXEC[@]}" php -d "disable_functions=${disabled_fn}" \
         /usr/local/bin/wp eval-file "$PLUGIN_DIR_IN_CONTAINER/$SCRATCH_SUBDIR/$filename"; then
         log "$label"
     else

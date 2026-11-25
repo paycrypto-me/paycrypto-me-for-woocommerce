@@ -9,7 +9,9 @@ class FakeWPDB
     public $insert_id = 0;
     public $prefix = 'wp_';
     public $last_query = '';
+    public $lock_result = '1';
     public $release_lock_result = '1';
+    public array $lock_queries = [];
     public $release_lock_calls = 0;
     public bool $suppressing_errors = false;
     public array $suppress_errors_calls = [];
@@ -31,6 +33,10 @@ class FakeWPDB
     {
         $this->last_query = $query;
 
+        if (str_contains($query, '@@lower_case_table_names')) {
+            return ['db_name' => 'shop', 'case_mode' => '0'];
+        }
+
         // Emulate lookup by xpub/network
         if (stripos($query, 'FROM wp_paycrypto_me_bitcoin_wallet_xpubkeys') !== false) {
             return ['id' => 321];
@@ -49,7 +55,8 @@ class FakeWPDB
         $this->last_query = $query;
 
         if (stripos($query, 'GET_LOCK') !== false) {
-            return '1';
+            $this->lock_queries[] = $query;
+            return $this->lock_result;
         }
 
         if (stripos($query, 'MAX(derivation_index)') !== false) {
@@ -57,6 +64,7 @@ class FakeWPDB
         }
 
         if (stripos($query, 'RELEASE_LOCK') !== false) {
+            $this->lock_queries[] = $query;
             $this->release_lock_calls++;
             return $this->release_lock_result;
         }
@@ -134,6 +142,34 @@ class PayCryptoMeDBStatementsServiceTest extends TestCase
         $next = $svc->reserve_derivation_index_for_wallet(1, 1);
 
         $this->assertSame(0, $next, 'First reserved derivation index should be 0');
+    }
+
+    public function test_database_lock_error_never_inserts_or_releases()
+    {
+        global $wpdb;
+        $wpdb->lock_result = null;
+        try {
+            (new PayCryptoMeDBStatementsService())->reserve_derivation_index_for_wallet(1);
+            $this->fail('Expected a database error.');
+        } catch (RuntimeException $error) {
+            $this->assertSame('Database failed to acquire the wallet lock.', $error->getMessage());
+        }
+        $this->assertSame([], $wpdb->insert_calls);
+        $this->assertSame(0, $wpdb->release_lock_calls);
+    }
+
+    public function test_insert_failure_releases_the_exact_acquired_lock()
+    {
+        global $wpdb;
+        $wpdb->insert_result = false;
+        try {
+            (new PayCryptoMeDBStatementsService())->reserve_derivation_index_for_wallet(1, 7);
+            $this->fail('Expected an insert error.');
+        } catch (RuntimeException $error) {
+            $this->assertSame('Failed to insert derivation index.', $error->getMessage());
+        }
+        $this->assertSame(1, preg_match('/GET_LOCK\((pcm_w_[a-f0-9]{56}), 7\)/', $wpdb->lock_queries[0], $matches));
+        $this->assertSame('SELECT RELEASE_LOCK(' . $matches[1] . ')', $wpdb->lock_queries[1]);
     }
 
     public function test_reserve_derivation_index_for_wallet_ignores_release_lock_failure()

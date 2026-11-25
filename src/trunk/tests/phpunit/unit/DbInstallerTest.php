@@ -20,10 +20,12 @@ class DbInstallerTest extends TestCase
         $wpdb = new class {
             public $prefix = 'wp_';
             public $last_error = '';
+            public $identity = ['db_name' => 'shop', 'case_mode' => '0'];
 
             // install() serializes itself on a MySQL advisory lock; '1' is "acquired".
             public $get_lock_result = '1';
             public array $lock_calls = [];
+            public array $lock_queries = [];
 
             // Health-check double: which full (prefixed) table names "exist" for SHOW TABLES LIKE.
             // Defaults to all 4 present — tests that want a missing table unset() one.
@@ -50,16 +52,23 @@ class DbInstallerTest extends TestCase
                 return $text;
             }
 
+            public function get_row($query, $output)
+            {
+                return $this->identity;
+            }
+
             public function get_var($query)
             {
                 if (stripos($query, 'RELEASE_LOCK') !== false) {
                     $this->lock_calls[] = 'release';
+                    $this->lock_queries[] = $query;
 
                     return '1';
                 }
 
                 if (stripos($query, 'GET_LOCK') !== false) {
                     $this->lock_calls[] = 'get';
+                    $this->lock_queries[] = $query;
 
                     return $this->get_lock_result;
                 }
@@ -217,6 +226,41 @@ class DbInstallerTest extends TestCase
         $this->assertFalse(get_transient('paycrypto_me_db_upgrade_retry'));
     }
 
+    public function test_missing_database_identity_stops_before_lock_or_ddl()
+    {
+        global $wpdb;
+        $wpdb->identity = null;
+        $this->assertFalse(DbInstaller::install(true));
+        $this->assertSame([], $wpdb->lock_calls);
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        $this->assertSame(DbInstaller::ERRORS_OPTION, $GLOBALS['__update_option_calls'][0][0]);
+    }
+
+    public function test_database_lock_error_is_reported_and_throttled()
+    {
+        global $wpdb;
+        $wpdb->get_lock_result = null;
+        $this->assertFalse(DbInstaller::install());
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        $this->assertSame(['get'], $wpdb->lock_calls);
+        $this->assertSame(DbInstaller::ERRORS_OPTION, $GLOBALS['__update_option_calls'][0][0]);
+        $this->assertTrue((bool) get_transient(DbInstaller::RETRY_TRANSIENT));
+    }
+
+    public function test_lock_failure_on_current_schema_retries_after_the_throttle_expires()
+    {
+        $GLOBALS['__options'][DbInstaller::VERSION_OPTION] = DbInstaller::DB_VERSION;
+        $GLOBALS['__options'][DbInstaller::ERRORS_OPTION] = ['Installation lock failed'];
+        set_transient(DbInstaller::HEALTH_TRANSIENT, 1, HOUR_IN_SECONDS);
+        set_transient(DbInstaller::RETRY_TRANSIENT, 1, HOUR_IN_SECONDS);
+        DbInstaller::maybe_upgrade();
+        $this->assertSame([], $GLOBALS['__dbdelta_captured']);
+        delete_transient(DbInstaller::RETRY_TRANSIENT);
+        DbInstaller::maybe_upgrade();
+        $this->assertNotEmpty($GLOBALS['__dbdelta_captured']);
+        $this->assertContains(DbInstaller::ERRORS_OPTION, $GLOBALS['__delete_option_calls']);
+    }
+
     public function test_install_releases_the_lock_even_when_a_table_fails()
     {
         global $wpdb;
@@ -227,6 +271,8 @@ class DbInstallerTest extends TestCase
         // RELEASE_LOCK runs from a finally: a failed install must not leave the lock held for the
         // rest of the connection's life, blocking every retry.
         $this->assertSame(['get', 'release'], $wpdb->lock_calls);
+        $name = \PayCryptoMe\WooCommerce\AdvisoryLockName::install();
+        $this->assertSame(["SELECT GET_LOCK($name, 10)", "SELECT RELEASE_LOCK($name)"], $wpdb->lock_queries);
     }
 
     public function test_install_rechecks_is_current_after_acquiring_the_lock()

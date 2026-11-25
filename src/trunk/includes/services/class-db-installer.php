@@ -37,9 +37,7 @@ class DbInstaller
     public const HEALTH_TRANSIENT = 'paycrypto_me_db_health_check';
     private const HEALTH_CHECK_INTERVAL = 12 * HOUR_IN_SECONDS;
 
-    // MySQL advisory lock serializing install(): two admin requests arriving on an out-of-date
-    // site would otherwise run dbDelta's ALTERs against the same tables concurrently. Same
-    // mechanism as PayCryptoMeDBStatementsService::reserve_derivation_index_for_wallet().
+    /** @deprecated Legacy server-wide name used through 0.6.0. */
     public const INSTALL_LOCK = 'paycrypto_me_db_install';
     private const INSTALL_LOCK_TIMEOUT = 10;
 
@@ -62,16 +60,21 @@ class DbInstaller
     {
         global $wpdb;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- A live advisory lock cannot be cached; it serializes concurrent schema installation.
-        $got_lock = $wpdb->get_var(
-            $wpdb->prepare('SELECT GET_LOCK(%s, %d)', self::INSTALL_LOCK, self::INSTALL_LOCK_TIMEOUT)
-        );
-
-        // Not a failure: another request holds the lock and is installing the same schema. Return
-        // false without recording anything — writing to ERRORS_OPTION here would raise the admin
-        // notice for a situation that resolves itself, and the recorded version deliberately stays
-        // behind so the next admin request re-checks.
-        if ((int) $got_lock !== 1) {
+        try {
+            $lock_name = AdvisoryLockName::install();
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Installation requires a live connection lock.
+            $got_lock = $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, %d)', $lock_name, self::INSTALL_LOCK_TIMEOUT));
+            if ((string) $got_lock === '0') {
+                return false;
+            }
+            if ((string) $got_lock !== '1') {
+                throw new \RuntimeException('Database failed to acquire the payment table installation lock.');
+            }
+        } catch (\RuntimeException $error) {
+            $errors = (array) get_option(self::ERRORS_OPTION, []);
+            $errors[] = $error->getMessage();
+            update_option(self::ERRORS_OPTION, array_values(array_unique($errors)));
+            set_transient(self::RETRY_TRANSIENT, 1, HOUR_IN_SECONDS);
             return false;
         }
 
@@ -83,14 +86,14 @@ class DbInstaller
             // would raise the "tables failed to install" notice for a schema that already upgraded
             // cleanly. Skipped under $force: the caller already established the tables need
             // rebuilding regardless of the recorded version.
-            if (!$force && self::is_current()) {
+            if (!$force && self::is_current() && !self::needs_install_retry()) {
                 return true;
             }
 
             return self::run_install();
         } finally {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Releasing the live advisory lock must reach the database and cannot use a cached result.
-            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', self::INSTALL_LOCK));
+            $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $lock_name));
         }
     }
 
@@ -153,13 +156,21 @@ class DbInstaller
         // wrote it (a manual downgrade, a rolled-back update). Re-running the activators there
         // would rewrite the option backwards, so the real upgrade would then be skipped when the
         // newer plugin came back. Forward-only, like the schema itself.
-        if (!self::is_current()) {
+        if (!self::is_current() || self::needs_install_retry()) {
             self::install();
 
             return;
         }
 
         self::verify_tables_present();
+    }
+
+    // A forced activation can fail before dbDelta even on a healthy, current schema.
+    // Once the retry throttle expires, give that attempt a chance to finish and clear
+    // its notice. Recheck under the lock in case a competing request already succeeded.
+    private static function needs_install_retry(): bool
+    {
+        return get_option(self::ERRORS_OPTION, []) && (string) get_option(self::VERSION_OPTION) === self::DB_VERSION;
     }
 
     /**

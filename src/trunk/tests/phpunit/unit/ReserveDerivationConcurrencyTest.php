@@ -24,6 +24,11 @@ class FakeWPDBConcurrency
         return vsprintf($query, $args);
     }
 
+    public function get_row($query, $output)
+    {
+        return ['db_name' => 'shop', 'case_mode' => '0'];
+    }
+
     public function get_var($query)
     {
         $this->last_query = $query;
