@@ -8,7 +8,7 @@ $invoice_id = $argv[3] ?? '';
 $expected_status = $argv[4] ?? '';
 $new_status = $argv[5] ?? '';
 
-if (!preg_match('/^pcmit\d+_$/', $prefix) || $order_id < 1) {
+if (!preg_match('/^pcmit[0-9a-f]{12}_$/D', $prefix) || $order_id < 1) {
     exit(2);
 }
 
