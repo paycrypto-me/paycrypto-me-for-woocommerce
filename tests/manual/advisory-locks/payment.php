@@ -30,6 +30,20 @@ if ($operation === 'create') {
 } else {
     $order = wc_get_order((int) $argument);
 }
+if ($operation === 'meta') {
+    $values = [];
+    foreach ($order->get_meta_data() as $meta) {
+        if (str_starts_with($meta->key, '_paycrypto_me_')) {
+            $values[$meta->key][] = $meta->value;
+        }
+    }
+    if (!$values) {
+        throw new RuntimeException('Missing payment metadata in historical order.');
+    }
+    ksort($values);
+    echo wp_json_encode(hash('sha256', wp_json_encode($values)));
+    return;
+}
 if ($operation === 'create' || $operation === 'retry') {
     wc_load_cart();
     $result = $gateway->process_payment($order->get_id());

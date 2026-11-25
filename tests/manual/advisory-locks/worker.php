@@ -28,6 +28,17 @@ switch ($operation) {
             $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $name));
         }
         break;
+    case 'legacy-check':
+        // Only invoked on this runner's private MySQL while another process owns
+        // the candidate lock. A simultaneous successful acquisition proves why
+        // changing versions needs an operational drain.
+        $legacy = $args[2] === 'install' ? DbInstaller::INSTALL_LOCK : 'paycrypto_wallet_' . $wallet;
+        $got = $wpdb->get_var($wpdb->prepare('SELECT GET_LOCK(%s, 0)', $legacy));
+        if ((string) $got !== '1') {
+            throw new RuntimeException('Could not run the isolated cutover control.');
+        }
+        echo $wpdb->get_var($wpdb->prepare('SELECT RELEASE_LOCK(%s)', $legacy));
+        break;
     case 'multisite':
         $first = AdvisoryLockName::install();
         $existing_service = new PayCryptoMeDBStatementsService();

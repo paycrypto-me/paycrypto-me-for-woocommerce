@@ -188,7 +188,7 @@ def upgrade(db):
         def first_use(label):
             # Two ordinary first purchases sharing a previously unused HD configuration.
             # Report the outcome separately from the pre-created-wallet concurrency assertions.
-            payment('configure', 'hd', 3 if label == 'base' else 4)
+            payment('configure', 'hd', 9 if label == 'base' else 10)
             with ThreadPoolExecutor(2) as pool:
                 attempts = [pool.submit(payment, 'create', 'hd', product) for _ in range(2)]
             outcomes = []
@@ -197,6 +197,7 @@ def upgrade(db):
                     outcomes.append(attempt.result()['status'])
                 except subprocess.CalledProcessError:
                     outcomes.append('failed')
+            assert 'pending' in outcomes, 'Both first purchases failed on ' + label
             first_wallet[label] = outcomes
 
         for method in methods:
@@ -205,6 +206,7 @@ def upgrade(db):
         first_use('base')
         for archive, dest in [(new_zip, 'candidate'), (base_zip, 'rollback')]:
             options = ['woocommerce_paycrypto_me_settings', 'woocommerce_paycrypto_me_lightning_settings']
+            meta = {m: payment('meta', m, before['order']) for m, before in original.items()}
             settings = [wp(site, 'option', 'get', key, '--format=json') for key in options]
             run('podman', 'stop', site)
             unpack(archive, dest)
@@ -212,11 +214,15 @@ def upgrade(db):
             wait(lambda: ready('podman', 'exec', site, 'curl', '-fsS', 'http://localhost/wp-login.php'))
             assert settings == [wp(site, 'option', 'get', key, '--format=json') for key in options]
             for method, before in original.items():
+                assert meta[method] == payment('meta', method, before['order'])
                 assert before == payment('snapshot', method, before['order']), (method, 'changed before retry')
                 payment('configure', method, 0)
                 after = payment('retry', method, before['order'])
                 assert before == after, (method, 'historical payment changed')
             if dest == 'candidate':
+                for kind in ('install', 'wallet'):
+                    with held(site, kind):
+                        assert worker(site, 'legacy-check', 1, kind) == '1'
                 first_use('candidate')
                 check = wp(site, 'plugin', 'check', SLUG, '--format=json')
                 (evidence / 'plugin-check.log').write_text(check + '\n')
