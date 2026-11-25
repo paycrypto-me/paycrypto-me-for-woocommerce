@@ -25,9 +25,6 @@ abstract class SchemaTestCase extends TestCase
         return DbInstaller::tables();
     }
 
-    /** Unique across the whole run, so a leaked table from one test cannot be seen by another. */
-    private static int $namespace_counter = 0;
-
     private string $original_prefix;
     private $original_version;
     private $original_errors;
@@ -93,9 +90,8 @@ abstract class SchemaTestCase extends TestCase
      */
     protected function reserve_prefix(): string
     {
-        self::$namespace_counter++;
-
-        $prefix = 'pcmit' . self::$namespace_counter . '_';
+        // Separate PHPUnit processes can run on stores sharing this database.
+        $prefix = 'pcmit' . bin2hex(random_bytes(6)) . '_';
         $this->created_prefixes[] = $prefix;
 
         return $prefix;

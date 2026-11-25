@@ -54,11 +54,12 @@ def ready(*args):
     return subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
-def suite(site, config):
-    with (evidence / (config + '.log')).open('w') as log:
+def suite(site, config, label=''):
+    logfile = evidence / (label + config + '.log')
+    with logfile.open('w') as log:
         run('podman', 'exec', '-w', PLUGIN, site, 'php', 'vendor/bin/phpunit', '-c', config,
             stdout=log, stderr=subprocess.STDOUT)
-    print((evidence / (config + '.log')).read_text().splitlines()[-1], flush=True)
+    print(logfile.read_text().splitlines()[-1], flush=True)
 
 
 def store(db, suffix, database, prefix, source=None):
@@ -260,6 +261,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--integration-only', action='store_true')
     parser.add_argument('--upgrade-only', action='store_true')
+    parser.add_argument('--parallel-suites', action='store_true')
     args = parser.parse_args()
     if not __debug__:
         raise RuntimeError('Run Python with assertions enabled')
@@ -285,6 +287,15 @@ def main():
             'php': output('podman', 'exec', a, 'php', '-r', 'echo PHP_VERSION;'),
         }
         (evidence / 'versions.json').write_text(json.dumps(versions, indent=2) + '\n')
+        if args.parallel_suites:
+            c, _ = store(db, 'c', 'store_a', 'other_')
+            wp(c, 'plugin', 'activate', SLUG)
+            with ThreadPoolExecutor(2) as pool:
+                tasks = [pool.submit(suite, site, 'phpunit-integration.xml.dist', label)
+                         for site, label in [(a, 'A-'), (c, 'C-')]]
+                for task in tasks:
+                    task.result()
+            return
         suite(a, 'phpunit-integration.xml.dist')
         if not args.integration_only:
             suite(a, 'phpunit.xml.dist')

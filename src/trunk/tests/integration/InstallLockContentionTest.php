@@ -80,7 +80,7 @@ class InstallLockContentionTest extends SchemaTestCase
         global $wpdb;
         $prefix = $this->fresh_install();
         $table = $prefix . PayCryptoMeBitcoinGatewayActivate::TABLE_DERIVATION_INDEXES;
-        $this->assertNotFalse($wpdb->query("ALTER TABLE `$table` ADD CONSTRAINT qa_reject CHECK (derivation_index > 0)"));
+        $this->assertNotFalse($wpdb->query("ALTER TABLE `$table` ADD CHECK (derivation_index > 0)"));
         $this->with_prefix($prefix, function () use ($table, $wpdb) {
             $service = new PayCryptoMeDBStatementsService();
             $name = AdvisoryLockName::wallet($table, 1);

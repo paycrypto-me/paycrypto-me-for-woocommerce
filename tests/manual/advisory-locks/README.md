@@ -51,6 +51,10 @@ O runner remove seus containers, volumes anônimos e rede ao sair. Para a audito
 três rodadas, executar o comando sequencialmente três vezes. Fechar a rodada pelo código
 de saída e conferir os dois resumos. As fotos de falha servem para diagnóstico local.
 
+Para reproduzir o cenário original de duas suítes PHPUnit em paralelo, use
+`run.sh --parallel-suites`. As duas instalações têm opções WordPress próprias e compartilham
+um banco; os testes geram prefixos temporários independentes para suas tabelas descartáveis.
+
 Para repetir somente a integração, usar `run.sh --integration-only`. Para repetir o
 pacote com Plugin Check e rollback, usar `run.sh --upgrade-only`. Para os quatro casos
 unitários específicos de host sem GMP, rodar PHPUnit com
