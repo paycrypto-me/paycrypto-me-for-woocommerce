@@ -8,7 +8,7 @@ Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -148,6 +148,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 
 == Changelog ==
 
+= 0.6.1 =
+* Isolate database installation and Bitcoin address derivation locks between stores sharing a MySQL server.
+
 = 0.6.0 =
 * Reflect WooCommerce order and refund status in Bitcoin and Lightning payment details.
 * Offer eligible retries on the original order and preserve concurrent status updates.
@@ -234,6 +237,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.6.1 =
+When upgrading from 0.6.0 or earlier, pause incoming requests and background jobs, wait for active work to finish, then update the plugin and restart your workers before reopening the store. Use the same procedure for a rollback.
 
 = 0.6.0 =
 Bitcoin and Lightning payment details now follow the WooCommerce order status. Review eligible payment retries from the original order.

@@ -18,10 +18,6 @@ confidence in it, and it moves to `docs/archive/` as `[DONE]` once that branch m
 - **[GUIDE]** [docs/GUIDE-ADD-NEW-GATEWAY.md](docs/GUIDE-ADD-NEW-GATEWAY.md) — checklist to implement a third gateway.
 - **[GUIDE]** [docs/GUIDE-DB-SCHEMA-UPGRADE.md](docs/GUIDE-DB-SCHEMA-UPGRADE.md) — checklist for bumping `DbInstaller::DB_VERSION`: editing the `CREATE TABLE` SQL, freezing a new `tests/schema/v<N>.sql`, running `schema-tests.sh`. Written 2026-08-27 alongside the mechanism itself, before any real bump exercised it — flagged in the doc as open to correction from the first real use.
 
-**Branch validation**
-
-- **[VALIDATION]** [docs/VALIDATION-ADVISORY-LOCKS.md](docs/VALIDATION-ADVISORY-LOCKS.md) — shared-MySQL installation and wallet reservations, operational upgrade/rollback and payment-flow evidence for issue #1.
-
 **Executed and verified — archived, may be absent from your checkout**
 
 These records did their job (they got their change built, verified and merged) and are now closed.
@@ -43,6 +39,7 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 - **[DONE]** [docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md](docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md) — exposes the Base's final payment presentation projection via `get_order_display_data()` without rendering/enqueueing, adds `expires_at_timestamp`, and keeps channel presentation in consumer scope. Completed and validated 2026-09-12; archived/gitignored and therefore potentially absent from a fresh checkout.
 - **[DONE]** [docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md](docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md) and [docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md](docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md) — records the published 0.3.0 Lightning status-projection CAS contract and its execution. The Base tests passed again on 2026-09-13; the Pro P7d consumer harness was independently accepted, while M6/M7 remain separate Pro product work.
 - **[DONE]** [docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md](docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md) — records browser, checkout, upgrade and concurrent retry validation for reactive payment presentation. The 0.6.0 package passed Plugin Check and was published on 2026-11-24.
+- **[DONE]** [docs/archive/DONE-ADVISORY-LOCKS.md](docs/archive/DONE-ADVISORY-LOCKS.md) — records shared-MySQL isolation, payment-flow validation, and drained upgrade and rollback for issue #1. Merged in PR #3 on 2026-11-25. The fixture and evidence archive remain under `tests/manual/advisory-locks/`.
 
 **Approved plans — not started yet**
 - **[PLAN — NOT STARTED]** [`docs/PREMIUM-ADDON.md`](https://github.com/paycrypto-me/paycrypto-me-pro/blob/main/docs/PREMIUM-ADDON.md) — approved implementation plan for the separate Pro add-on plugin (renamed from "Premium" to "Pro" 2026-08-25). Lives in that add-on's own repo; see "Pro add-on" below for the base's own scope boundaries and extension points.
@@ -54,13 +51,13 @@ if you need the history, `git log` on the commit that last had it under `docs/` 
 
 WordPress.org serves **0.6.0**. See the [release guide](docs/GUIDE-RELEASE.md#última-publicação-confirmada) for the SVN revisions and verified package.
 
-**Status:** Live on WordPress.org since 2026-08-08 (first published as 0.1.0). The repository contains the current version **0.6.0** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
+**Status:** Live on WordPress.org since 2026-08-08 (first published as 0.1.0). The repository contains the current version **0.6.1** (this number and the one below are bumped by `release.sh`). Current branch includes the public payment-status projection contract for the Pro add-on. Pro features (webhook/fiat→sats) remain reserved for the separate add-on — see "Pro add-on" section below.
 
 ---
 
 ## What this project is
 
-WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.6.0**. Author: PayCrypto.Me (contact@paycrypto.me).
+WordPress plugin (GPL-3.0-or-later) that adds Bitcoin payment gateways to WooCommerce. Non-custodial: the store owner controls the keys. Version: **0.6.1**. Author: PayCrypto.Me (contact@paycrypto.me).
 
 **Two registered gateways, both fully functional:**
 - `paycrypto_me` — Bitcoin On-Chain (HD derivation from xPub/ypub/zpub, mainnet + testnet).

@@ -58,6 +58,7 @@ ARCHIVED_PATHS=(
     "docs/archive/DONE-PRE-RELEASE-0.3.0.md"
     "docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md"
     "docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md"
+    "docs/archive/DONE-ADVISORY-LOCKS.md"
 )
 
 FINDINGS=0
