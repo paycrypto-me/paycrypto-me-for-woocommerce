@@ -189,14 +189,17 @@ def upgrade(db):
             # Two ordinary first purchases sharing a previously unused HD configuration.
             # Report the outcome separately from the pre-created-wallet concurrency assertions.
             payment('configure', 'hd', 9 if label == 'base' else 10)
+            def purchase(_):
+                proc = subprocess.run(['podman', 'exec', site, 'wp', '--allow-root', 'eval-file',
+                                       '/qa/payment.php', 'create', 'hd', product], capture_output=True, text=True)
+                if proc.returncode == 0:
+                    return json.loads(proc.stdout)['status']
+                if 'Duplicate entry' in proc.stderr and 'unique_xpub_network' in proc.stderr:
+                    return 'duplicate_wallet'
+                raise RuntimeError('Unexpected failure during first purchase: ' + proc.stderr)
+
             with ThreadPoolExecutor(2) as pool:
-                attempts = [pool.submit(payment, 'create', 'hd', product) for _ in range(2)]
-            outcomes = []
-            for attempt in attempts:
-                try:
-                    outcomes.append(attempt.result()['status'])
-                except subprocess.CalledProcessError:
-                    outcomes.append('failed')
+                outcomes = list(pool.map(purchase, range(2)))
             assert 'pending' in outcomes, 'Both first purchases failed on ' + label
             first_wallet[label] = outcomes
 

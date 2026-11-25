@@ -112,6 +112,11 @@ switch ($operation) {
         if (!$order || !$row || $order->get_payment_method() !== 'paycrypto_me') {
             throw new RuntimeException('Missing order or persisted Bitcoin payment.');
         }
+        $settings = get_option('woocommerce_paycrypto_me_settings');
+        if ((int) $row['wallet_xpubkeys_id'] !== 1 || $row['xpub'] !== $settings['network_identifier'] ||
+            $order->get_meta('_paycrypto_me_payment_address') !== $row['payment_address']) {
+            throw new RuntimeException('Wallet, order metadata and transaction disagree.');
+        }
         echo wp_json_encode([$row['payment_address'], (int) $row['derivation_index'], $order->get_status()]);
         break;
     default:
