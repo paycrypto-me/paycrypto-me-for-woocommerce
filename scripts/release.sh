@@ -324,17 +324,11 @@ bump_sed "$README_FILE" \
   "Stable tag" \
   "^Stable tag:[[:space:]]*$VERSION[[:space:]]*$"
 
-# AGENTS.md states the current version twice, and it is the file every agent loads first — a stale
-# number there is read as fact. Bumped here so it cannot fall behind the header it describes.
+# Keep the checkout version in AGENTS.md aligned with the plugin header.
 bump_sed "$ROOT_DIR/AGENTS.md" \
   "s/(current version \*\*)[0-9]+\.[0-9]+\.[0-9]+(\*\*)/\1$VERSION\2/" \
   "current version in AGENTS.md" \
   "current version \*\*$VERSION\*\*"
-
-bump_sed "$ROOT_DIR/AGENTS.md" \
-  "s/(Version: \*\*)[0-9]+\.[0-9]+\.[0-9]+(\*\*)/\1$VERSION\2/" \
-  "Version: line in AGENTS.md" \
-  "Version: \*\*$VERSION\*\*"
 
 # composer.json and package.json: "version": "X.Y.Z"
 for f in "$TRUNK/composer.json" "$TRUNK/package.json"; do
@@ -343,6 +337,29 @@ for f in "$TRUNK/composer.json" "$TRUNK/package.json"; do
     "version in $(basename "$f")" \
     "\"version\"[[:space:]]*:[[:space:]]*\"$VERSION\""
 done
+
+bump_sed "$TRUNK/package-lock.json" \
+  's/^(  "version": ")[^"]+/\1'"$VERSION"'/; /^    "": \{$/,/^    \},?$/s/^(      "version": ")[^"]+/\1'"$VERSION"'/' \
+  "root versions in package-lock.json" \
+  '^  "version": "'"$VERSION"'",?$'
+
+if [[ -f "$TRUNK/package-lock.json" && $DRY_RUN -eq 0 ]] &&
+   ! sed -nE '/^    "": \{$/,/^    \},?$/p' "$TRUNK/package-lock.json" |
+     grep -Fx "      \"version\": \"$VERSION\"," >/dev/null; then
+  error "The root package entry in package-lock.json did not receive version $VERSION."
+  exit 1
+fi
+
+header "Composer lock metadata"
+composer_lock_command='composer validate --no-check-publish --no-interaction ||
+    composer update --lock --no-install --no-scripts --no-interaction'
+if [[ $DRY_RUN -eq 1 ]]; then
+  step "[dry-run] A stale Composer lock is refreshed without updating package versions."
+elif [[ $USE_DOCKER -eq 1 ]]; then
+  docker_exec "$composer_lock_command"
+else
+  (cd "$TRUNK" && bash -c "$composer_lock_command")
+fi
 
 # === BUILD DIR ===
 header "Creating release build"
@@ -360,6 +377,8 @@ if [[ $DRY_RUN -eq 0 ]]; then
     --exclude='node_modules' \
     --exclude='tests' \
     --exclude='.git' \
+    --exclude='auth.json' \
+    --exclude='/.smoke-minimal-host-tmp*/' \
     --exclude='.phpunit.result.cache' \
     --exclude='phpunit.xml.dist' \
     --exclude='phpunit-integration.xml.dist' \
@@ -395,7 +414,7 @@ if [[ $DRY_RUN -eq 0 ]]; then
     fi
   fi
 else
-  step "[dry-run] ${DOCKER_COMPOSE[*]} run: composer install --no-dev --optimize-autoloader in build dir"
+  step "[dry-run] composer install --no-dev --optimize-autoloader in build dir"
 fi
 
 # === VENDOR CLEANUP (residual files) ===
@@ -467,13 +486,17 @@ if [[ $DO_GIT -eq 1 ]]; then
     (cd "$ROOT_DIR" && git add \
       "$PLUGIN_FILE" \
       "$README_FILE" \
+      "$TRUNK/CHANGELOG.md" \
       "$TRUNK/composer.json" \
+      "$TRUNK/composer.lock" \
       "$TRUNK/package.json" \
-      "$ROOT_DIR/AGENTS.md" \
-    && git commit -m "chore: bump version to $VERSION" || log "No changes to commit")
-    (cd "$ROOT_DIR" && git tag -a "v$VERSION" -m "Release v$VERSION" \
-      && log "Tag v$VERSION created. Push manually: git push origin v$VERSION" \
-      || warn "Tag v$VERSION already exists or failed.")
+      "$TRUNK/package-lock.json" \
+      "$ROOT_DIR/AGENTS.md")
+    if ! git -C "$ROOT_DIR" diff --cached --quiet; then
+      git -C "$ROOT_DIR" commit -m "chore: bump version to $VERSION"
+    fi
+    git -C "$ROOT_DIR" tag -a "v$VERSION" -m "Release v$VERSION"
+    log "Tag v$VERSION created. Push the commit and tag after validation."
   else
     step "[dry-run] git add (version files) && git commit -m 'chore: bump version to $VERSION'"
     step "[dry-run] git tag -a v$VERSION"
@@ -656,7 +679,7 @@ svn_publish() {
   if [[ -z "$rev" ]]; then
     # Nada a commitar — acontece ao re-rodar depois de um `svn copy` que falhou.
     # Taggeia o trunk atual em vez de morrer com uma revisão vazia.
-    rev="$(svn info --show-item revision --no-newline "$SVN_URL/trunk" "${SVN_RO[@]}")"
+    rev="$(svn info --show-item revision --no-newline "$SVN_DIR/trunk")"
     warn "Nada a commitar; taggeando o trunk existente @$rev."
   fi
 
@@ -672,8 +695,18 @@ if [[ $DO_SVN_PREPARE -eq 1 ]]; then
   header "SVN prepare/publish -> WordPress.org"
 
   SVN_URL="${SVN_URL:-https://plugins.svn.wordpress.org/${SLUG}}"  # env-overridable p/ ensaio
-  SVN_DIR="$ROOT_DIR/releases/svn"            # persistente, gitignored, FORA do BUILD_DIR
-  SVN_STAGE="$ROOT_DIR/releases/.svn-stage"   # limpo no início do run
+  if [[ -n "${SVN_WORKSPACE:-}" ]]; then
+    [[ "$SVN_WORKSPACE" = /* && "$SVN_WORKSPACE" != / ]] || {
+      error "SVN_WORKSPACE must be an absolute path to a dedicated directory."
+      exit 1
+    }
+    SVN_DIR="$SVN_WORKSPACE/svn"
+    SVN_STAGE="$SVN_WORKSPACE/stage"
+    [[ $DRY_RUN -eq 1 ]] || mkdir -p "$SVN_WORKSPACE"
+  else
+    SVN_DIR="$ROOT_DIR/releases/svn"
+    SVN_STAGE="$ROOT_DIR/releases/.svn-stage"
+  fi
   ASSETS_SRC="$ROOT_DIR/src/assets"           # NÃO src/trunk/assets (esse é runtime, vai no zip)
   SVN_USER="${SVN_USER:-paycryptome}"
 
@@ -695,6 +728,14 @@ if [[ $DO_SVN_PREPARE -eq 1 ]]; then
     command -v "$_bin" >/dev/null 2>&1 || { error "'$_bin' não encontrado no PATH."; exit 1; }
   done
   [[ -f "$ZIP_PATH" ]] || { error "Zip aprovado não encontrado: $ZIP_PATH"; exit 1; }
+  if [[ -f "$ZIP_PATH.sha256" ]]; then
+    read -r expected_sha _ < "$ZIP_PATH.sha256"
+    actual_sha="$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)"
+    [[ "$actual_sha" == "$expected_sha" ]] || {
+      error "O SHA-256 do ZIP diverge de $ZIP_PATH.sha256."
+      exit 1
+    }
+  fi
   # Protege contra confundir src/assets (banner/ícone/screenshots do diretório)
   # com src/trunk/assets (assets de runtime, que vão dentro do zip).
   [[ -f "$ASSETS_SRC/banner-1544x500.png" ]] \

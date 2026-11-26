@@ -26,6 +26,8 @@ error() { echo -e "${RED}[FAIL]${NC} $*" >&2; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TRUNK="$REPO_ROOT/src/trunk"
+EXTENSION_CONTRACTS="$REPO_ROOT/docs/GUIDE-EXTENSION-CONTRACTS.md"
+AGENTS_MAX_BYTES=16384
 
 # Paths cited by an approved-but-not-started plan: they will exist once it runs. Listed here instead
 # of loosening the check, so "planned" stays distinguishable from "rotted".
@@ -33,32 +35,15 @@ PLANNED_PATHS=()
 # WordPress core, not ours: the docs cite wp-includes/functions.php,
 # wp-admin/includes/upgrade.php (the file dbDelta lives in) and wp-includes/class-wpdb.php
 # (whose flush() is what clears $wpdb->last_error) by their tail.
-# docs/PREMIUM-ADDON.md moved to the paycrypto-me-pro repo on 2026-08-25 — genuinely external
-# now, not planned. AGENTS.md links it by full GitHub URL (matches the substring), and
-# DONE-CRYPTO-DEPENDENCIES-AUDIT.md's mention is a historical record of when it still lived here; neither
-# should be "fixed" by resurrecting the file.
+# The Pro implementation plan lives in a separate repository.
 EXTERNAL_PATHS=("includes/functions.php" "includes/upgrade.php" "includes/class-wpdb.php" "docs/PREMIUM-ADDON.md")
-# Executed-and-verified plans/records, moved to docs/archive/ (see AGENTS.md's "Context and
-# guides" — "Executed and verified" group) and added to .gitignore so they stop being committed
-# going forward. They still exist in THIS working tree, but a fresh clone from this point on will
-# not have them — every doc citing one already says so inline. Do not "fix" a finding here by
-# resurrecting a file into docs/*.md; git history still has it if it's genuinely needed.
+# These specific historical records are still cited by a live guide. A fresh
+# checkout can recover them from Git history even when docs/archive is absent.
 ARCHIVED_PATHS=(
     "docs/archive/DONE-CRYPTO-DEPENDENCIES.md"
-    "docs/archive/DONE-CRYPTO-DEPENDENCIES-AUDIT.md"
     "docs/archive/DONE-LEAN-VENDOR-TREE.md"
     "docs/archive/DONE-CRYPTO-DEPRECATION-CONTINGENCY.md"
-    "docs/archive/DONE-SCHEMA-UPGRADE-AND-STATIC-RECORDS.md"
-    "docs/archive/DONE-SCHEMA-INSTALL-HARDENING.md"
-    "docs/archive/DONE-SCHEMA-UPGRADE-AND-STATIC-RECORDS-VALIDATION.md"
     "docs/archive/DONE-I18N-CONVENTIONS.md"
-    "docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION-VALIDATION.md"
-    "docs/archive/DONE-RFC-PUBLIC-PAYMENT-STATUS-PROJECTION.md"
-    "docs/archive/DONE-PUBLIC-PAYMENT-STATUS-PROJECTION.md"
-    "docs/archive/DONE-PRE-RELEASE-0.3.0.md"
-    "docs/archive/DONE-PUBLIC-PAYMENT-PRESENTATION-DATA.md"
-    "docs/archive/DONE-ORDER-PAYMENT-PRESENTATION-VALIDATION.md"
-    "docs/archive/DONE-ADVISORY-LOCKS.md"
 )
 
 FINDINGS=0
@@ -84,8 +69,27 @@ if [[ ${#DOCS[@]} -lt 2 || ! -f "$REPO_ROOT/AGENTS.md" ]]; then
 fi
 info "Auditing ${#DOCS[@]} documents"
 
+agents_bytes=$(wc -c < "$REPO_ROOT/AGENTS.md")
+info "AGENTS.md is $agents_bytes / $AGENTS_MAX_BYTES bytes"
+if (( agents_bytes > AGENTS_MAX_BYTES )); then
+    finding "AGENTS.md exceeds its byte budget. Move detailed instructions to the relevant guide."
+fi
+
 # --- 1. every cited path exists ------------------------------------------------------------------
 for doc in "${DOCS[@]}"; do
+    while IFS= read -r link; do
+        target="${link:2}"
+        target="${target%)}"
+        target="${target%%#*}"
+        target="${target#./}"
+        doc_dir="${doc%/*}"
+        [[ -e "$doc_dir/$target" ]] && continue
+        if [[ "$doc_dir" == "$REPO_ROOT/docs" ]] && is_listed "docs/$target" "${ARCHIVED_PATHS[@]}"; then
+            continue
+        fi
+        finding "${doc##*/} has a broken relative Markdown link: $target"
+    done < <(grep -oE '\]\([A-Za-z0-9_./-]+(#[^)]*)?\)' "$doc" | sort -u)
+
     while IFS= read -r cited; do
         [[ -z "$cited" ]] && continue
         # `${arr[@]}` on an EMPTY array aborts under `set -u` on bash < 4.4 (stock macOS bash is
@@ -148,18 +152,26 @@ done
 # It is the contract the Pro add-on is built against: a hook missing from it is a seam nobody
 # knows exists, one listed but absent is a promise the add-on cannot keep.
 HOOKS_IN_CODE="$(grep -rhoE "'paycryptome_[a-z_]+'" "$TRUNK/includes" "$TRUNK/templates" | tr -d "'" | sort -u)"
-HOOKS_IN_DOC="$(grep -oE 'paycryptome_[a-z_]+' "$REPO_ROOT/AGENTS.md" | sort -u)"
+HOOKS_IN_DOC=""
+if [[ -f "$EXTENSION_CONTRACTS" ]]; then
+    HOOKS_IN_DOC="$(sed -n '/^## Public hooks$/,/^## /p' "$EXTENSION_CONTRACTS" |
+        awk '/^\| `paycryptome_/ { print $2 }' FS='|' |
+        { grep -oE 'paycryptome_[a-z_]+' || true; } | sort -u)"
+fi
+if [[ -z "$HOOKS_IN_DOC" ]]; then
+    finding "found no public hook table rows in GUIDE-EXTENSION-CONTRACTS.md"
+fi
 
 if [[ -z "$HOOKS_IN_CODE" ]]; then
     finding "found no paycryptome_* hooks in the code at all — the scan is broken, not the docs"
 fi
 
 while IFS= read -r hook; do
-    [[ -n "$hook" ]] && finding "hook '$hook' is fired in code but missing from the AGENTS.md hooks table"
+    [[ -n "$hook" ]] && finding "hook '$hook' is fired in code but missing from the public hooks table"
 done < <(comm -23 <(printf '%s\n' "$HOOKS_IN_CODE") <(printf '%s\n' "$HOOKS_IN_DOC"))
 
 while IFS= read -r hook; do
-    [[ -n "$hook" ]] && finding "hook '$hook' is in the AGENTS.md hooks table but fired nowhere in the code"
+    [[ -n "$hook" ]] && finding "hook '$hook' is in the public hooks table but fired nowhere in the code"
 done < <(comm -13 <(printf '%s\n' "$HOOKS_IN_CODE") <(printf '%s\n' "$HOOKS_IN_DOC"))
 
 # --- 4. counts the docs state in prose -----------------------------------------------------------
@@ -188,4 +200,4 @@ if (( FINDINGS > 0 )); then
     exit 1
 fi
 
-log "check-docs-drift: paths, line references, the hooks table and the stated counts all match the tree."
+log "check-docs-drift: byte budget, links, paths, line references, hooks and invariant counts passed."

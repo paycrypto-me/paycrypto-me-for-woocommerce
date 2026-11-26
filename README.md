@@ -47,7 +47,7 @@ Never enter a wallet seed or private key into this plugin. For the data stored b
 
 ## Development
 
-The distributable WordPress plugin lives in `src/trunk`. See the [development workflow](AGENTS.md#development-workflow) for test selection and the [release guide](docs/GUIDE-RELEASE.md) for packaging and publication.
+The distributable WordPress plugin lives in `src/trunk`. See the [development workflow](docs/GUIDE-QA.md) for test selection and the [release guide](docs/GUIDE-RELEASE.md) for packaging and publication.
 
 The Base plugin also exposes a versioned payment-status projection contract for the separate Pro
 add-on. It publishes capability discovery and an atomic, invoice-identified Lightning status
@@ -58,7 +58,7 @@ Enable logging in the gateway settings and inspect events under **WooCommerce â†
 
 ## Contributing
 
-Bug reports, feature requests, and pull requests are welcome through this GitHub repository. Please include clear reproduction steps and tests where appropriate.
+Bug reports, feature requests, and pull requests are welcome through this GitHub repository. Write repository documentation in English. For bug reports and fixes, include reproduction steps and tests where appropriate.
 
 ## Support
 

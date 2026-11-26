@@ -1,148 +1,48 @@
-# [GUIDE] Mudando o schema das tabelas custom (bump de `DB_VERSION`)
+# [GUIDE] Database schema, locks and migrations
 
-> **Nota de origem:** este guia foi escrito em 2026-08-27, junto com o mecanismo que ele descreve
-> (`DbInstaller::is_current()`, o lock de instalação, a trilha `schema-tests.sh`), a partir da
-> execução de [docs/archive/DONE-SCHEMA-UPGRADE-AND-STATIC-RECORDS.md](./archive/DONE-SCHEMA-UPGRADE-AND-STATIC-RECORDS.md)
-> (arquivado/gitignored, pode estar ausente no seu checkout). **O primeiro bump real de
-> `DB_VERSION` foi validado com a remoção das colunas legadas do On-Chain.** Se um passo futuro se
-> provar incompleto ou desnecessário, **corrija este documento junto com o seu PR**, não só o código.
+This guide covers DDL, `DbInstaller`, table and wallet locks, and payment tables. Use the [QA matrix](GUIDE-QA.md#verification-matrix) for execution commands and evidence.
 
-Leia primeiro [AGENTS.md § "Schema lifecycle and what `dbDelta()` will not do for you"](../AGENTS.md)
-— este guia é o "como fazer", aquele é o "por que funciona assim". Em especial, os fatos F1–F4
-sobre o que `dbDelta()` silenciosamente ignora (nullability, remoção de coluna/índice, duas colunas
-na mesma linha) não estão repetidos aqui.
+## Tables and installation lifecycle
 
-## Quando este guia se aplica
+All four tables use the site's WordPress prefix. The activators define their names and `DbInstaller::tables()` exposes them.
 
-- Adicionar uma coluna ou tabela nova.
-- Mudar o tipo de uma coluna existente.
-- Qualquer coisa que `dbDelta()` **não** faz sozinho (F1/F4 no AGENTS.md): remover coluna/índice,
-  mudar nullability, renomear, fazer backfill de dado. Para esses casos, ver a seção "Se `dbDelta`
-  não resolve sozinho" abaixo.
+| Table | Identity and data |
+|---|---|
+| `paycrypto_me_bitcoin_wallet_xpubkeys` | Wallet ID, xPub and network. |
+| `paycrypto_me_bitcoin_derivation_indexes` | Composite primary key on derivation index and wallet ID. |
+| `paycrypto_me_bitcoin_transactions_data` | Order, address, index and wallet. Fixed-address payments store `WALLET_ID_STATIC_ADDRESS` (0) in both references. A `LEFT JOIN` preserves these rows on read. |
+| `paycrypto_me_lightning_invoices` | Order, node type, invoice ID, BOLT11, status, expiry and amount in sats. |
 
-Não se aplica a: mudar uma `option` do WordPress (sem `dbDelta` envolvido), ou qualquer coisa que não
-toque as 4 tabelas custom listadas em `AGENTS.md` § "Custom DB tables".
+Activation forces a check and repair. `admin_init` and `upgrader_process_complete` handle upgrades. The `paycrypto_me_db_health_check` transient throttles missing-table checks. Checkout may precede the upgrade, so the payment path checks `DbInstaller::is_current()` before relying on new structure. Run `dbDelta()`, then imperative migrations. Store the version only after all postconditions hold. Inspect `paycrypto_me_db_activation_errors` and the `paycrypto_me_db_upgrade_retry` transient when testing failures, waiting and recovery.
 
-## Passo a passo
+`AdvisoryLockName` uses the selected database, operation, physical table and, for derivation, wallet ID. In `finally`, the caller releases the same name it acquired. A timeout indicates contention. Diagnose SQL errors and invalid identities separately. Cover shared tables, different prefixes and databases, independent wallets with the same numeric ID and blog switching. Drain workers before the [transition from 0.6.0](GUIDE-RELEASE.md#installation-and-derivation-lock-transition-after-060).
 
-### 1. Mude o `CREATE TABLE` no `*GatewayActivate` certo
+## Observed dbDelta behavior
 
-`PayCryptoMeBitcoinGatewayActivate` ou `PayCryptoMeLightningGatewayActivate`
-(`includes/services/class-paycrypto-me-*-gateway-activate.php`). Regras que já valem hoje e
-continuam valendo:
+| Case | Consequence |
+|---|---|
+| F1. Existing column nullability changes | An upgrade can leave the change pending with an empty `last_error`. Test nullability on new columns with existing rows separately. |
+| F2. New column or type change | Can generate an `ALTER`. Verify the result and compatibility with existing data. |
+| F3. Two columns on one line | The parser may ignore the second column. Use one definition per line and parser-compatible syntax. |
+| F4. Removal, rename or backfill | Use an imperative migration. Preserve payment records. The version 2 migration removed only the legacy confirmation fields within its approved scope. |
+| F5. Failed statement followed by a successful one | `wpdb::query()` clears the error before the next statement. `DbDeltaRunner` checks the final error and runs `dbDelta($sql, false)` to detect pending table, column or index creation. Inspect `SHOW COLUMNS` and `SHOW INDEX` for changes to type, default or nullability. |
 
-- **Uma coluna por linha.** `dbDelta()` parseia linha a linha (F3) — duas na mesma linha e a
-  segunda é descartada sem erro.
-- **Sem `IF NOT EXISTS`** — quebra a extração do nome da tabela que `dbDelta()` faz via regex.
-- **Sem `FOREIGN KEY`** — `dbDelta()` não gerencia FK; use PK composta ou aplicação.
-- Coluna nova que precisa aceitar valor ausente em linhas antigas: **não** declare `NULL` se a
-  coluna vai existir numa tabela que já tem linhas em produção — pense num valor sentinela como
-  `WALLET_ID_STATIC_ADDRESS` fez, ou aceite que ela só é preenchida daqui pra frente.
-- **Um bump que toca mais de uma coisa na mesma tabela** (ex. uma coluna nova *e* um índice novo)
-  faz `dbDelta()` emitir várias `ALTER` na mesma chamada — colunas antes de índices. `$wpdb->last_error`
-  só reflete a **última** statement executada (F5 no AGENTS.md), então uma coluna que falha seguida
-  de um índice que funciona deixa `last_error` vazio mesmo com a coluna ausente. Isso não é mais um
-  ponto cego silencioso: `DbDeltaRunner` (usado por ambos os `*GatewayActivate::activate()`) roda um
-  segundo cheque — `dbDelta($sql, false)` (dry run) — depois de um `last_error` limpo, e trata
-  qualquer `Created table `/`Added column `/`Added index ` restante como falha. Não precisa fazer
-  nada especial por causa disso; só saiba que é esse mecanismo, e não `last_error` sozinho, que pega
-  esse caso no passo 4 abaixo.
+Activators use `CREATE TABLE` without `IF NOT EXISTS` or foreign keys. `DbDeltaErrorVisibilityTest` demonstrates F5 on real MySQL. For a different engine, reproduce the discrepancy and test the structural postcondition before changing the classifier.
 
-### 2. Bump `DbInstaller::DB_VERSION`
+## Implement a schema change
 
-Em `includes/services/class-db-installer.php`. É uma string comparada via `version_compare()` —
-incrementos simples (`'1'` → `'2'`) funcionam. Este é o único gatilho que faz `maybe_upgrade()`
-rodar os activators de novo num site já instalado.
+1. Define the final structure, data to preserve, baseline version, behavior before the upgrade hook and rollback path. Discarding old operational state requires explicit scope. Include identities, settings and payment data in validation.
+2. Update the activator and increment `DbInstaller::DB_VERSION` for a schema change. Order `DbSchemaMigrations` steps by target version. Each step checks whether work is due and verifies its result. Re-running after a partial failure must converge. Older code must preserve newer recorded versions. For large tables, measure DDL cost on representative data and document the maintenance window.
+3. Generate `src/trunk/tests/schema/v<N>.sql` against a disposable database using the new code. Preserve published snapshots. The suite discovers snapshots automatically.
+4. Exercise clean installation, replay of every snapshot, re-entry and recovery from partial failure. `SchemaUpgradeTest` compares column and index fingerprints independently of DDL order. Add a negative control for the intended column, type, index or postcondition. Cover existing rows and order retries when payment behavior depends on the schema.
+5. For release, switch from the published ZIP to the final ZIP and exercise applicable rollback. Compare rows, options and metadata **before** retrying. Verify the retry reuses the payment reference and a new charge persists in the expected format. Record lasting contracts here and observable effects in the changelog.
 
-### 3. Gere o snapshot congelado **depois** de mudar o código, não antes
+From the repository root, with a disposable WordPress installation running in Docker Compose:
 
 ```bash
-docker compose up -d wordpress
 docker compose exec -T -w /var/www/html/wp-content/plugins/paycrypto-me-for-woocommerce \
   wordpress php tests/bin/dump-schema.php
-```
-
-Sem argumento, usa `DbInstaller::DB_VERSION` do código — então isso só funciona **depois** dos
-passos 1 e 2. O script recusa sobrescrever um `v<N>.sql` existente de propósito (snapshot descreve
-schema que já foi publicado); se precisar mesmo regenerar um antigo, apague o arquivo primeiro e
-saiba que está reescrevendo um registro histórico.
-
-O snapshot vira `src/trunk/tests/schema/v<N>.sql` e é o que o teste de convergência
-(`test_upgrade_from_each_frozen_version_converges_to_a_fresh_install`, em
-`tests/integration/SchemaUpgradeTest.php`) varre automaticamente a partir de agora — nenhum passo
-extra de registro é necessário além de o arquivo existir.
-
-### 4. Rode a trilha de schema
-
-```bash
 ./scripts/schema-tests.sh
 ```
 
-Isso instala **cada** snapshot congelado (incluindo o que você acabou de gerar) e roda
-`DbInstaller::install()` por cima, comparando o resultado com uma instalação nova. Se falhar, é
-porque a mudança do passo 1 não faz o que você imagina que faz — volte para os fatos F1–F5 no
-AGENTS.md antes de assumir que é bug no teste.
-
-Além do teste de convergência (fingerprint de `SHOW COLUMNS`/`SHOW INDEX`), a trilha também roda a
-asserção "nada pendente" (`SchemaUpgradeTest::assert_nothing_pending()`, chamada tanto logo após uma
-instalação nova quanto depois de cada upgrade a partir de um snapshot congelado): ela re-executa os
-dois `*GatewayActivate::activate()` — que, via `DbDeltaRunner`, fazem o próprio `dbDelta($sql, false)`
-dry run — e falha se qualquer um reportar erro. Essa é a garantia permanente de que o dry run do
-`DbDeltaRunner` concorda com "nada pendente" para as nossas 4 tabelas, na engine que está rodando o
-teste. Se ela um dia falhar numa engine diferente (MariaDB, uma versão nova de MySQL), **não**
-alargue o filtro do `DbDeltaRunner` para fazer passar — a saída documentada nesse cenário é um cheque
-de pós-condição estrutural (parsear nomes de coluna/`KEY` do `CREATE TABLE` e checar via
-`SHOW COLUMNS`/`SHOW INDEX`), não relaxar o que conta como "ainda ausente".
-
-**Vale rodar um controle negativo pelo menos uma vez** (foi assim que esta trilha foi validada):
-quebre a mudança de propósito (ex. declare a coluna nova `NULL` quando devia ser `NOT NULL`) e
-confirme que o teste falha **nomeando a coluna certa**. Reverta depois. Sem isso, um teste de
-convergência que nunca falhou é indistinguível de um que não consegue falhar.
-
-### 5. Proteja qualquer caminho de pagamento que dependa da coluna/tabela nova
-
-Se código em `includes/processors/` ou `includes/services/` vai ler a coluna nova, ele pode rodar
-num request onde o schema ainda não foi upgradeado (site que acabou de atualizar o plugin mas cujo
-`admin_init`/`upgrader_process_complete` ainda não disparou — ver AGENTS.md). Consulte
-`DbInstaller::is_current()` e degrade em vez de assumir que a coluna existe.
-
-### 6. Atualize a documentação
-
-- `AGENTS.md` § "Custom DB tables" — se mudou o formato de uma tabela existente ou adicionou uma
-  nova, a lista de colunas ali precisa refletir isso.
-- `AGENTS.md` § "Schema lifecycle and what `dbDelta()` will not do for you" — só se o mecanismo em
-  si mudou (não para toda mudança de schema; a maioria só toca a seção "Custom DB tables" acima).
-- `scripts/check-docs-drift.sh` — a contagem de "custom database tables" (hoje `4`) é verificada
-  automaticamente contra `grep -c '"CREATE TABLE '`; se você adicionou uma tabela, `./scripts/check-docs-drift.sh`
-  vai pegar a divergência sozinho — não precisa lembrar de atualizar o número à mão, só rodar o
-  script e corrigir o que ele apontar.
-- `src/trunk/CHANGELOG.md` — só se a mudança tiver efeito observável pelo usuário (nova
-  funcionalidade habilitada pela coluna nova, por exemplo). Uma coluna adicionada só para uso
-  interno futuro não precisa de changelog.
-
-### 7. Verificação de release
-
-Nenhuma mudança no `release.sh` é necessária — ele já roda `check-docs-drift.sh` e
-`check-platform-pin.sh` automaticamente (não dependem do stack de dev), e `schema-tests.sh` já é um
-item manual do checklist em [GUIDE-RELEASE.md](./GUIDE-RELEASE.md) § "Trilha de schema", no mesmo
-molde do smoke de host mínimo. Se este guia e o `GUIDE-RELEASE.md` divergirem sobre isso no futuro,
-o `GUIDE-RELEASE.md` é a fonte de verdade para o que entra no checklist de release.
-
-## Se `dbDelta` não resolve sozinho
-
-Remoção de coluna, rename e backfill continuam fora do `dbDelta()` (F4 no AGENTS.md), mas o executor
-de migrations imperativas agora existe. `dbDelta` roda primeiro como baseline declarativa; cada
-passo é versionado, idempotente e possui verificação de pós-condição. `install()` só grava a versão
-quando todas as etapas verificam sucesso. A primeira migration remove as colunas legadas de
-confirmação on-chain da versão 1 para a versão 2.
-
-## Coisas que este guia provavelmente não previu
-
-Como nenhum bump real aconteceu ainda, é bem possível que faltem aqui: o que fazer se o snapshot
-gerado no passo 3 divergir do que você esperava (collation/engine diferente entre ambientes?), como
-lidar com uma coluna que precisa de índice em tabela grande num site com muitos pedidos, e se o
-checklist do `GUIDE-RELEASE.md` precisa de um passo extra quando `DB_VERSION` muda numa release
-específica (hoje ele só diz "se `DB_VERSION` mudou, gere o snapshot" — não detalha nada sobre
-migração em produção fora do que `DbInstaller::maybe_upgrade()` já faz sozinho). Trate a ausência
-dessas respostas como sinal de que ainda não foram necessárias, não como garantia de que não vão
-ser.
+For Podman, use the lab and integration commands in the [QA guide](GUIDE-QA.md). To generate a snapshot, run the same PHP script inside the disposable WordPress container with `src/trunk` mounted.

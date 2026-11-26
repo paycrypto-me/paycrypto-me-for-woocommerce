@@ -35,17 +35,14 @@ error() { echo -e "${RED}[FAIL]${NC} $*" >&2; }
 
 COMPOSE_SERVICE="wordpress"
 PLUGIN_DIR_IN_CONTAINER="/var/www/html/wp-content/plugins/paycrypto-me-for-woocommerce"
-SCRATCH_SUBDIR=".smoke-minimal-host-tmp"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SCRATCH_DIR="$REPO_ROOT/src/trunk/$SCRATCH_SUBDIR"
 
 FAILURES=0
 
 cleanup() {
     rm -rf "$SCRATCH_DIR"
 }
-trap cleanup EXIT
 
 # Compose v2 ships as the `docker compose` plugin, but plenty of hosts only have the standalone
 # `docker-compose` binary (also v2 nowadays).
@@ -69,7 +66,10 @@ if [[ -z "${QA_PODMAN_WORDPRESS:-}" ]] && ! "${DOCKER_COMPOSE[@]}" ps --status r
     exit 1
 fi
 
-mkdir -p "$SCRATCH_DIR"
+SCRATCH_DIR="$(mktemp -d "$REPO_ROOT/src/trunk/.smoke-minimal-host-tmp.XXXXXX")"
+SCRATCH_SUBDIR="${SCRATCH_DIR##*/}"
+trap cleanup EXIT
+chmod 755 "$SCRATCH_DIR"
 
 write_check() {
     local filename="$1"
@@ -122,20 +122,33 @@ qr_check_body() {
     cat <<'PHP'
 $svc = new PayCryptoMe\WooCommerce\QrCodeService();
 $logo = \PayCryptoMe\WooCommerce\WC_PayCryptoMe::plugin_abspath() . 'assets/bitcoin-icon.png';
-$uri = $svc->generate_qr_code_data_uri('bitcoin:bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxxx', $logo);
-
-echo 'QR result: ' . (strlen($uri) === 0 ? 'empty (degraded gracefully)' : 'generated') . "\n";
+$reported = [];
+$uri = $svc->generate_qr_code_data_uri(
+    'bitcoin:bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxxx',
+    $logo,
+    [],
+    static function ($message, $level) use (&$reported): void { $reported[] = $level; }
+);
+$disabled = ini_get('disable_functions');
+if ($disabled === '') {
+    if (!str_starts_with($uri, 'data:image/png;base64,') || $reported !== []) {
+        throw new RuntimeException('QR positive control did not generate a PNG.');
+    }
+    echo "QR result: generated PNG\n";
+} else {
+    if ($uri !== '' || $reported !== ['error']) {
+        throw new RuntimeException('Expected empty QR and one diagnostic with ' . $disabled . ' unavailable.');
+    }
+    echo "QR result: degraded with a diagnostic\n";
+}
 PHP
 }
 
-write_check "gd.php" "$(qr_check_body)"
-run_check "GD missing" "imagecreatetruecolor" "gd.php"
-
-write_check "iconv.php" "$(qr_check_body)"
-run_check "iconv missing" "iconv" "iconv.php"
-
-write_check "fileinfo.php" "$(qr_check_body)"
-run_check "fileinfo missing" "mime_content_type" "fileinfo.php"
+write_check "qr.php" "$(qr_check_body)"
+run_check "QR positive control" "" "qr.php"
+run_check "GD missing" "imagecreatetruecolor" "qr.php"
+run_check "iconv missing" "iconv" "qr.php"
+run_check "fileinfo missing" "mime_content_type" "qr.php"
 
 # --- 5) Order-details page must still render the essentials (address, copy button) with
 #     GD missing — the QR block disappears, but the page itself must never fatal (C6). ---

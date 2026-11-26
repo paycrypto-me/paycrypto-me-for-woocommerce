@@ -109,12 +109,13 @@ wp-content/wp-cache-config.php
 
 # Development and testing
 debug-paycrypto.php
+/src/trunk/.smoke-minimal-host-tmp*/
 releases/*
 !releases/.gitkeep
 auth.json
 
 # Archived docs: already-executed plans/records moved out of the tracked docs/ index
-# (see AGENTS.md's "Context and guides" — "Executed and verified" group). Kept locally as a
+# (see docs/GUIDE-QA.md). Kept locally as a
 # convenience, deliberately not committed going forward, so cloning the repo fresh from here on
 # does not carry closed-out history forever. References to files under here must be written as
 # possibly-absent, never as "read this file" without a fallback.
