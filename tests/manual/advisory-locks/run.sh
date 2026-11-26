@@ -6,7 +6,7 @@ source_suite=1
 generate_candidate=1
 for arg in "$@"; do
     case "$arg" in
-        --integration-only|--parallel-suites) browser=0; generate_candidate=0 ;;
+        --first-wallet-only|--integration-only|--parallel-suites) browser=0; generate_candidate=0 ;;
         --upgrade-only) source_suite=0 ;;
         --candidate-zip|--candidate-zip=*) generate_candidate=0 ;;
         -h|--help) exec python3 tests/manual/advisory-locks/lab.py "$@" ;;

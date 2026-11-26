@@ -20,15 +20,57 @@ if ($operation === 'configure') {
     return;
 }
 $gateway = WC()->payment_gateways()->payment_gateways()[$id];
-if ($operation === 'create') {
+if (in_array($operation, ['create', 'prepare'], true)) {
     $order = wc_create_order(['customer_id' => get_user_by('login', 'buyer')->ID]);
     $order->set_billing_email('buyer@example.test');
     $order->add_product(wc_get_product((int) $argument));
     $order->set_payment_method($gateway);
     $order->calculate_totals();
     $order->save();
+    if ($operation === 'prepare') {
+        echo $order->get_id();
+        return;
+    }
 } else {
     $order = wc_get_order((int) $argument);
+}
+if ($operation === 'identity') {
+    echo wp_json_encode([
+        'method' => $order->get_payment_method(), 'status' => $order->get_status(),
+        'address' => $order->get_meta('_paycrypto_me_payment_address'),
+        'index' => $order->get_meta('_paycrypto_me_derivation_index'),
+    ]);
+    return;
+}
+if ($operation === 'race' || $operation === 'attempt') {
+    wc_load_cart();
+    if ($operation === 'race') {
+        global $wpdb;
+        $connection = (int) $wpdb->get_var('SELECT CONNECTION_ID()');
+        $table = preg_quote($wpdb->prefix . 'paycrypto_me_bitcoin_wallet_xpubkeys', '/');
+        add_filter('query', static function ($query) use ($table, $connection, $order) {
+            if (preg_match('/^\s*INSERT\s+INTO\s+`?' . $table . '`?\s*\(/i', $query)) {
+                echo 'READY ' . $order->get_id() . ' ' . $connection . PHP_EOL;
+                fflush(STDOUT);
+                if (fgets(STDIN) !== "release\n") {
+                    throw new RuntimeException('First-wallet coordinator disconnected.');
+                }
+            }
+            return $query;
+        });
+    }
+    $diagnostic = '';
+    add_filter('woocommerce_logger_log_message', static function ($message, $level, $context) use (&$diagnostic) {
+        if ($level === 'error' && ($context['source'] ?? '') === 'paycrypto_me') {
+            $diagnostic = $message;
+        }
+        return $message;
+    }, 10, 3);
+    $result = $gateway->process_payment($order->get_id());
+    echo wp_json_encode([
+        'result' => $result['result'], 'message' => $result['message'] ?? '', 'diagnostic' => $diagnostic,
+    ]);
+    return;
 }
 if ($operation === 'meta') {
     $values = [];

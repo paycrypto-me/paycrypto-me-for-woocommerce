@@ -184,7 +184,7 @@ class BitcoinPaymentProcessor extends AbstractPaymentProcessor
         }
 
         if (!$wallet_xpub_id = $this->db->get_wallet_xpubkey_id($xPub, $network)) {
-            $wallet_xpub_id = $this->db->insert_wallet_xpubkey($xPub, $network);
+            $wallet_xpub_id = $this->db->insert_or_get_wallet_xpubkey_id($xPub, $network);
         }
 
         if (!$wallet_xpub_id) {

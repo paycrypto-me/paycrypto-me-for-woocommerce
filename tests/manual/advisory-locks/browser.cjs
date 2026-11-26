@@ -27,8 +27,12 @@ async function main() {
     page.setDefaultTimeout(20000);
     try {
         await page.goto(origin + '/wp-login.php');
-        await page.locator('#user_login').fill(action === 'activate' ? 'qa' : 'buyer');
-        await page.locator('#user_pass').fill(process.env.QA_PASSWORD);
+        // WordPress can refocus the username field after load. Set the native inputs
+        // together so delayed focus cannot redirect the password into the username.
+        await page.locator('#loginform').evaluate((form, credentials) => {
+            form.querySelector('#user_login').value = credentials.login;
+            form.querySelector('#user_pass').value = credentials.password;
+        }, {login: action === 'activate' ? 'qa' : 'buyer', password: process.env.QA_PASSWORD});
         await Promise.all([page.waitForURL(url => !url.pathname.endsWith('/wp-login.php')), page.locator('#wp-submit').click()]);
         if (action === 'activate') {
             await page.goto(origin + '/wp-admin/plugins.php');
@@ -66,7 +70,9 @@ async function main() {
         });
         return {order: match[1], address: address.trim()};
     } catch (failure) {
-        await page.screenshot({path: path.join(process.env.QA_EVIDENCE, action + '-failure.png')});
+        if (new URL(page.url()).pathname !== '/wp-login.php') {
+            await page.screenshot({path: path.join(process.env.QA_EVIDENCE, action + '-failure.png')});
+        }
         throw failure;
     } finally {
         fs.writeFileSync(path.join(process.env.QA_EVIDENCE, action + '-' + new URL(origin).port + '-events.json'), JSON.stringify(trace));

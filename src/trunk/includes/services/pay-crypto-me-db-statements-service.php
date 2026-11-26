@@ -150,6 +150,30 @@ class PayCryptoMeDBStatementsService
 		return (int) $wpdb->insert_id;
 	}
 
+	/** Return the stored wallet ID even when a concurrent checkout inserted it first. */
+	public function insert_or_get_wallet_xpubkey_id(string $xpub, string $network): int|false
+	{
+		global $wpdb;
+
+		// LAST_INSERT_ID(id) returns the winning ID to this connection on a duplicate.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				'INSERT INTO %i (xpub, network) VALUES (%s, %s) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)',
+				$this->wallet_xpubkeys_table,
+				$xpub,
+				$network
+			)
+		);
+
+		// A duplicate can affect zero rows. Only false indicates a query failure.
+		if ($result === false) {
+			return false;
+		}
+
+		$id = (int) $wpdb->insert_id;
+		return $id > 0 ? $id : false;
+	}
+
 	public function reserve_derivation_index_for_wallet(int $wallet_xpubkeys_id, int $lock_timeout = 10)
 	{
 		global $wpdb;

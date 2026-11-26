@@ -309,9 +309,139 @@ def upgrade(db, base_zip, new_zip, base_version, *, mysql=None):
         (evidence / 'upgrade.json').write_text(json.dumps(summary, indent=2) + '\n')
 
 
+def first_wallet(site, mysql):
+    """Run only in a fresh disposable source store with the wp_ prefix."""
+    def payment(operation, argument):
+        value = wp(site, 'eval-file', '/qa/payment.php', operation, 'hd', str(argument))
+        return json.loads(value) if value else None
+
+    def sql(statement):
+        return output(*mysql, 'USE store_a; ' + statement)
+
+    wallets = 'wp_paycrypto_me_bitcoin_wallet_xpubkeys'
+    indexes = 'wp_paycrypto_me_bitcoin_derivation_indexes'
+    transactions = 'wp_paycrypto_me_bitcoin_transactions_data'
+
+    def snapshot():
+        return {
+            'wallets': sql(f'SELECT id,xpub,network FROM {wallets} ORDER BY id').splitlines(),
+            'indexes': sql(f'SELECT wallet_xpubkeys_id,derivation_index FROM {indexes} ORDER BY 1,2').splitlines(),
+            'payments': sql(f'SELECT order_id,id,wallet_xpubkeys_id,derivation_index_id,payment_address '
+                            f'FROM {transactions} ORDER BY order_id').splitlines(),
+        }
+
+    hashes = {}
+    for cls in ['BitcoinPaymentProcessor', 'PayCryptoMeDBStatementsService']:
+        filename = wp(site, 'eval', f'echo (new ReflectionClass("PayCryptoMe\\\\WooCommerce\\\\{cls}"))->getFileName();')
+        relative = pathlib.PurePosixPath(filename).relative_to(PLUGIN)
+        digest = output('podman', 'exec', site, 'sha256sum', filename).split()[0]
+        assert digest == hashlib.sha256((ROOT / 'src/trunk' / relative).read_bytes()).hexdigest()
+        hashes[str(relative)] = digest
+
+    vector = json.loads((ROOT / 'src/trunk/tests/vectors/bitcoin_addresses.json').read_text())[0]
+    expected = {item['index']: item['address'] for item in vector['addresses']}
+    assert wp(site, 'eval', 'echo (int)(extension_loaded("gmp") && extension_loaded("mysqli"));') == '1'
+    unique = sql(f"SHOW INDEX FROM {wallets} WHERE Key_name='unique_xpub_network'")
+    assert [(r.split('\t')[1], r.split('\t')[3:5]) for r in unique.splitlines()] == [
+        ('0', ['1', 'xpub']), ('0', ['2', 'network'])]
+    assert worker(site, 'setup', 1) == '1'  # A different wallet occupies the first ID.
+    payment('configure', 0)
+    product = worker(site, 'product')
+    orders = [payment('prepare', product) for _ in range(2)]
+    before = snapshot()
+    assert len(set(orders)) == 2 and len(before['wallets']) == 1
+    assert before['wallets'][0].split('\t')[1] != vector['xpub']
+    assert before['indexes'] == before['payments'] == []
+    report = {'source_sha256': hashes, 'ready': [], 'attempts': [], 'before': before}
+
+    def save():
+        (evidence / 'first-wallet.json').write_text(json.dumps(report, indent=2) + '\n')
+
+    processes = []
+    try:
+        for order in orders:
+            processes.append(subprocess.Popen(
+                ['podman', 'exec', '-i', site, 'wp', '--allow-root', 'eval-file',
+                 '/qa/payment.php', 'race', 'hd', str(order)],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
+        with selectors.DefaultSelector() as selector:
+            for proc, order in zip(processes, orders):
+                selector.register(proc.stdout, selectors.EVENT_READ, order)
+            deadline = time.monotonic() + 30
+            while selector.get_map():
+                events = selector.select(max(0, deadline - time.monotonic()))
+                assert events, 'Timed out waiting for both wallet INSERTs'
+                for key, _ in events:
+                    line = key.fileobj.readline().strip().split()
+                    assert line[:2] == ['READY', str(key.data)] and len(line) == 3, line
+                    report['ready'].append({'order': key.data, 'connection': int(line[2])})
+                    selector.unregister(key.fileobj)
+        assert len({event['connection'] for event in report['ready']}) == 2 and snapshot() == before
+        release = processes[::-1] if os.getenv('QA_FIRST_WALLET_REVERSE') == '1' else processes
+        report['release_order'] = [orders[processes.index(proc)] for proc in release]
+        for proc in release:
+            proc.stdin.write('release\n')
+            proc.stdin.flush()
+        for order, proc in zip(orders, processes):
+            stdout, stderr = proc.communicate(timeout=30)
+            assert proc.returncode == 0, stderr
+            report['attempts'].append({'order': order, **json.loads(stdout),
+                                       'duplicate_wallet': 'Duplicate entry' in stderr and 'unique_xpub_network' in stderr})
+    finally:
+        for proc in processes:
+            if proc.poll() is None:
+                proc.kill()
+            proc.wait()
+        report['after'] = snapshot()
+        save()
+
+    attempts = report['attempts']
+    assert all(a['result'] == 'success' and not a['duplicate_wallet'] for a in attempts), attempts
+    after = report['after']
+    assert len(after['wallets']) == 2 and after['wallets'][0] == before['wallets'][0]
+    wallet, xpub, network = after['wallets'][1].split('\t')
+    assert (xpub, network) == (vector['xpub'], vector['network']) and int(wallet) > 1
+    assert after['indexes'] == [f'{wallet}\t0', f'{wallet}\t1']
+    assert len(after['payments']) == 2
+    identities = {}
+    for row in after['payments']:
+        order, _, row_wallet, index, address = row.split('\t')
+        assert row_wallet == wallet and address == expected[int(index)]
+        identity = payment('identity', order)
+        assert identity == {'method': 'paycrypto_me', 'status': 'pending', 'address': address, 'index': index}
+        identities[int(order)] = identity
+    assert set(identities) == set(orders) and {v['index'] for v in identities.values()} == {'0', '1'}
+    for order in orders:
+        assert payment('attempt', order)['result'] == 'success'
+        assert payment('identity', order) == identities[order]
+    assert snapshot() == after
+    report['retried'] = identities
+
+    payment('configure', 2)  # Unused third wallet.
+    wp(site, 'option', 'patch', 'insert', 'woocommerce_paycrypto_me_settings', 'debug_log', 'yes')
+    order = payment('prepare', product)
+    sql(f"CREATE TRIGGER qa_wallet_failure BEFORE INSERT ON {wallets} FOR EACH ROW "
+        "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='qa_first_wallet_failure'")
+    try:
+        attempt = subprocess.run(['podman', 'exec', site, 'wp', '--allow-root', 'eval-file',
+                                  '/qa/payment.php', 'attempt', 'hd', str(order)], capture_output=True, text=True, check=True)
+        failure = json.loads(attempt.stdout)
+        assert failure['result'] == 'failure' and failure['message'] and 'qa_first_wallet_failure' in attempt.stderr
+        assert f'Failed to persist wallet xPub for order #{order}' in failure['diagnostic'], failure
+        identity = payment('identity', order)
+        assert identity['address'] == identity['index'] == '' and snapshot() == after
+        report['write_failure'] = {'order': order, **failure}
+    finally:
+        sql('DROP TRIGGER qa_wallet_failure')
+    assert payment('attempt', order)['result'] == 'success'
+    report['recovered'] = payment('identity', order)
+    save()
+
+
 def main():
     parser = argparse.ArgumentParser()
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--first-wallet-only', action='store_true')
     mode.add_argument('--integration-only', action='store_true')
     mode.add_argument('--upgrade-only', action='store_true')
     mode.add_argument('--parallel-suites', action='store_true')
@@ -321,7 +451,7 @@ def main():
     args = parser.parse_args()
     if not __debug__:
         raise RuntimeError('Run Python with assertions enabled')
-    if args.integration_only or args.parallel_suites:
+    if args.first_wallet_only or args.integration_only or args.parallel_suites:
         if args.candidate_zip or args.baseline_zip:
             parser.error('ZIP inputs require a package run')
     else:
@@ -349,6 +479,10 @@ def main():
         a, _ = store(db, 'a', 'store_a', 'wp_')
         wp(a, 'plugin', 'activate', SLUG)
         record_versions(a, mysql)
+        if args.first_wallet_only or args.integration_only:
+            first_wallet(a, mysql)
+            if args.first_wallet_only:
+                return
         if args.parallel_suites:
             c, _ = store(db, 'c', 'store_a', 'other_')
             wp(c, 'plugin', 'activate', SLUG)
