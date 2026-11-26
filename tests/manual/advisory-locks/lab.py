@@ -5,12 +5,14 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import secrets
 import selectors
 import subprocess
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
+from zipfile import BadZipFile, ZipFile
 
 ROOT = pathlib.Path.cwd()
 QA = ROOT / 'tests/manual/advisory-locks'
@@ -59,13 +61,16 @@ def suite(site, config, label=''):
     with logfile.open('w') as log:
         run('podman', 'exec', '-w', PLUGIN, site, 'php', 'vendor/bin/phpunit', '-c', config,
             stdout=log, stderr=subprocess.STDOUT)
-    print(logfile.read_text().splitlines()[-1], flush=True)
+    summary = logfile.read_text().strip().rpartition('\n')[2]
+    if not re.search(r'\b(?:Assertions: [1-9]\d*\b|[1-9]\d* assertions?\))', summary):
+        raise RuntimeError(f'PHPUnit did not report any assertions. See {logfile}')
+    print(summary, flush=True)
 
 
-def store(db, suffix, database, prefix, source=None):
+def store(db, suffix, database, prefix, source=None, *, with_nodes=False):
     plugin_cache = os.getenv('QA_PLUGIN_CACHE')
     mounts = []
-    if source:
+    if with_nodes:
         fixture = ROOT / 'tests/manual/payment-status-projection/pcm-payment-status-qa/pcm-payment-status-qa.php'
         mounts += ['-v', str(fixture) + ':/qa-btcpay.php:ro',
                    '-v', str(QA / 'nodes.php') + ':/var/www/html/wp-content/mu-plugins/nodes.php:ro']
@@ -162,9 +167,54 @@ def browser(action, url, *args):
                           env=env, stdout=subprocess.PIPE, text=True).stdout)
 
 
-def upgrade(db):
-    base_zip = ROOT / 'releases' / (SLUG + '-0.6.0.zip')
-    new_zip = ROOT / 'releases/advisory-locks/candidate.zip'
+def package_version(archive):
+    with ZipFile(archive) as package:
+        readme = package.read(f'{SLUG}/readme.txt').decode()
+    for line in readme.splitlines():
+        if line.startswith('Stable tag:'):
+            return line.split(':', 1)[1].strip()
+    raise ValueError(f'Stable tag missing in {archive}')
+
+
+def verify_package(site, log_name):
+    result = wp(site, 'plugin', 'check', SLUG, '--format=json')
+    (evidence / log_name).write_text(result + '\n')
+    assert result == 'Success: Checks complete. No errors found.' or json.loads(result) == [], \
+        'Plugin Check reported findings'
+
+
+def record_versions(site, mysql):
+    versions = {
+        'git_base': output('git', 'rev-parse', 'HEAD'),
+        'mysql': output(*mysql, 'SELECT VERSION()'),
+        'wordpress': wp(site, 'core', 'version'),
+        'woocommerce': wp(site, 'plugin', 'get', 'woocommerce', '--field=version'),
+        'plugin_check': wp(site, 'plugin', 'get', 'plugin-check', '--field=version'),
+        'php': output('podman', 'exec', site, 'php', '-r', 'echo PHP_VERSION;'),
+    }
+    (evidence / 'versions.json').write_text(json.dumps(versions, indent=2) + '\n')
+
+
+def fresh_package(db, archive, version):
+    with tempfile.TemporaryDirectory() as directory:
+        run('unzip', '-qo', archive, '-d', directory)
+        site, _ = store(db, 'fresh', 'store_a', 'fresh_', pathlib.Path(directory) / SLUG)
+        wp(site, 'plugin', 'activate', SLUG)
+        actual_version = wp(site, 'plugin', 'get', SLUG, '--field=version')
+        assert actual_version == version, (version, actual_version)
+        schema_version, tables = json.loads(worker(site, 'verify'))
+        expected = wp(site, 'eval', 'echo \\PayCryptoMe\\WooCommerce\\DbInstaller::DB_VERSION;')
+        assert str(schema_version) == expected, (expected, schema_version)
+        assert tables and len(tables) == len(set(tables)), tables
+        verify_package(site, 'fresh-plugin-check.log')
+        (evidence / 'fresh-install.json').write_text(json.dumps({
+            'version': actual_version, 'schema_version': schema_version, 'tables': tables,
+            'candidate_sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
+        }, indent=2) + '\n')
+        run('podman', 'stop', site)
+
+
+def upgrade(db, base_zip, new_zip, base_version, *, mysql=None):
     with tempfile.TemporaryDirectory() as directory:
         root = pathlib.Path(directory)
         src = root / 'plugin'
@@ -175,7 +225,9 @@ def upgrade(db):
             run('rsync', '-a', '--delete', str(root / dest / SLUG) + '/', str(src) + '/')
 
         unpack(base_zip, 'old')
-        site, url = store(db, 'package', 'store_b', 'upgrade_', src)
+        site, url = store(db, 'package', 'store_b', 'upgrade_', src, with_nodes=True)
+        if mysql is not None:
+            record_versions(site, mysql)
         wp(site, 'plugin', 'activate', SLUG)
         product = worker(site, 'product')
 
@@ -224,13 +276,12 @@ def upgrade(db):
                 after = payment('retry', method, before['order'])
                 assert before == after, (method, 'historical payment changed')
             if dest == 'candidate':
-                for kind in ('install', 'wallet'):
-                    with held(site, kind):
-                        assert worker(site, 'legacy-check', 1, kind) == '1'
+                if base_version == '0.6.0':
+                    for kind in ('install', 'wallet'):
+                        with held(site, kind):
+                            assert worker(site, 'legacy-check', 1, kind) == '1'
                 first_use('candidate')
-                check = wp(site, 'plugin', 'check', SLUG, '--format=json')
-                (evidence / 'plugin-check.log').write_text(check + '\n')
-                assert check == 'Success: Checks complete. No errors found.' or json.loads(check) == [], 'Plugin Check reported findings'
+                verify_package(site, 'plugin-check.log')
                 payment('configure', 'hd', 0)
                 os.environ['QA_ORDER_URL'] = original['hd']['pay']
                 retried = browser('order-pay', url)
@@ -253,18 +304,34 @@ def upgrade(db):
         summary = {key: {'order': value['order'], 'status': value['status'],
                          'identifier': value['identifier']} for key, value in original.items()}
         summary['first_wallet_diagnostic'] = first_wallet
+        summary['baseline_sha256'] = hashlib.sha256(base_zip.read_bytes()).hexdigest()
         summary['candidate_sha256'] = hashlib.sha256(new_zip.read_bytes()).hexdigest()
         (evidence / 'upgrade.json').write_text(json.dumps(summary, indent=2) + '\n')
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--integration-only', action='store_true')
-    parser.add_argument('--upgrade-only', action='store_true')
-    parser.add_argument('--parallel-suites', action='store_true')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--integration-only', action='store_true')
+    mode.add_argument('--upgrade-only', action='store_true')
+    mode.add_argument('--parallel-suites', action='store_true')
+    parser.add_argument('--baseline-zip', type=pathlib.Path)
+    parser.add_argument('--candidate-zip', type=pathlib.Path,
+                        help='Validate this existing release ZIP without rebuilding it')
     args = parser.parse_args()
     if not __debug__:
         raise RuntimeError('Run Python with assertions enabled')
+    if args.integration_only or args.parallel_suites:
+        if args.candidate_zip or args.baseline_zip:
+            parser.error('ZIP inputs require a package run')
+    else:
+        baseline = (args.baseline_zip or ROOT / 'releases' / f'{SLUG}-0.6.0.zip').resolve()
+        package = (args.candidate_zip or ROOT / 'releases/advisory-locks/candidate.zip').resolve()
+        try:
+            base_version = package_version(baseline)
+            version = package_version(package)
+        except (OSError, BadZipFile, KeyError, ValueError) as problem:
+            parser.error(f'Unusable package input: {problem}')
     evidence.mkdir(parents=True)
     print(evidence, flush=True)
     run('podman', 'network', 'create', run_id)
@@ -275,18 +342,13 @@ def main():
         wait(lambda: ready(*mysql, 'SELECT 1'))
         run(*mysql, 'CREATE DATABASE store_a; CREATE DATABASE store_b')
         if args.upgrade_only:
-            upgrade(db)
+            upgrade(db, baseline, package, base_version, mysql=mysql)
+            if args.candidate_zip:
+                fresh_package(db, package, version)
             return
         a, _ = store(db, 'a', 'store_a', 'wp_')
         wp(a, 'plugin', 'activate', SLUG)
-        versions = {
-            'git_base': output('git', 'rev-parse', 'HEAD'),
-            'mysql': output(*mysql, 'SELECT VERSION()'), 'wordpress': wp(a, 'core', 'version'),
-            'woocommerce': wp(a, 'plugin', 'get', 'woocommerce', '--field=version'),
-            'plugin_check': wp(a, 'plugin', 'get', 'plugin-check', '--field=version'),
-            'php': output('podman', 'exec', a, 'php', '-r', 'echo PHP_VERSION;'),
-        }
-        (evidence / 'versions.json').write_text(json.dumps(versions, indent=2) + '\n')
+        record_versions(a, mysql)
         if args.parallel_suites:
             c, _ = store(db, 'c', 'store_a', 'other_')
             wp(c, 'plugin', 'activate', SLUG)
@@ -305,7 +367,9 @@ def main():
             with (evidence / 'docs.log').open('w') as log:
                 run('bash', 'scripts/check-docs-drift.sh', stdout=log, stderr=subprocess.STDOUT)
             candidate(a, db)
-            upgrade(db)
+            upgrade(db, baseline, package, base_version)
+            if args.candidate_zip:
+                fresh_package(db, package, version)
     finally:
         for name in reversed(containers):
             subprocess.run(['podman', 'rm', '-fv', name], stdout=subprocess.DEVNULL)
