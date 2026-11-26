@@ -53,6 +53,7 @@ Options:
   --git           Commit version bumps and create git tag
   --svn-prepare   Prepare the SVN working copy from the approved zip (no commit)
   --svn-publish   Same as --svn-prepare, then commit trunk/assets and create the SVN tag
+  --svn-publish-prepared  Publish the previously reviewed working copy
   --no-docker     Run build/test commands on host instead of Docker container
   --dry-run       Print steps without executing them
   -h|--help       Show this help
@@ -73,6 +74,7 @@ DO_ZIP=1
 DO_GIT=0
 DO_SVN_PREPARE=0
 DO_SVN_PUBLISH=0
+PREPARED_ONLY=0
 USE_DOCKER=1
 DRY_RUN=0
 
@@ -84,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --no-tests)  DO_TESTS=0; shift;;
     --no-zip)    DO_ZIP=0; shift;;
     --git)       DO_GIT=1; shift;;
+    --svn-publish-prepared) DO_SVN_PREPARE=1; DO_SVN_PUBLISH=1; PREPARED_ONLY=1; shift;;
     --svn-prepare) DO_SVN_PREPARE=1; shift;;
     --svn-publish) DO_SVN_PREPARE=1; DO_SVN_PUBLISH=1; shift;;
     --no-docker) USE_DOCKER=0; shift;;
@@ -506,7 +509,7 @@ fi
 # === SVN PUBLISH (WordPress.org) ===
 # A fonte da verdade é o ZIP APROVADO, nunca o BUILD_DIR efêmero.
 svn_publish() {
-  local payload bad left st rev existing wc_url out
+  local payload bad left st wc_url
   local containers=()
 
   mkdir -p "$ROOT_DIR/releases"
@@ -657,24 +660,33 @@ svn_publish() {
   if [[ $DO_SVN_PUBLISH -eq 0 ]]; then
     log "Nada commitado (gate de revisão)."
     log "Inspecionar:  (cd $SVN_DIR && svn status)"
-    log "Publicar:     $0 -v $VERSION -s $SLUG --no-build --no-tests --no-zip --svn-publish"
+    if [[ "$SVN_DIR" == "$ROOT_DIR/releases/svn-$VERSION/svn" && "$SLUG" == paycrypto-me-for-woocommerce ]]; then
+      log "After review, from the repository root: ./scripts/publish-wordpress $VERSION"
+    else
+      log "Publish with the reviewed SVN_WORKSPACE and SVN_URL. See docs/GUIDE-RELEASE.md."
+    fi
     return 0
   fi
 
+  svn_commit_and_tag
+}
+
+svn_commit_and_tag() {
+  local existing out rev
   # ---- 6. commit de trunk+assets, depois tag por cópia server-side --------
   # A tag NÃO pode existir: `svn help copy` — "If DST is an existing directory,
   # the sources will be added as children of DST" — então re-taggear criaria
   # tags/$VERSION/trunk/ silenciosamente em vez de falhar. Capturar antes, para
   # que uma falha do `svn ls` aborte em vez de ser engolida pelo exit do grep.
   existing="$(svn ls "$SVN_URL/tags/" "${SVN_RO[@]}")"
-  if printf '%s\n' "$existing" | grep -qx "${VERSION}/"; then
+  if printf '%s\n' "$existing" | grep -Fxq "${VERSION}/"; then
     error "tags/$VERSION já existe em $SVN_URL."
     error "Tags do WP.org são imutáveis por convenção — bumpe a versão e rode de novo."
     return 1
   fi
 
   step "Commitando trunk/ + assets/"
-  out="$(LC_ALL=C svn commit "$SVN_DIR" -m "Release $VERSION" "${SVN_RW[@]}" | tee /dev/stderr)"
+  out="$(LC_ALL=C svn commit "$SVN_DIR/trunk" "$SVN_DIR/assets" -m "Release $VERSION" "${SVN_RW[@]}" | tee /dev/stderr)"
   rev="$(sed -n 's/^Committed revision \([0-9]\{1,\}\)\.$/\1/p' <<<"$out" | tail -n1)"
   if [[ -z "$rev" ]]; then
     # Nada a commitar — acontece ao re-rodar depois de um `svn copy` que falhou.
@@ -746,6 +758,31 @@ if [[ $DO_SVN_PREPARE -eq 1 ]]; then
     step "[dry-run] unzip $ZIP_PATH -> $SVN_STAGE; rsync --delete -> trunk/ e assets/"
     step "[dry-run] svn rm (missing) / svn add --force --no-ignore; gate de revisão"
     step "[dry-run] svn commit + svn copy $SVN_URL/trunk@REV -> tags/$VERSION"
+  elif (( PREPARED_ONLY )); then
+    [[ -s "$ZIP_PATH.sha256" ]] || { error "Missing approved ZIP checksum."; exit 1; }
+    for part in trunk assets; do
+      [[ "$(svn info --show-item url "$SVN_DIR/$part")" == "$SVN_URL/$part" ]] || {
+        error "Unexpected working copy destination for $part."; exit 1;
+      }
+    done
+    # A server-side addition can be missing locally even if a commit would succeed.
+    changes="$(LC_ALL=C svn status --show-updates "$SVN_DIR/trunk" "$SVN_DIR/assets" "${SVN_RO[@]}")"
+    if awk 'substr($0,9,1) == "*" || substr($0,5,1) == "S" {found=1} END {exit !found}' <<<"$changes"; then
+      error "Stale or switched working copy. Prepare and review again."; exit 1
+    fi
+    # Export WORKING so unversioned files cannot make an incomplete commit look correct.
+    verify_dir="$(mktemp -d)"
+    trap 'rm -rf "$verify_dir"' EXIT
+    for part in trunk assets; do
+      svn export -q --ignore-externals "$SVN_DIR/$part" "$verify_dir/$part"
+    done
+    python3 "$ROOT_DIR/scripts/check-release-zip.py" "$VERSION" "$ZIP_PATH" --compare "$verify_dir/trunk"
+    diff -qr "$ASSETS_SRC" "$verify_dir/assets"
+    if [[ -z "$(svn status -q "$SVN_DIR/trunk" "$SVN_DIR/assets")" ]] &&
+       ! [[ "$(svnversion "$SVN_DIR/trunk")" =~ ^[0-9]+$ ]]; then
+      error "Mixed working copy after a partial publication. Prepare and review again."; exit 1
+    fi
+    svn_commit_and_tag
   else
     svn_publish
   fi

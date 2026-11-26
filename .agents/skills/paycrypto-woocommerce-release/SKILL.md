@@ -1,0 +1,13 @@
+---
+name: paycrypto-woocommerce-release
+description: Prepare, validate, hand off and verify a PayCrypto.Me for WooCommerce plugin release after merge, or resume a partially completed WordPress.org release.
+---
+
+Start at the [release runbook](../../../docs/GUIDE-RELEASE.md). Determine the starting point from the merged SHA, remote main and tags, working tree, SVN history, directory API and existing ZIP evidence. An existing matching tag or a maintainer reporting publication is a reason to verify public files before attempting another write.
+
+1. Choose the release increment from the merged changes. Update both English changelogs and the upgrade notice. Preserve unrelated local edits. Use the documented Podman wrapper or Compose build path and review the resulting manifest and lockfile changes.
+2. Build the ZIP once, freeze its SHA-256 and run the [QA matrix](../../../docs/GUIDE-QA.md#verification-matrix) against the relevant failure boundary and the actual artifact. Record outcomes and skips. Confirm clean install, upgrade, rollback and Plugin Check. Reuse evidence only when it identifies the same tested content.
+3. Prepare SVN in the dedicated releases/svn-VERSION workspace. Compare trunk against the ZIP, review the full SVN status and directory artwork, and confirm the destination and tag availability. Check the operator's launcher dependencies on this host. Use Bash for shell orchestration and the documented tools image for SVN. If Podman or the image is unavailable, verify the host SVN tools or provision the equivalent image before handoff.
+4. Commit the reviewed release and annotate the tested commit. Complete the authorized GitHub branch or push flow and verify the remote commit and peeled tag. Give the operator only the executable invocation from the repository root, substituting the actual version in `./scripts/publish-wordpress X.Y.Z`. It uses the reviewed working copy and prompts for the SVN credential in the interactive terminal.
+5. Resume after the operator runs the command. On an interrupted commit or tag copy, inspect remote revisions and use the runbook's partial-publication procedure before retrying. Once SVN matches, check the official API and compare every member of the public ZIP with the approved ZIP. Recheck propagation delays. Record the revisions, time, SHA and member count and update the publication records under the existing Git authorization.
+6. When the task includes reflecting the release on the landing page, locate the landing repository and follow its paycrypto-plugin-release skill using the confirmed public release. Apply the site's own deployment scope.

@@ -22,7 +22,7 @@ PHP namespace `PayCryptoMe\WooCommerce`.
 | Composer, PHP compatibility or crypto dependencies | [Dependencies](docs/GUIDE-DEPENDENCIES.md) |
 | Tables, migrations, advisory locks or install and repair | [Schema and storage](docs/GUIDE-DB-SCHEMA-UPGRADE.md) |
 | Unit, MySQL, browser, audit evidence or maintaining docs | [QA and documentation](docs/GUIDE-QA.md) |
-| Version bump, package, Git tags or WordPress.org SVN | [Release](docs/GUIDE-RELEASE.md) |
+| Version bump, package, Git tags or WordPress.org SVN | [Release skill](.agents/skills/paycrypto-woocommerce-release/SKILL.md), [runbook](docs/GUIDE-RELEASE.md) |
 | Adding a payment method | [Add a gateway](docs/GUIDE-ADD-NEW-GATEWAY.md) |
 | Translatable strings or catalogs | [i18n conventions](docs/GUIDE-I18N-CONVENTIONS.md), [translations](docs/GUIDE-TRANSLATION.md) |
 | WordPress.org artwork or the admin donation card | [Directory branding](docs/GUIDE-DIRECTORY-BRANDING.md), [donation branding](docs/GUIDE-DONATION-BRANDING.md) |

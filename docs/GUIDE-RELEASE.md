@@ -84,15 +84,10 @@ git ls-remote origin refs/heads/main 'refs/tags/v0.6.2^{}'
 Give the operator the publish command, approved ZIP and reviewed staging location. Authenticate in the interactive terminal with a committer account and its WordPress.org SVN-specific password. Set `SVN_USER` to override the default username. Keep passwords out of command arguments, history, logs and comments. [WordPress.org SVN handbook](https://developer.wordpress.org/plugins/wordpress-org/how-to-use-subversion/)
 
 ```sh
-bash -c 'cd releases && sha256sum -c paycrypto-me-for-woocommerce-0.6.2.zip.sha256' &&
-podman run --rm -it -v "$PWD:/repo" -w /repo \
-  -e SVN_WORKSPACE=/repo/releases/svn-0.6.2 \
-  --entrypoint bash localhost/paycrypto-plugin-svn-tools:0.4.3 \
-  scripts/release.sh -v 0.6.2 -s paycrypto-me-for-woocommerce \
-  --no-build --no-tests --no-zip --no-docker --svn-publish
+./scripts/publish-wordpress 0.6.2
 ```
 
-With host SVN, invoke `scripts/release.sh` through Bash with the same flags and an absolute `SVN_WORKSPACE`. Prepare and publish verify the checksum when the companion `.sha256` file exists.
+Run this executable from the repository root in fish or Bash. It selects the Podman SVN image when available and otherwise uses local Bash, SVN, svnversion, unzip, rsync, sha256sum, diff and Python 3. Set `SVN_TOOLS_IMAGE` for an equivalent local image. The agent prepares the working copy and checksum before handoff. The launcher verifies the versioned payload against the frozen ZIP and the artwork against source immediately before the credentialed commit. For a stale working copy, repeat preparation and review before handoff.
 
 ### Recover a partial publication
 
