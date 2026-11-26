@@ -16,6 +16,12 @@ bash tests/manual/advisory-locks/run.sh --upgrade-only \
 
 The lab records the candidate SHA-256 with clean-install and upgrade evidence. Package-only mode uses the production ZIPs and Playwright. For the full run, install development dependencies with `composer install` in `src/trunk` and omit `--upgrade-only`. The runner regenerates the development classmap and adds source suites and browser checkout. See the [QA matrix](../../../docs/GUIDE-QA.md#verification-matrix).
 
+## Concurrent first use of a wallet (issue #2)
+
+Run `bash tests/manual/advisory-locks/run.sh --first-wallet-only` with development dependencies installed. The coordinator holds two distinct WP-CLI checkouts immediately before their wallet writes. An independent SQL connection verifies the initial state, shared wallet ID, index/address pairs and retry stability. A separate checkout exercises a real write failure and recovery. The runner saves the loaded source hashes, barrier events, order IDs and database snapshots in `first-wallet.json` under its printed evidence directory. Set `QA_FIRST_WALLET_REVERSE=1` to reverse the release order in a fresh run.
+
+The integration-only mode includes this regression. The upgrade runner's simultaneous first purchases remain a historical package diagnostic.
+
 ## Reproduce the original pre-release investigation
 
 The default fixture builder targets the pre-bump source with Composer manifests matching 0.6.0. On that checkout, install development dependencies, prepare the browser and place the official ZIP at `releases/paycrypto-me-for-woocommerce-0.6.0.zip`. Run:

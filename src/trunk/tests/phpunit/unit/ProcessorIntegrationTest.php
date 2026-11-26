@@ -59,7 +59,7 @@ class ProcessorIntegrationTest extends TestCase
         $dbStub = new class extends \PayCryptoMe\WooCommerce\PayCryptoMeDBStatementsService {
             public function get_by_order_id(int $order_id): ?array { return null; }
             public function get_wallet_xpubkey_id(string $xpub, string $network): ?int { return null; }
-            public function insert_wallet_xpubkey(string $xpub, string $network): int { return 1; }
+            public function insert_or_get_wallet_xpubkey_id(string $xpub, string $network): int { return 1; }
             public function reserve_derivation_index_for_wallet(int $wallet_xpubkeys_id, int $lock_timeout = 10) { return 0; }
             public function insert_address(int $order_id, int $derivation_index, string $payment_address, int $wallet_xpub_id): bool { return true; }
         };

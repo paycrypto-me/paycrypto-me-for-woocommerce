@@ -60,6 +60,7 @@ Namespace: `PayCryptoMe\WooCommerce`. Autoloaded via Composer classmap from `inc
 4. `BitcoinPaymentProcessor::process()` (split into `resolve_bitcoin_network()` → `resolve_derived_address()` → `build_payment_uri()`):
    - Static address in `network_identifier` → uses it directly
    - account-level xPub/ypub/zpub/tpub/upub/vpub at BIP32 depth 3 → `BitcoinAddressService::generate_address_from_xPub()` with an auto-incremented non-hardened derivation index; the gateway derives the relative `0/index` path and rejects indexes above `2147483647`
+   - On first use of an extended key, concurrent checkouts obtain the same wallet ID through the unique (xPub, network) pair. Each order then reserves its own index for that wallet. A failed wallet write stops checkout before reservation.
    - Index reservation uses `GET_LOCK` / `RELEASE_LOCK` for atomicity
    - Persists via `PayCryptoMeDBStatementsService`
    - An order that already has a row (checkout retry, `order-pay`) reuses the address on file

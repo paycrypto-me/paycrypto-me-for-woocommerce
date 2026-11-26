@@ -24,7 +24,7 @@ class FakeWPDB
             return $query;
         }
         // Use vsprintf to expand %s/%d placeholders for test purposes
-        return vsprintf($query, $args);
+        return vsprintf(str_replace('%i', '%s', $query), $args);
     }
 
     public ?array $order_row_result = null;
@@ -98,10 +98,12 @@ class FakeWPDB
         return 1;
     }
 
+    public $query_result = true;
+
     public function query($query)
     {
         $this->last_query = $query;
-        return true;
+        return $this->query_result;
     }
 }
 
@@ -124,6 +126,26 @@ class PayCryptoMeDBStatementsServiceTest extends TestCase
 
         $this->assertIsInt($id);
         $this->assertEquals(123, $id);
+    }
+
+    /** @dataProvider wallet_write_results */
+    public function test_wallet_identity_depends_on_success_and_positive_id($affected, $id, $expected)
+    {
+        global $wpdb;
+        $wpdb->query_result = $affected;
+        $wpdb->insert_id = $id;
+        $service = new PayCryptoMeDBStatementsService();
+        $this->assertSame($expected, $service->insert_or_get_wallet_xpubkey_id('xpub_test', 'mainnet'));
+    }
+
+    public static function wallet_write_results(): array
+    {
+        return [
+            'inserted' => [1, 7, 7],
+            'existing wallet, zero changed rows' => [0, 9, 9],
+            'failed query with a stale ID' => [false, 8, false],
+            'missing wallet ID' => [1, 0, false],
+        ];
     }
 
     public function test_get_wallet_xpubkey_id_returns_id()
