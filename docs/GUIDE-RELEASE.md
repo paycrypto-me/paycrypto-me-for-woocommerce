@@ -4,9 +4,9 @@ The distribution slug is `paycrypto-me-for-woocommerce`. Run commands from the r
 
 ## Last verified publication
 
-**0.6.1, November 25, 2026.** SVN trunk **r3824316**, tag **r3824318** (21:30:12 UTC). At verification, the official API reported 0.6.1 and all 812 files in the public download matched the approved package byte for byte. Git tag `v0.6.1` points to `d5869ce`.
+**0.6.2, November 26, 2026.** SVN trunk **r3827214**, tag **r3827215** (14:00:33 UTC). At verification, the official API reported 0.6.2 and all 812 files in the public download matched the approved package byte for byte. Git tag `v0.6.2` points to `5d064b8`.
 
-Approved local ZIP SHA-256: `a363476ac4434b8747c5e7a557b71500e20ae062b17df268b47b9458d5b9a991`.
+Approved local ZIP SHA-256: `2d2163ce2ed9002ca8648a16544ba2ef2782a250595283309e05bbf88456ed14`.
 
 ## Installation and derivation lock transition after 0.6.0
 

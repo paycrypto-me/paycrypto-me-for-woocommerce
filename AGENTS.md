@@ -2,7 +2,7 @@
 
 Base plugin for Bitcoin On-Chain (`paycrypto_me`) and Lightning (`paycrypto_me_lightning`, BTCPay Server or lnd REST). Payment funds go directly to merchant-controlled wallets and nodes. Async confirmation, webhooks, on-chain monitoring and fiat-to-sats conversion belong to the separate Pro add-on.
 
-WordPress.org serves **0.6.1**. The repository contains the current version **0.6.2**.
+WordPress.org serves **0.6.2**. The repository contains the current version **0.6.2**.
 PHP namespace `PayCryptoMe\WooCommerce`.
 
 ## Development workflow
