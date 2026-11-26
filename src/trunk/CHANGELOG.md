@@ -3,6 +3,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.2
+
+### Fixed
+
+- Prevent checkout failures when two Bitcoin on-chain orders use the same extended public key and network for the first time. Both orders share the wallet record and receive distinct payment addresses.
+
 ## 0.6.1
 
 ### Fixed

@@ -8,7 +8,7 @@ Requires PHP: 8.1
 Requires Plugins: woocommerce
 WC requires at least: 6.5
 WC tested up to: 10.9
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -148,6 +148,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 
 == Changelog ==
 
+= 0.6.2 =
+* Prevent checkout failures when two Bitcoin on-chain orders use the same extended public key and network for the first time. Both orders share the wallet record and receive distinct payment addresses.
+
 = 0.6.1 =
 * Isolate database installation and Bitcoin address derivation locks between stores sharing a MySQL server.
 
@@ -237,6 +240,9 @@ Adapt the paragraph below for the payment methods you offer. Fill in the provide
 * Developer extension points reserved for the upcoming Pro add-on, with no effect on the free plugin: amount-enforced lnd invoices, order-details display filters, and dedicated on-chain payment filters. The Pro add-on owns on-chain confirmation tracking and transaction history in its own persistence.
 
 == Upgrade Notice ==
+
+= 0.6.2 =
+Fixes concurrent first payments for a Bitcoin wallet. When upgrading from 0.6.0 or earlier, follow the 0.6.1 upgrade notice below.
 
 = 0.6.1 =
 When upgrading from 0.6.0 or earlier, pause incoming requests and background jobs, wait for active work to finish, then update the plugin and restart your workers before reopening the store. Use the same procedure for a rollback.
